@@ -1,0 +1,16 @@
+# MTD
+KERNEL=="mtd[0-9]",		SYMLINK+="mtd/%n", MODE="0666"
+KERNEL=="mtd[1-9][0-9]",	SYMLINK+="mtd/%n", MODE="0666"
+KERNEL=="mtd[0-9]ro",		MODE="0444"
+KERNEL=="mtd[1-9][0-9]ro",	MODE="0444"
+KERNEL=="mtdblock[0-9]",	SYMLINK+="mtdblock/%n", MODE="0666"
+KERNEL=="mtdblock[1-9][0-9]",	SYMLINK+="mtdblock/%n", MODE="0666"
+KERNEL=="ubi[0-9]",		MODE="0666"
+KERNEL=="ubi[0-9]_[0-9]",	MODE="0666"
+
+# Lantiq dsl_cpe_api
+KERNEL=="dsl_cpe_api",          SYMLINK+="dsl_cpe_api", MODE="0666"
+KERNEL=="dsl_cpe_api/[0-9]",	SYMLINK+="dsl_cpe_api/%n", MODE="0666"
+
+# Lantiq datapath / ppa
+KERNEL=="ppa",	    SYMLINK+="ifx_ppa", MODE="0666"

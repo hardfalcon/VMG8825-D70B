@@ -1,0 +1,75 @@
+******************************************************************************
+       Copyright (c) 2003, Infineon Technologies.  All rights reserved.
+
+                               No Warranty
+   Because the program is licensed free of charge, there is no warranty for 
+   the program, to the extent permitted by applicable law.  Except when     
+   otherwise stated in writing the copyright holders and/or other parties   
+   provide the program "as is" without warranty of any kind, either         
+   expressed or implied, including, but not limited to, the implied         
+   warranties of merchantability and fitness for a particular purpose. The  
+   entire risk as to the quality and performance of the program is with     
+   you.  should the program prove defective, you assume the cost of all     
+   necessary servicing, repair or correction.                               
+                                                                            
+   In no event unless required by applicable law or agreed to in writing    
+   will any copyright holder, or any other party who may modify and/or
+   redistribute the program as permitted above, be liable to you for        
+   damages, including any general, special, incidental or consequential     
+   damages arising out of the use or inability to use the program           
+   (including but not limited to loss of data or data being rendered        
+   inaccurate or losses sustained by you or third parties or a failure of   
+   the program to operate with any other programs), even if such holder or  
+   other party has been advised of the possibility of such damages. 
+
+******************************************************************************
+
+HOW TO PREPARE COMPILATION
+--------------------------
+
+Provide your own LINUX build environment project setup:
+- your own LINUX kernel include path
+- number of VDSL2 devices (--with-max-device)
+- number of DSL lines per VDSL2 device (--with-lines-per-device)
+
+
+HOW TO COMPILE
+--------------
+execute the following commands on a shell in your build directory:
+
+CONFIGURE for PPC:
+------------------
+$ <your package dir>/configure --build=i686-pc-linux --host=ppc_8xx\
+							   --enable-kernelincl=/your/own/linux/include/path\
+							   --enable-debug\
+							   --with-max-device=1 --with-lines-per-device=1
+
+
+CONFIGURE for MIPSEL (MIPS little endianess):
+---------------------------------------------
+- Provide the mipsel compiler flags (ADM5120)
+	configure option: --enable-adm5120
+- Provide your cross compiler prefix
+	Example: mipsel-linux-
+- Provide the path to the mipsel cross compiler tool chain.
+	Example: /export/tools/bin
+
+$ <your package dir>/configure --build=i586-pc-linux --host=mipsel-linux --enable-adm5120\
+							   --enable-kernelincl=/your/own/linux/include/path\
+							   --with-max-device=1 --with-lines-per-device=1 --enable-debug\
+							   CC=/<your mipsel-crosscompile toolchain>/<coss-compile-prefix>gcc\
+							   LD=/<your mipsel-crosscompile toolchain>/<coss-compile-prefix>ld\
+							   RANLIB=/<your mipsel-crosscompile toolchain>/<coss-compile-prefix>ranlib\
+							   STRIP=/<your mipsel-crosscompile toolchain>/<coss-compile-prefix>strip\
+							   NM=/<your mipsel-crosscompile toolchain>/<coss-compile-prefix>nm\
+							   AR=/<your mipsel-crosscompile toolchain>/<coss-compile-prefix>ar\
+							   AS=/<your mipsel-crosscompile toolchain>/<coss-compile-prefix>as
+
+
+BUILD the system:
+-----------------
+After configure the system (for PPC or mipsel), only type
+
+make
+
+

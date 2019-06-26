@@ -1,0 +1,38 @@
+From 4934b04ba3727c40ad3ed1d1b47ebef7b6e0e915 Mon Sep 17 00:00:00 2001
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Tue, 17 May 2011 02:04:36 +0200
+Subject: [PATCH] Disable hardcoded but unused features FTS and RTREE.
+
+Signed-off-by: Daniel Egger <daniel.egger@sphairon.com>
+---
+ Makefile.am |    2 +-
+ Makefile.in |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Makefile.am b/Makefile.am
+index 3931d83..bd9208a 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -1,5 +1,5 @@
+ 
+-AM_CFLAGS = @THREADSAFE_FLAGS@ @DYNAMIC_EXTENSION_FLAGS@ -DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_RTREE
++AM_CFLAGS = @THREADSAFE_FLAGS@ @DYNAMIC_EXTENSION_FLAGS@
+ 
+ lib_LTLIBRARIES = libsqlite3.la
+ libsqlite3_la_SOURCES = sqlite3.c
+diff --git a/Makefile.in b/Makefile.in
+index 26f82cc..e2002a6 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -210,7 +210,7 @@ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ sysconfdir = @sysconfdir@
+ target_alias = @target_alias@
+-AM_CFLAGS = @THREADSAFE_FLAGS@ @DYNAMIC_EXTENSION_FLAGS@ -DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_RTREE
++AM_CFLAGS = @THREADSAFE_FLAGS@ @DYNAMIC_EXTENSION_FLAGS@
+ lib_LTLIBRARIES = libsqlite3.la
+ libsqlite3_la_SOURCES = sqlite3.c
+ libsqlite3_la_LDFLAGS = -no-undefined -version-info 8:6:8
+-- 
+1.7.4.1
+

@@ -1,0 +1,176 @@
+-------------------------------------------------------------------------------
+version 3.0.5.1   |  2014-01-16  |          Voice SP 4.33
+-------------------------------------------------------------------------------
+NEW Added in make a dependency on drv_config.h.
+
+-------------------------------------------------------------------------------
+version 3.0.5.0   |  2013-12-17  |          Voice SP 4.33 RC3
+-------------------------------------------------------------------------------
+CHG Support only tasklet mode in the future and removed support for the kernel
+    thread mode. [VOICECPE_SW-710]
+
+-------------------------------------------------------------------------------
+version 3.0.4.0   |  2013-02-05  |          Voice SP 4.30
+-------------------------------------------------------------------------------
+NEW Support of Linux versions from 2.6.39 onwards. [VOICECPE_SW-380]
+CHG Made file drv_kpi2udp_osmap.h obsolete and removed it from distribution.
+
+-------------------------------------------------------------------------------
+version 3.0.3.0   |  2013-01-10  |          Voice SP 4.28 maintenance
+-------------------------------------------------------------------------------
+NEW Support of Linux versions from 2.6.33 onwards. [VOICECPE_SW-593]
+
+-------------------------------------------------------------------------------
+version 3.0.2.1   |  2011-11-16  |          Voice SP 4.24 W7
+-------------------------------------------------------------------------------
+FIX Removed an ineffective paranoid range check that caused compiler warnings.
+
+-------------------------------------------------------------------------------
+version 3.0.2.0   |  2011-10-18  |          Voice SP 4.24 W6
+-------------------------------------------------------------------------------
+NEW Report an TAPI event when sending on the UDP socket returned an error
+    code. [VOICECPE_SW-366]
+FIX Do not overwrite the IP TOS (DSCP) field of the UDP socket during IOCTL
+    FIO_QOS_ON_SOCKET_START. [VOICECPE_SW-361]
+FIX Cleanup automake from warnings reported by "autoreconf -Wall".
+    [VOICECPE_SW-328]
+
+--------------------------------------------------------------------------------
+version 3.0.1.0   |  2011-07-05  |          Voice SP 4.21 W6
+--------------------------------------------------------------------------------
+CHG Unified configure arguments across all voice drivers. Options to specify
+    include pathes now follow this template: --with-xxx-incl=<path>.
+    Changed options are listed below. The old options can still be used but
+    are deprecated from now on.
+    --with-kernel-incl (previously: --enable-kernelincl)
+    --with-kernel-build (previously: --enable-kernelbuild)
+    --with-tapi-incl (previously: --enable-tapiincl=val)
+    --with-ifxos-incl (previously: --enable-ifxos-incl)
+FIX Prevent sporadic loss of packet that occured with the interface change in
+    version 3.0.0.0 by using another Socket API function that is tasklet safe.
+    [VOICECPE_SW-250]
+CHG Configurable tasklet mode [VOICECPE_SW-244]
+
+--------------------------------------------------------------------------------
+version 3.0.0.0  |  2011-02-25  |        TAPI 4.6.0 (aka 3.14.0) release
+--------------------------------------------------------------------------------
+NEW IPv6 support with extended interface towards TAPI
+CHG Linux 2.6.32.11 adaptations for UGW5.1
+
+--------------------------------------------------------------------------------
+version 2.2.0.0  |  2010-02-23  |        TAPI 3.11.0
+--------------------------------------------------------------------------------
+CHG improved the egress tasklet to check all active socket's lock to be
+    non-blocking before retrieving any data from the TAPI egress queue
+FIX don't start the KPI thread in case of tasklet mode
+
+--------------------------------------------------------------------------------
+version 2.1.0.0  |  2010-01-26  |        TAPI 3.11.0
+--------------------------------------------------------------------------------
+FIX reenable KPI tasklet mode (was disabled in 2.0.6 versions)
+NEW Added CRLF check on make distcheck
+FIX Prevent possible loss of internal buffers when the voice buffer fifo of
+    a channel is full
+CHG Voice buffer allocated with UDP owner ID
+CHG prevent udp_sendmsg in case it will block in tasklet context
+
+--------------------------------------------------------------------------------
+version 2.0.6.1  |  2009-11-12  |        TAPI 3.11.0
+--------------------------------------------------------------------------------
+CHG displayed copyrights to Lantiq
+
+--------------------------------------------------------------------------------
+version 2.0.6.0  |  2009-11-12  |        TAPI 3.11.0
+--------------------------------------------------------------------------------
+NEW integrated IFXOS library. Use --with-ifxos-include=<path> to specify
+    the path to the library includes (option is mandatory)
+CHG adapt Makefile.am for openWrt buildsystem
+
+--------------------------------------------------------------------------------
+version 2.0.5.1  |  2009-06-04  |        TAPI 3.10.0, 3.10.1 release
+--------------------------------------------------------------------------------
+no changes
+
+--------------------------------------------------------------------------------
+version 2.0.5.1  |  2009-04-01  |        TAPI 3.10.0 RC1
+--------------------------------------------------------------------------------
+no changes
+
+--------------------------------------------------------------------------------
+version 2.0.5.1  |  2009-04-01  |        TAPI 3.9.0 release
+--------------------------------------------------------------------------------
+CHG fixes based on static code analysis
+
+--------------------------------------------------------------------------------
+version 2.0.5.0  |  2009-03-31  |        TAPI 3.9.0
+--------------------------------------------------------------------------------
+CHG minor improvements in Makefile.am, configure.in
+
+--------------------------------------------------------------------------------
+version 2.0.4.0  |  2009-01-19  |        TAPI 3.8.3
+--------------------------------------------------------------------------------
+FIX bug in reopening a KPI socket which could lead to invalid pointer operations
+    including unaligned instruction access and kernel oops when closing a KPI
+    session
+FIX added proper locking on internal data structures (redtab) to make atomic
+    changes
+
+--------------------------------------------------------------------------------
+version 2.0.3.0  |  2009-01-15  |        TAPI 3.8.3
+--------------------------------------------------------------------------------
+FIX autoconf version requirements
+CHG limit number of traces in case we run out of buffers
+
+--------------------------------------------------------------------------------
+version 2.0.2.0  |  2008-12-11  |        TAPI 3.8.2 release
+--------------------------------------------------------------------------------
+FIX return the buffer to the pool in case an error occurs in the KPI
+
+--------------------------------------------------------------------------------
+version 2.0.1.0  |  2008-12-10  |        TAPI 3.8.2
+--------------------------------------------------------------------------------
+NEW set the socket's priority to 6 (quite high)
+CHG set the TOS field's default to 0xB8
+
+--------------------------------------------------------------------------------
+version 2.0.0.0  |  2008-11-21  |        TAPI 3.8.2/AR9
+--------------------------------------------------------------------------------
+NEW KPI tasklet mode
+CHG renamed NEWS to CHANGELOG
+
+--------------------------------------------------------------------------------
+version 1.2.1.0  |  2008-10-22  |        TAPI 3.8.1/AR9
+--------------------------------------------------------------------------------
+NEW license update
+CHG distribution package name doesn't contain tapi-x.x.x anymore
+
+--------------------------------------------------------------------------------
+version 1.2.0.1  |  2008-09-15  |        TAPI 3.8.0/AR9
+--------------------------------------------------------------------------------
+no changes
+
+--------------------------------------------------------------------------------
+version 1.2.0.1  |  2008-09-03  |        TAPI 3.8.0.2 RC1/AR9
+--------------------------------------------------------------------------------
+NEW remove --prefix option from distcheck configure options to avoid removal
+    of installed binaries on distcheck
+
+--------------------------------------------------------------------------------
+version 1.2.0.0  |  2008-08-07  |        TAPI 3.8.0.1 engineering snapshot/AR9
+--------------------------------------------------------------------------------
+NEW When loading the module the parameter 'TOS' can be given to set the value
+    which is put in the TOS field of every IP frame that is sent
+CHG Removed handling of multiple sockets for each channel. When now a session
+    is created it is automatically made active. The activation was removed.
+    For stopping a session the port number is no longer needed
+FIX Added version field which was missing in the interface structure
+
+--------------------------------------------------------------------------------
+version 1.1.0.0  |  2008-08-01  |        Internal version
+--------------------------------------------------------------------------------
+NEW Linux 2.6.x support
+
+--------------------------------------------------------------------------------
+version 1.0.0.0  |  2008-04-22  |        Initial release
+--------------------------------------------------------------------------------
+NEW Implemented as a separate driver that registers with TAPI

@@ -1,0 +1,25 @@
+From 4ebc79f4e60f76d2702467e1cf3454709be86565 Mon Sep 17 00:00:00 2001
+From: Maik Dybek <maik.dybek@sphairon.com>
+Date: Thu, 2 Aug 2012 15:37:51 +0200
+Subject: fix warning that a cast is needed
+
+---
+ strace.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/strace.c b/strace.c
+index 774d172..af73f88 100644
+--- a/strace.c
++++ b/strace.c
+@@ -2654,7 +2654,7 @@ Process %d attached (waiting for parent)\n",
+ # define PC_FORMAT_ARG	""
+ #endif
+ 				printleader(tcp);
+-				if (ptrace(PTRACE_GETSIGINFO, pid, 0, &si) == 0) {
++				if (ptrace(PTRACE_GETSIGINFO, pid, 0, (long) &si) == 0) {
+ 					tprintf("--- ");
+ 					printsiginfo(&si, verbose(tcp));
+ 					tprintf(" (%s)" PC_FORMAT_STR " ---",
+-- 
+1.7.9.5
+

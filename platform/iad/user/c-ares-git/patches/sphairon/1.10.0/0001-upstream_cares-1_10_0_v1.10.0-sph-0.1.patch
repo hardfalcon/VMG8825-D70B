@@ -1,0 +1,26 @@
+diff --git a/ares_private.h b/ares_private.h
+index ab5be5a58aa6c9f97d3f14ccb6faf2936c81b528..f1991787e15c4cb8fed9dc9e620b9bf17c8a1c07 100644
+--- a/ares_private.h
++++ b/ares_private.h
+@@ -38,7 +38,7 @@
+ #endif
+ 
+ #define DEFAULT_TIMEOUT         5000 /* milliseconds */
+-#define DEFAULT_TRIES           4
++#define DEFAULT_TRIES           2
+ #ifndef INADDR_NONE
+ #define INADDR_NONE 0xffffffff
+ #endif
+diff --git a/ares_version.h b/ares_version.h
+index ef8d230322df388886b51da99688903ba55faef8..3d24c0b1dd0a43d38dbfb4fce5b5dafea3e729fc 100644
+--- a/ares_version.h
++++ b/ares_version.h
+@@ -11,7 +11,7 @@
+ #define ARES_VERSION ((ARES_VERSION_MAJOR<<16)|\
+                        (ARES_VERSION_MINOR<<8)|\
+                        (ARES_VERSION_PATCH))
+-#define ARES_VERSION_STR "1.10.0"
++#define ARES_VERSION_STR "1.10.0-sph-0.1"
+ 
+ #if (ARES_VERSION >= 0x010700)
+ #  define CARES_HAVE_ARES_LIBRARY_INIT 1

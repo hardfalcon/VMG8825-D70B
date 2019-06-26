@@ -1,0 +1,1 @@
+../default/depend.mk

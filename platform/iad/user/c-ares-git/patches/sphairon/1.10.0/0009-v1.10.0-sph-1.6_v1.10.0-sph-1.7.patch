@@ -1,0 +1,48 @@
+diff --git a/ares_init.c b/ares_init.c
+index b42281134fe0c07e8f8f6495379d1b63e919fad7..86748abbe9d67f2aa5f039239793f4e1409268c1 100644
+--- a/ares_init.c
++++ b/ares_init.c
+@@ -180,7 +180,7 @@ int ares_init_options2(ares_channel *channelptr, struct ares_options *options,
+   memset(&channel->local_ip6, 0, sizeof(channel->local_ip6));
+   memset(&channel->resolv_conf_name, 0, sizeof(channel->resolv_conf_name));
+   if (resolv_conf_name) {
+-      strncpy(channel->resolv_conf_name, resolv_conf_name, 63);
++      strncpy(channel->resolv_conf_name, resolv_conf_name, sizeof(channel->resolv_conf_name) - 1);
+   }
+ 
+   /* Initialize our lists of queries */
+@@ -1994,7 +1994,7 @@ int ares_set_resolv_conf(ares_channel channel,
+                           const char* resolv_conf_name)
+ {
+   strncpy(channel->resolv_conf_name, resolv_conf_name,
+-          sizeof(channel->resolv_conf_name));
++          sizeof(channel->resolv_conf_name) - 1);
+   return init_by_resolv_conf(channel);
+ }
+ 
+diff --git a/ares_private.h b/ares_private.h
+index ad3eeccda36c0c5479ec7d98fa583e9121243403..832a63512d61e5ca8eb3d8c0a5a81f591f47843c 100644
+--- a/ares_private.h
++++ b/ares_private.h
+@@ -270,7 +270,7 @@ struct ares_channeldata {
+   unsigned int local_ip4;
+   unsigned char local_ip6[16];
+ 
+-  char resolv_conf_name[64];
++  char resolv_conf_name[256];
+ 
+   int optmask; /* the option bitfield passed in at init time */
+ 
+diff --git a/ares_version.h b/ares_version.h
+index 02e894ccae431bc4c1d46975edf931d4c49cac2e..1b400d755bf1707dcc8b5229baf2bd6cba47ab3f 100644
+--- a/ares_version.h
++++ b/ares_version.h
+@@ -11,7 +11,7 @@
+ #define ARES_VERSION ((ARES_VERSION_MAJOR<<16)|\
+                        (ARES_VERSION_MINOR<<8)|\
+                        (ARES_VERSION_PATCH))
+-#define ARES_VERSION_STR "1.10.0-sph-1.6"
++#define ARES_VERSION_STR "1.10.0-sph-1.7"
+ 
+ #if (ARES_VERSION >= 0x010700)
+ #  define CARES_HAVE_ARES_LIBRARY_INIT 1

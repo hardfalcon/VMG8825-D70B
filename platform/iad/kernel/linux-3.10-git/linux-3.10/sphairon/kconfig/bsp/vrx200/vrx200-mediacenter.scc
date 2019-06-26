@@ -1,0 +1,2 @@
+include bsp/vrx200/vrx200-voice_cpe.scc
+include flavors/sphairon-media.scc

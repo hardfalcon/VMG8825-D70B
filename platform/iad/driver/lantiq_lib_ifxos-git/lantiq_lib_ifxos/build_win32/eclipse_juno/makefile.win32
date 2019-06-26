@@ -1,0 +1,119 @@
+MAKEFILE_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+# Source directory. Absolute or relative to build directory.
+SOURCE_DIR ?= ${MAKEFILE_DIR}
+ROOTFS ?= ../win32_fs
+
+$(if $(filter $(SOURCE_DIR),$(CURDIR)),\
+  $(error Please run the makefile from the build directory.))
+
+# $(call source-to-object, source-file-list)
+source-to-object = $(subst .c,.o,$(filter %.c,$1))
+
+sources := \
+src/win32/ifxos_win32_copy_user_space.c \
+src/win32/ifxos_win32_event.c \
+src/win32/ifxos_win32_file_access.c \
+src/win32/ifxos_win32_lock.c \
+src/win32/ifxos_win32_memory_alloc.c \
+src/win32/ifxos_win32_memory_map.c \
+src/win32/ifxos_win32_misc.c \
+src/win32/ifxos_win32_mutex.c \
+src/win32/ifxos_win32_pipe.c \
+src/win32/ifxos_win32_print.c \
+src/win32/ifxos_win32_print_io.c \
+src/win32/ifxos_win32_select.c \
+src/win32/ifxos_win32_socket.c \
+src/win32/ifxos_win32_termios.c \
+src/win32/ifxos_win32_thread.c \
+src/win32/ifxos_win32_time.c \
+src/common/ifx_crc.c \
+src/common/ifx_fifo.c \
+src/common/ifx_getopt_ext.c \
+src/common/ifx_ini_access.c \
+src/common/ifxos_debug.c \
+src/common/ifxos_sys_show.c \
+src/common/ifxos_version.c \
+src/dev_io/ifxos_device_io.c \
+src/dev_io/ifxos_device_io_access.c 
+
+modules      =    src/win32 src/common src/dev_io
+objects      =    $(call source-to-object,$(sources))
+dependencies =    $(subst .o,.d,$(objects))
+
+include_dirs := $(SOURCE_DIR)/src/include
+includes     += $(addprefix -I ,$(include_dirs))
+CPPFLAGS     += $(includes)
+
+vpath %.h $(include_dirs)
+vpath %.c $(SOURCE_DIR)
+
+MKDIR := mkdir -p
+MV    := mv -f
+RM    := rm -f
+SED   := sed
+TEST  := test
+CC    := gcc
+CP    := cp
+
+create-output-directories :=\
+	$(shell for f in $(modules);\
+		do\
+			$(TEST) -d $$f || $(MKDIR) $$f;\
+		done)
+
+# All Target
+all: libifxos.dll libifxos.a
+.PHONY: all
+
+.PHONY: clean
+clean:
+	$(RM) -r *
+
+ifneq "$(MAKECMDGOALS)" "clean"
+  -include $(dependencies)
+endif
+
+# $(call make-depend,source-file,object-file)
+define make-depend
+  $(CC) -DIFXOS_USE_DEV_IO=1 -DIFXOS_HAVE_DEVICE_ACCESS=1 \
+    -DIFXOS_HAVE_DEVICE_ACCESS_SELECT=1 -MM -MF $(subst .o,.d,$@) -MP -MT $2 \
+    $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) $1
+endef
+
+%.o: %.c
+	@echo 'Building file: $<'
+	$(call make-depend,$<,$@)
+	@echo 'Invoking: C Compiler'
+	$(CC) -DIFXOS_USE_DEV_IO=1 -DIFXOS_HAVE_DEVICE_ACCESS=1 \
+		-DIFXOS_HAVE_DEVICE_ACCESS_SELECT=1 $(includes) -O0 -g3 -Wall -c \
+		-fmessage-length=0 -o "$@" "$<"
+	@echo 'Finished building: $<'
+	@echo ' '
+
+libraries := -lws2_32 -liphlpapi
+
+# Tool invocations
+libifxos.dll: $(objects)
+	@echo 'Building target: $@'
+	@echo 'Invoking: MinGW C Linker'
+	$(CC) -shared -o $@ \
+		-Wl,--no-undefined \
+		-Wl,--export-all-symbols \
+		-Wl,--enable-auto-import \
+		-Wl,--enable-runtime-pseudo-reloc \
+		-Wl,--whole-archive $(objects) \
+		-Wl,--no-whole-archive $(libraries) \
+		-Wl,--out-implib,$@.a
+	@echo 'Finished building target: $@'
+	@echo ' '
+
+libifxos.a: $(objects)
+	@echo 'Building target: $@'
+	@echo 'Invoking: MinGW archiver'
+	$(AR) rs $@ $?
+	@echo 'Finished building target: $@'
+	@echo ' '
+
+.PHONY: install
+install:
+	$(MKDIR) $(ROOTFS)/bin && $(CP) libifxos.dll $(ROOTFS)/bin

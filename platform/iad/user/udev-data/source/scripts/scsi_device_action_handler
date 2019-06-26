@@ -1,0 +1,173 @@
+#!/bin/sh
+
+LOG_INFO='shell_log scsi_device_action_handler info '
+LOG_ERROR='shell_log scsi_device_action_handler error '
+LOG_STATUS='shell_log scsi_device_action_handler status '
+
+USB_STATE_MANAGER=`which usb-state-manage`
+SYSFS=/sys
+MSD_TYPE=2
+
+CACHE_DIR="/etc/udev/cache.d"
+
+DEVICE=$2
+
+# on 2.6.20 there we get 
+# /class/scsi_device/0:0:0:0
+# so here we have to dereference linked node "device"
+# with hubs, we have a little different view here:
+# /sys/devices/platform/ifxusb_hcd/usb1/1-1/1-1.3/1-1.3:1.0/host11/target11:0:0/11:0:0:0
+# usb path: bus x -> root-hub (port1) -> user hub (port 3) -> MSD
+
+# on 2.6.32 we get:
+# /devices/pci0000:00/0000:00:0f.2/usb3/3-2/3-2:1.0/host5/target5:0:0/5:0:0:0/scsi_device/5:0:0:0
+
+pathtype=`echo $DEVICE | cut -f2 -d'/'`
+
+case "$pathtype" in
+    class)
+	device_link=`ls -al /sys/$DEVICE | grep "device ->" | cut -f2 -d'>'`
+	pathlist=`echo ${device_link} | tr '/' '\n'`
+        ;;
+    devices)
+	pathlist=`echo ${DEVICE} | tr '/' '\n'`
+        ;;
+    *)
+        $LOG_ERROR "Unsupported Argument \"$DEVICE\" given!"
+        ;;
+esac
+
+do_parse_sysfs_usb_device_path()
+{
+    CURPATH=$SYSFS
+    DEVPATH=$SYSFS
+    local t=""
+    while [ $# -gt 0 ] ; do
+	case "$1" in
+	    usb*)
+                # we are at busX
+                CURPATH=$CURPATH/$1
+                shift
+                # we are at root hub bus-port
+		# traverse the possilbe list of hubs
+                BUSID=`echo $1 | cut -f1 -d'-'`
+                PORTID=`echo $1 | cut -f2 -d'-'`
+		t=$(echo $1 | tr -d ':')
+		# as long there is no ':' in the subpath, we are not at the end of the porta.portb.portc list
+	        while [ ${#t} -eq ${#1} ] ; do
+		    if [ ${#1} -eq 0 ]; then
+			break;
+		    fi
+        	    CURPATH=$CURPATH/$1
+		    DEVPATH=$CURPATH
+		    shift
+		    t=$(echo $1 | tr -d ':')
+		done
+                DEVID=`cat $DEVPATH/devnum`
+		VID=`cat $DEVPATH/idVendor`
+                PID=`cat $DEVPATH/idProduct`
+		# we are at bus-port.port.port:configuration.interface
+                CID=`echo $1 | cut -f2 -d':' | cut -f1 -d'.'`
+                IFID=`echo $1 | cut -f2 -d':' | cut -f2 -d'.'`
+		# update CURPATH
+		CURPATH=$CURPATH/$1
+                ;;
+            .*)
+                echo -n ""
+                ;;
+            *)
+                CURPATH=$CURPATH/$1
+                ;;
+	esac
+	shift
+    done
+}
+
+scsi_disk()
+{
+    # add and rem are allowed
+    [ ${#USB_STATE_MANAGER} -gt 0 ] || return 0;
+
+    case "$1" in
+	add)
+	    [ ${#BUSID} -ne 0 ] || return 0;
+	    [ ${#DEVID} -ne 0 ] || return 0;
+	    # first we write to cache file
+	    # then we read from it
+	    # fix permissions for this node
+	    do_write_cache $DEVICE
+	    do_read_cache $DEVICE
+	    ;;
+	rem)
+	    # we just need the information from the cache file
+	    do_read_cache $DEVICE
+	    ;;
+	*)	
+	    $LOG_ERROR "Wrong arguments given!"
+	    return;
+	    ;;
+    esac
+    
+    [ ${#RD_CACHE} -ne 0 ] || return 1;
+
+    $LOG_INFO "${USB_STATE_MANAGER} $1 ${RD_CACHE}"
+    $USB_STATE_MANAGER "$1" $RD_CACHE
+    local ret=$?
+    [ $ret -ne 0 ] || return 0;
+    case "$1" in
+	add)
+	    $LOG_ERROR "Failed to register mass storage $RD_CACHE with $ret"
+	    ;;
+	rem)
+	    $LOG_ERROR "Failed to unregister mass storage $RD_CACHE with $ret"
+	    ;;
+    esac
+    return 1
+}
+
+do_write_cache()
+{
+    if [ ! -d $CACHE_DIR ]; then
+	mkdir -p $CACHE_DIR
+    fi
+
+    echo -n "$MSD_TYPE $PORTID $BUSID $DEVID $IFID" > $CACHE_DIR/$(basename $1)
+}
+
+do_read_cache()
+{
+    local file=$(basename $1)
+    [ -d ${CACHE_DIR} ] || return;
+    [ -f ${CACHE_DIR}/$file ] || return;
+
+    RD_CACHE=$(cat ${CACHE_DIR}/$file)
+}
+
+remove_cache()
+{
+    local file=$(basename $1)
+    [ -f ${CACHE_DIR}/$file ] || return;
+    rm -f ${CACHE_DIR}/$file
+}
+
+case "$1" in
+	add)
+	    do_parse_sysfs_usb_device_path $pathlist
+	    chown -R root:usb /dev/bus/usb/*$BUSID/*
+	    scsi_disk add
+	    if [ $? -ne 0 ]; then
+		remove_cache $DEVICE
+	    fi
+	    ;;
+	remove|rem|del)
+	    scsi_disk rem
+	    if [ $? -eq 0 ]; then
+		remove_cache $DEVICE
+	    fi
+	    ;;
+	*)
+            $LOG_ERROR "Called with wrong arguments"
+	    ;;
+esac
+
+exit 0

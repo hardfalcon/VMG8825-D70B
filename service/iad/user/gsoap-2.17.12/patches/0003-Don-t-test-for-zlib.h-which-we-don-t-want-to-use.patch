@@ -1,0 +1,24 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Tue, 3 May 2011 13:13:00 +0200
+Subject: Don't test for zlib.h which we don't want to use.
+
+Signed-off-by: Daniel Egger <daniel.egger@sphairon.com>
+---
+ configure | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configure b/configure
+index 95491a5..ce63857 100755
+--- a/configure
++++ b/configure
+@@ -4385,7 +4385,7 @@ done
+ 
+ 
+ 
+-for ac_header in arpa/inet.h xlocale.h errno.h fcntl.h limits.h netdb.h netinet/in.h stdlib.h string.h strings.h stdint.h sys/socket.h sys/types.h sys/time.h sys/timeb.h unistd.h openssl/ssl.h zlib.h
++for ac_header in arpa/inet.h xlocale.h errno.h fcntl.h limits.h netdb.h netinet/in.h stdlib.h string.h strings.h stdint.h sys/socket.h sys/types.h sys/time.h sys/timeb.h unistd.h openssl/ssl.h 
+ do
+ as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ if eval "test \"\${$as_ac_Header+set}\" = set"; then
+--
+

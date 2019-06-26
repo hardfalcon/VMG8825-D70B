@@ -1,0 +1,22 @@
+From: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+Date: Tue, 26 Jul 2011 14:40:38 +0200
+Subject: Do not use builtin make rules
+
+Signed-off-by: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+---
+ pppd/Makefile.linux | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/pppd/Makefile.linux b/pppd/Makefile.linux
+index e1eb8a0..9c1cd42 100644
+--- a/pppd/Makefile.linux
++++ b/pppd/Makefile.linux
+@@ -222,3 +222,6 @@ clean:
+ 
+ depend:
+ 	$(CPP) -M $(CFLAGS) $(PPPDSRCS) >.depend
++
++%.o: %.c
++	$(CC) $(CFLAGS) -c -o $@ $<
+--
+

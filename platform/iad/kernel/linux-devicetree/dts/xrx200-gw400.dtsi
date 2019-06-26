@@ -1,0 +1,540 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2014-2019 Sphairon GmbH (a Zyxel company)
+ */
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include "xrx200.dtsi"
+
+/ {
+	gpio-keys-polled {
+		compatible = "gpio-keys-polled";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		poll-interval = <100>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pins_gpio_keys_default>;
+
+		wlan {
+			label = "wlan-btn";
+			gpios = <&gpio 45 GPIO_ACTIVE_LOW>;
+			linux,code = <0x101>;	/* BTN_1 */
+		};
+		reset {
+			label = "reset-btn";
+			gpios = <&gpio 46 GPIO_ACTIVE_LOW>;
+			linux,code = <0x100>;	/* BTN_0 */
+		};
+	};
+
+	gpio-leds {
+		compatible = "gpio-leds";
+
+		dsl0_amber {
+			label = "amber:dsl-led0";
+			gpios = <&stp 0 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+		dsl1_green {
+			label = "green:dsl-led1";
+			gpios = <&stp 1 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+		clk_sync_green {
+			label = "green:clk-sync";
+			gpios = <&stp 8 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+		web_green {
+			label = "green:web";
+			gpios = <&stp 9 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+		web_red {
+			label = "red:web";
+			gpios = <&stp 10 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+		backup_green {
+			label = "green:backup";
+			gpios = <&stp 11 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+		sip_reg_green {
+			label = "green:sip-reg";
+			gpios = <&stp 12 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+		sip_reg_red {
+			label = "red:sip-reg";
+			gpios = <&stp 13 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+		power_green {
+			label = "green:power";
+			gpios = <&stp 14 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+		power_red {
+			label = "red:power";
+			gpios = <&stp 15 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+	};
+
+	sph_platform {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "sphairon,platform";
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pins_sph_platform_default>;
+
+		svip_rst {
+			label = "svip-rst";
+			gpios = <&gpio 31 GPIO_ACTIVE_LOW>;
+			default-state = "on";
+		};
+	};
+
+	pcm_clk_gen@0 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "sphairon,pcm-clk-gen";
+
+		pinctrl-names = "default", "master", "slave";
+		pinctrl-0 = <&pins_pcm_default>;
+		pinctrl-1 = <&pins_pcm_master>;
+		pinctrl-2 = <&pins_pcm_slave>;
+
+		gpio-pcm-dcl = <&gpio 40 GPIO_ACTIVE_HIGH>;
+		gpio-pcm-fsc = <&gpio 0 GPIO_ACTIVE_HIGH>;
+		gpio-pcm-ext = <&gpio 47 GPIO_ACTIVE_LOW>;
+	};
+};
+
+&localbus {
+	nand@1 {
+		compatible = "gen_nand", "lantiq,nand-xway";
+		reg = <1 0x0 0x2000000>;
+		linux,mtd-name = "nand-xway";
+		bank-width = <2>;
+		lantiq,cs = <1>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pins_nand_default>;
+	};
+};
+
+&spi {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_spi_default>;
+
+	status = "ok";
+
+	m25p80@4 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "spansion,m25p80";
+		reg = <4>;
+		spi-max-frequency = <25000000>;
+	};
+};
+
+&gpio {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_default>;
+
+	pins_default: pins_default {
+		supervisor {
+			lantiq,groups = "clkout0";
+			lantiq,function = "cgu";
+			lantiq,output = <1>;
+		};
+	};
+
+	pins_eth_default: pins_eth_default {
+		mdio {
+			lantiq,groups = "mdio";
+			lantiq,function = "mdio";
+			lantiq,output = <1>;
+		};
+		exin2 {
+			lantiq,groups = "exin2";
+			lantiq,function = "exin";
+			lantiq,output = <0>;
+		};
+	};
+
+	pins_gpio_keys_default: pins_gpio_keys_default {
+		gpio_in {
+			lantiq,pins = "io45", "io46";
+			lantiq,output = <0>;
+		};
+	};
+
+	pins_nand_default: pins_nand_default {
+		nand_out {
+			lantiq,groups = "ebu cs1", "nand cle",
+					"nand ale", "nand rd";
+			lantiq,function = "ebu";
+			lantiq,output = <1>;
+		};
+		nand_in {
+			lantiq,groups = "nand rdy";
+			lantiq,function = "ebu";
+			lantiq,output = <0>;
+		};
+	};
+
+	pins_psb21150_default: pins_psb21150_default {
+		exin1 {
+			lantiq,groups = "exin1";
+			lantiq,function = "exin";
+			lantiq,output = <0>;
+		};
+	};
+
+	pins_zl30342_default: pins_zl30342_default {
+		exin5 {
+			lantiq,groups = "exin5";
+			lantiq,function = "exin";
+			lantiq,output = <0>;
+		};
+		reset {
+			lantiq,pins = "io36";
+			lantiq,output = <1>;
+		};
+	};
+
+	pins_sph_platform_default: pins_sph_platform_default {
+		gpio_low_active {
+			lantiq,pins = "io31";
+			lantiq,output = <1>;
+		};
+	};
+
+	pins_spi_default: pins_spi_default {
+		spi_in {
+			lantiq,groups = "spi_din";
+			lantiq,function = "spi";
+			lantiq,output = <0>;
+		};
+		spi_out {
+			lantiq,groups = "spi_dout", "spi_clk",
+					"spi_cs4";
+			lantiq,function = "spi";
+			lantiq,output = <1>;
+			lantiq,open-drain = <0>;
+		};
+	};
+
+	pins_stp_default: pins_stp_default {
+		stp {
+			lantiq,groups = "stp";
+			lantiq,function = "stp";
+			lantiq,output = <1>;
+			lantiq,open-drain = <0>;
+		};
+	};
+
+	pins_usif_spi_default: pins_usif_spi_default {
+		usif_in {
+			lantiq,groups = "usif din";
+			lantiq,function = "usif";
+			lantiq,output = <0>;
+		};
+		usif_out {
+			lantiq,groups = "usif dout";
+			lantiq,function = "usif";
+			lantiq,output = <1>;
+			lantiq,open-drain = <0>;
+		};
+		usif_clk {
+			lantiq,groups = "usif clk drive";
+			lantiq,function = "gpio";
+			lantiq,output = <1>;
+			lantiq,drive = <1>;
+			lantiq,open-drain = <0>;
+		};
+		cs {
+			lantiq,pins = "io22", "io32", "io34",
+					"io37", "io39";
+			lantiq,output = <1>;
+			lantiq,drive = <1>;
+		};
+	};
+
+	pins_usif_clk_active: pins_usif_clk_active{
+		usif_clk {
+			lantiq,groups = "usif clk";
+			lantiq,function = "usif";
+			lantiq,output = <1>;
+		};
+	};
+
+	pins_usif_clk_high: pins_usif_clk_high {
+		usif_clk {
+			lantiq,groups = "usif clk drive";
+			lantiq,function = "gpio";
+			lantiq,output = <1>;
+			lantiq,drive = <1>;
+		};
+	};
+
+	pins_usif_clk_low: pins_usif_clk_low {
+		usif_clk {
+			lantiq,groups = "usif clk drive";
+			lantiq,function = "gpio";
+			lantiq,output = <1>;
+			lantiq,drive = <1>;
+		};
+	};
+
+	pins_usb0_default: pins_usb0_default {
+		gpio_high_active {
+			lantiq,pins = "io41";
+			lantiq,output = <1>;
+			lantiq,drive = <0>;
+		};
+	};
+
+	pins_usb1_default: pins_usb1_default {
+		gpio_high_active {
+			lantiq,pins = "io33";
+			lantiq,output = <1>;
+			lantiq,drive = <0>;
+		};
+	};
+
+	pins_pcm_default: pins_pcm_default {
+		pcm_clock {
+			lantiq,pins = "io0", "io40";
+			lantiq,pull = <2>;
+			lantiq,output = <0>;
+		};
+		pcm_sync_ext {
+			lantiq,pins = "io47";
+			lantiq,output = <1>;
+			lantiq,drive = <0>;
+		};
+	};
+
+	pins_pcm_master: pins_pcm_master {
+		pcm_clock {
+			lantiq,pins = "io0", "io40";
+			lantiq,output = <1>;
+			lantiq,drive = <0>;
+			lantiq,open-drain = <0>;
+		};
+	};
+
+	pins_pcm_slave: pins_pcm_slave {
+		pcm_clock {
+			lantiq,pins = "io0", "io40";
+			lantiq,pull = <2>;
+			lantiq,output = <0>;
+		};
+	};
+};
+
+&stp {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_stp_default>;
+
+	status = "ok";
+
+	lantiq,shadow = <0xff03>;
+	lantiq,groups = <0x3>;
+	lantiq,speed = <0x8>;
+	lantiq,phy1 = <0x3>;
+	lantiq,phy2 = <0x3>;
+};
+
+#if !defined(IS_UGW_61)
+&gphy0 {
+	lantiq,phy-mode = "11g";
+	status = "ok";
+};
+
+&gphy1 {
+	lantiq,phy-mode = "11g";
+	status = "ok";
+};
+#endif
+
+&eth {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_eth_default>;
+
+#if defined(IS_UGW_61)
+	gphy@0 {
+		lantiq,phy-mode = "11g";
+		status = "ok";
+	};
+
+	gphy@1 {
+		lantiq,phy-mode = "11g";
+		status = "ok";
+	};
+#endif
+
+	mdio@0 {
+		phy0: ethernet-phy@11 {
+			compatible = "lantiq,pef7071", "ethernet-phy-ieee802.3-c22";
+			/*interrupt-parent = <&icu0>;
+			interrupts = <122>;*/
+			reg = <0x11>;
+			lantiq,led0 = <0x7003>;
+			lantiq,led1 = <0x4000>;
+			lantiq,led2 = <0x0>;
+		};
+
+		phy1: ethernet-phy@13 {
+			compatible = "lantiq,pef7071", "ethernet-phy-ieee802.3-c22";
+			/*interrupt-parent = <&icu0>;
+			interrupts = <121>;*/
+			reg = <0x13>;
+			lantiq,led0 = <0x7003>;
+			lantiq,led1 = <0x4000>;
+			lantiq,led2 = <0x0>;
+		};
+
+		phy2: ethernet-phy@0 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <0x0>;
+		};
+	};
+
+	ethernet@0 {
+		phy-mode = "rgmii";
+		lantiq,rgmii-tx-delay = <3>;
+		status = "ok";
+		lantiq,port-name = "sw-p0";
+		fixed-link {
+			speed = <1000>;
+			full-duplex;
+		};
+	};
+
+	ethernet@2 {
+		phy-handle = <&phy0>;
+		phy-mode = "gmii";
+		status = "ok";
+		lantiq,port-name = "sw-p2";
+	};
+
+	ethernet@4 {
+		phy-handle = <&phy1>;
+		phy-mode = "gmii";
+		status = "ok";
+		lantiq,port-name = "sw-p4";
+	};
+
+	ethernet@5 {
+		phy-handle = <&phy2>;
+		phy-mode = "rgmii";
+		lantiq,rgmii-tx-delay = <3>;
+		status = "ok";
+		lantiq,port-name = "sw-p5";
+		lantiq,wanoe;
+	};
+};
+
+&usb0 {
+	status = "ok";
+};
+
+&usb1 {
+	status = "ok";
+};
+
+&usb0_oc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_usb0_default>;
+	gpios = <&gpio 41 GPIO_ACTIVE_HIGH>;
+	debounce-interval = <100>;
+	status = "ok";
+};
+
+&usb1_oc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_usb1_default>;
+	gpios = <&gpio 33 GPIO_ACTIVE_HIGH>;
+	debounce-interval = <100>;
+	status = "ok";
+};
+
+&usif {
+	pinctrl-names = "default", "clk active", "clk high",
+			"clk low";
+	pinctrl-0 = <&pins_usif_spi_default &pins_usif_clk_low
+			&pins_psb21150_default &pins_zl30342_default>;
+	pinctrl-1 = <&pins_usif_clk_active>;
+	pinctrl-2 = <&pins_usif_clk_high>;
+	pinctrl-3 = <&pins_usif_clk_low>;
+
+	status = "ok";
+
+	cs-gpios = <&gpio 39 GPIO_ACTIVE_HIGH>, <&gpio 32 GPIO_ACTIVE_HIGH>,
+		<&gpio 34 GPIO_ACTIVE_HIGH>, <&gpio 22 GPIO_ACTIVE_HIGH>,
+		<&gpio 37 GPIO_ACTIVE_HIGH>;
+
+	fxs0: psb21150@0 {
+		compatible = "lantiq,psb21150";
+		reg = <0>;
+		spi-max-frequency = <1000000>;
+		spi-cpol;
+		spi-cpha;
+		interrupt-parent = <&eiu>;
+		interrupts = <135 IRQ_TYPE_LEVEL_LOW>;
+		lantiq,mode-lts;
+		lantiq,iom2-channel = <0>;
+	};
+
+	fxs1: psb21150@1 {
+		compatible = "lantiq,psb21150";
+		reg = <1>;
+		spi-max-frequency = <1000000>;
+		spi-cpol;
+		spi-cpha;
+		interrupt-parent = <&eiu>;
+		interrupts = <135 IRQ_TYPE_LEVEL_LOW>;
+		lantiq,mode-lts;
+		lantiq,iom2-channel = <1>;
+	};
+
+	fxs2: psb21150@2 {
+		compatible = "lantiq,psb21150";
+		reg = <2>;
+		spi-max-frequency = <1000000>;
+		spi-cpol;
+		spi-cpha;
+		interrupt-parent = <&eiu>;
+		interrupts = <135 IRQ_TYPE_LEVEL_LOW>;
+		lantiq,mode-lts;
+		lantiq,iom2-channel = <2>;
+	};
+
+	fxs3: psb21150@3 {
+		compatible = "lantiq,psb21150";
+		reg = <3>;
+		spi-max-frequency = <1000000>;
+		spi-cpol;
+		spi-cpha;
+		interrupt-parent = <&eiu>;
+		interrupts = <135 IRQ_TYPE_LEVEL_LOW>;
+		lantiq,mode-lts;
+		lantiq,iom2-channel = <3>;
+	};
+
+	pll: zl30342@4 {
+		compatible = "zarlink,zl30342";
+		reg = <4>;
+		spi-max-frequency = <8000000>;
+		interrupt-parent = <&eiu>;
+		interrupts = <42 IRQ_TYPE_EDGE_FALLING>;
+		gpios = <&gpio 36 GPIO_ACTIVE_LOW>;
+	};
+};

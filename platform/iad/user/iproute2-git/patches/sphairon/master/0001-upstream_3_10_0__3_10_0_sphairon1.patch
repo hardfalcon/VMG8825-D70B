@@ -1,0 +1,161 @@
+diff --git a/Makefile b/Makefile
+index d4eed713cb8596a80471e65b8bdb0c3ba01f0fba..70054b60de1bf3d07d56be63208cf389a2dc4745 100644
+--- a/Makefile
++++ b/Makefile
+@@ -33,16 +33,17 @@ CCOPTS = -O2
+ WFLAGS := -Wall -Wstrict-prototypes -Werror -Wmissing-prototypes
+ WFLAGS += -Wmissing-declarations -Wold-style-definition
+ 
+-CFLAGS = $(WFLAGS) $(CCOPTS) -I../include $(DEFINES)
++CFLAGS = $(WFLAGS) $(CCOPTS) -I../include $(DEFINES) $(EXTRA_CFLAGS)
++LDFLAGS = $(EXTRA_LDFLAGS)
+ YACCFLAGS = -d -t -v
+ 
+-SUBDIRS=lib ip tc bridge misc netem genl man
++SUBDIRS=lib ip tc bridge misc
+ 
+ LIBNETLINK=../lib/libnetlink.a ../lib/libutil.a
+ LDLIBS += $(LIBNETLINK)
+ 
+ all: Config
+-	@set -e; \
++	@+set -e; \
+ 	for i in $(SUBDIRS); \
+ 	do $(MAKE) $(MFLAGS) -C $$i; done
+ 
+diff --git a/configure b/configure
+index da01c19b6afa37ea500b2cd45711985b18410b8e..f4df84e221102943457781cb529f52dfe8496084 100755
+--- a/configure
++++ b/configure
+@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
+ }
+ EOF
+ 
+-    $CC -I$INCLUDE -o $TMPDIR/atmtest $TMPDIR/atmtest.c -latm >/dev/null 2>&1
++    $CC -I$INCLUDE -o $TMPDIR/atmtest $TMPDIR/atmtest.c $EXTRA_CFLAGS $EXTRA_LDFLAGS -latm >/dev/null 2>&1
+     if [ $? -eq 0 ]
+     then
+ 	echo "TC_CONFIG_ATM:=y" >>Config
+@@ -61,8 +61,8 @@ int main(int argc, char **argv)
+ }
+ EOF
+ 
+-    if $CC -I$INCLUDE $IPTC -o $TMPDIR/ipttest $TMPDIR/ipttest.c $IPTL \
+-	$(${PKG_CONFIG} xtables --cflags --libs) -ldl >/dev/null 2>&1
++    $CC -I$INCLUDE $IPTC -o $TMPDIR/ipttest $TMPDIR/ipttest.c $IPTL $EXTRA_CFLAGS $EXTRA_LDFLAGS -lxtables >/dev/null 2>&1
++    if [ $? -eq 0 ]
+     then
+ 	echo "TC_CONFIG_XT:=y" >>Config
+ 	echo "using xtables"
+@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
+ 
+ EOF
+ 
+-    $CC -I$INCLUDE $IPTC -o $TMPDIR/ipttest $TMPDIR/ipttest.c $IPTL -ldl >/dev/null 2>&1
++    $CC -I$INCLUDE $IPTC -o $TMPDIR/ipttest $TMPDIR/ipttest.c $IPT $EXTRA_CFLAGS $EXTRA_LDFLAGS -ldl >/dev/null 2>&1
+     if [ $? -eq 0 ]
+     then
+ 	echo "TC_CONFIG_XT_OLD:=y" >>Config
+@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
+ }
+ 
+ EOF
+-	$CC -I$INCLUDE $IPTC -o $TMPDIR/ipttest $TMPDIR/ipttest.c $IPTL -ldl >/dev/null 2>&1
++	$CC -I$INCLUDE $IPTC -o $TMPDIR/ipttest $TMPDIR/ipttest.c $IPTL $EXTRA_CFLAGS $EXTRA_LDFLAGS -ldl >/dev/null 2>&1
+ 
+ 	if [ $? -eq 0 ]
+ 	then
+@@ -159,24 +159,11 @@ check_ipt()
+ 
+ check_ipt_lib_dir()
+ {
+-	IPT_LIB_DIR=$(${PKG_CONFIG} --variable=xtlibdir xtables)
+ 	if [ -n "$IPT_LIB_DIR" ]; then
+ 		echo $IPT_LIB_DIR
+ 		echo "IPT_LIB_DIR:=$IPT_LIB_DIR" >> Config
+ 		return
+ 	fi
+-
+-	for dir in /lib /usr/lib /usr/local/lib
+-	do
+-		for file in $dir/{xtables,iptables}/lib*t_*so ; do
+-			if [ -f $file ]; then
+-				echo ${file%/*}
+-				echo "IPT_LIB_DIR:=${file%/*}" >> Config
+-				return
+-			fi
+-		done
+-	done
+-	echo "not found!"
+ }
+ 
+ check_setns()
+@@ -189,7 +176,7 @@ int main(int argc, char **argv)
+ 	return 0;
+ }
+ EOF
+-    $CC -I$INCLUDE -o $TMPDIR/setnstest $TMPDIR/setnstest.c >/dev/null 2>&1
++    $CC -I$INCLUDE -o $TMPDIR/setnstest $TMPDIR/setnstest.c $EXTRA_CFLAGS $EXTRA_LDFLAGS >/dev/null 2>&1
+     if [ $? -eq 0 ]
+     then
+ 	echo "IP_CONFIG_SETNS:=y" >>Config
+@@ -221,7 +208,7 @@ int main(void)
+ #endif
+ EOF
+ 
+-    if $CC -I$INCLUDE -o $TMPDIR/ipsettest $TMPDIR/ipsettest.c >/dev/null 2>&1
++    if $CC -I$INCLUDE -o $TMPDIR/ipsettest $TMPDIR/ipsettest.c $EXTRA_CFLAGS $EXTRA_LDFLAGS >/dev/null 2>&1
+     then
+ 	echo "TC_CONFIG_IPSET:=y" >>Config
+ 	echo "yes"
+@@ -241,8 +228,6 @@ check_atm
+ 
+ echo -n " IPT	"
+ check_xt
+-check_xt_old
+-check_xt_old_internal_h
+ check_ipt
+ 
+ echo -n " IPSET  "
+diff --git a/misc/Makefile b/misc/Makefile
+index a59ff87154fe8951f441739360d6122a1781484e..d0a33e8be843d525068d15df9832b31cd2199c78 100644
+--- a/misc/Makefile
++++ b/misc/Makefile
+@@ -1,7 +1,7 @@
+ SSOBJ=ss.o ssfilter.o
+ LNSTATOBJ=lnstat.o lnstat_util.o
+ 
+-TARGETS=ss nstat ifstat rtacct arpd lnstat
++TARGETS=ss nstat ifstat rtacct lnstat
+ 
+ include ../Config
+ 
+diff --git a/tc/Makefile b/tc/Makefile
+index f26e76468457151546b6d3e523a3578500c69e6f..1a31220d7146a2af2822009bcedc56b371d897df 100644
+--- a/tc/Makefile
++++ b/tc/Makefile
+@@ -78,7 +78,7 @@ else
+ endif
+ 
+ TCOBJ += $(TCMODULES)
+-LDLIBS += -L. -ltc -lm
++LDLIBS += $(EXTRA_LDFLAGS) -L. -ltc -lm
+ 
+ ifeq ($(SHARED_LIBS),y)
+ LDLIBS += -ldl
+@@ -135,12 +135,12 @@ q_atm.so: q_atm.c
+ 	$(CC) $(CFLAGS) $(LDFLAGS) -shared -fpic -o q_atm.so q_atm.c -latm
+ 
+ m_xt.so: m_xt.c
+-	$(CC) $(CFLAGS) $(LDFLAGS) -shared -fpic -o m_xt.so m_xt.c $$($(PKG_CONFIG) xtables --cflags --libs)
++	$(CC) $(CFLAGS) $(LDFLAGS) -shared -fpic -o m_xt.so m_xt.c -lxtables
+ 
+ m_xt_old.so: m_xt_old.c
+-	$(CC) $(CFLAGS) $(LDFLAGS) -shared -fpic -o m_xt_old.so m_xt_old.c $$($(PKG_CONFIG) xtables --cflags --libs)
++	$(CC) $(CFLAGS) $(LDFLAGS) -shared -fpic -o m_xt_old.so m_xt_old.c -lxtables
+ 
+-em_ipset.o: CFLAGS += $$($(PKG_CONFIG) xtables --cflags)
++em_ipset.o: CFLAGS += -I$(KERNEL_INCLUDE)
+ 
+ %.yacc.c: %.y
+ 	$(YACC) $(YACCFLAGS) -o $@ $<

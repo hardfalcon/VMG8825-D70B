@@ -1,0 +1,83 @@
+From 7c9eff654e5e386a61e9a1205d1b6b5d87d39cd5 Mon Sep 17 00:00:00 2001
+From: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+Date: Mon, 2 May 2011 13:23:21 +0200
+Subject: [PATCH 2/5] schwierd-use_openssl_md5
+
+---
+ src/Makefile.in |    3 +--
+ src/qHash.c     |   22 +++++++++++++---------
+ 2 files changed, 14 insertions(+), 11 deletions(-)
+
+diff --git a/src/Makefile.in b/src/Makefile.in
+index a567631..82fea81 100644
+--- a/src/Makefile.in
++++ b/src/Makefile.in
+@@ -86,8 +86,7 @@ OBJ		= qCgiRequest.o		\
+ 		qSystem.o		\
+ 		qUtil.o			\
+ 					\
+-		qInternalCommon.o	\
+-		md5/md5c.o
++		qInternalCommon.o
+ 
+ ## Make Library
+ all: qdecoder
+diff --git a/src/qHash.c b/src/qHash.c
+index ac4b01c..deb3fb4 100644
+--- a/src/qHash.c
++++ b/src/qHash.c
+@@ -37,7 +37,7 @@
+ #include <fcntl.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
+-#include "md5/md5.h"
++#include <openssl/evp.h>
+ #include "qDecoder.h"
+ #include "qInternal.h"
+ 
+@@ -60,10 +60,12 @@ unsigned char *qHashMd5(const void *data, size_t nbytes) {
+ 	unsigned char *digest = (unsigned char*)malloc(sizeof(char) * 16);
+ 	if (digest == NULL) return NULL;
+ 
+-	MD5_CTX context;
+-	MD5Init(&context);
+-	MD5Update(&context, (unsigned char*)data, (unsigned int)nbytes);
+-	MD5Final(digest, &context);
++	EVP_MD_CTX context;
++	EVP_MD_CTX_init(&context);
++	EVP_DigestInit_ex(&context,EVP_md5(), NULL);
++	EVP_DigestUpdate(&context, data, nbytes);
++	EVP_DigestFinal_ex(&context, digest, NULL);
++	EVP_MD_CTX_cleanup(&context);
+ 
+ 	return digest;
+ }
+@@ -141,19 +143,21 @@ char *qHashMd5File(const char *filepath, size_t *nbytes) {
+ 		else size = *nbytes;
+ 	}
+ 
+-	MD5_CTX context;
+-	MD5Init(&context);
++	EVP_MD_CTX context;
++	EVP_MD_CTX_init(&context);
++	EVP_DigestInit_ex(&context,EVP_md5(), NULL);
+ 	ssize_t retr = 0;
+ 	unsigned char buf[32*1024], szDigest[16];
+ 	while (size > 0) {
+ 		if (size > sizeof(buf)) retr = read(fd, buf, sizeof(buf));
+ 		else retr = read(fd, buf, size);
+ 		if (retr < 0) break;
+-		MD5Update(&context, buf, retr);
++		EVP_DigestUpdate(&context, buf, retr);
+ 		size -= retr;
+ 	}
+ 	close(fd);
+-	MD5Final(szDigest, &context);
++	EVP_DigestFinal_ex(&context, szDigest, NULL);
++	EVP_MD_CTX_cleanup(&context);
+ 
+ 	if(nbytes != NULL) *nbytes -= size;
+ 
+-- 
+1.7.4.4
+

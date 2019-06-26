@@ -1,0 +1,23 @@
+From: Maik Dybek <maik.dybek@sphairon.com>
+Date: Tue, 29 Aug 2017 14:54:15 +0200
+Subject: pppd: enable feature kernel level ppp device frame priority setting
+
+---
+ pppd/Makefile.linux | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pppd/Makefile.linux b/pppd/Makefile.linux
+index 68cf4a7..80c440a 100644
+--- a/pppd/Makefile.linux
++++ b/pppd/Makefile.linux
+@@ -56,7 +56,7 @@ USE_CRYPT=y
+ #HAVE_MULTILINK=y
+ 
+ # Uncomment the next line to enable kernel level ppp device frame priority
+-#HAVE_KPPPDEV_PRIORITY=y
++HAVE_KPPPDEV_PRIORITY=y
+ 
+ # Uncomment the next line to enable the TDB database (enabled by default.)
+ # If you enable multilink, then TDB is automatically enabled also.
+--
+

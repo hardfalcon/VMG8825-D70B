@@ -1,0 +1,4 @@
+include flavors/sphairon-iad.scc
+include features/usb/audio.scc
+include features/sound/alsa-oss.scc
+include features/input/ati.scc

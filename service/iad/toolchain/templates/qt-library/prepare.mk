@@ -1,0 +1,1 @@
+../qt-default/prepare.mk

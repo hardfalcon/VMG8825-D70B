@@ -1,0 +1,35 @@
+From: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+Date: Mon, 18 Feb 2013 15:16:33 +0100
+Subject: Remove old Lantiq crap
+
+Signed-off-by: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+---
+ src/br2684/br2684ctl.c | 6 ------
+ 1 file changed, 6 deletions(-)
+
+diff --git a/src/br2684/br2684ctl.c b/src/br2684/br2684ctl.c
+index 72e8686..4b41e80 100644
+--- a/src/br2684/br2684ctl.c
++++ b/src/br2684/br2684ctl.c
+@@ -200,9 +200,6 @@ int create_br(int itfnum, int payload)
+       if (payload == 0)
+         ni.media |= BR2684_FLAG_ROUTED;
+ #endif
+-#if defined CONFIG_ATM_EXT_PARAMETERS && !defined BR2684_FLAG_ROUTED
+-      ni.payload = payload;
+-#endif
+       ni.mtu = 1500;
+       sprintf(ni.ifname, "nas%d", itfnum);
+       err=ioctl (lastsock, ATM_NEWBACKENDIF, &ni);
+@@ -283,9 +280,6 @@ int assign_vcc(char *astr, int encap, int payload,
+ 		default: be.encaps = BR2684_ENCAPS_VC;      break;
+     }
+ 
+-#if defined CONFIG_ATM_EXT_PARAMETERS && !defined BR2684_FLAG_ROUTED
+-    be.payload = payload;
+-#endif
+     be.has_vpiid = 0;
+     be.send_padding = 0;
+     be.min_size = 0;
+--
+

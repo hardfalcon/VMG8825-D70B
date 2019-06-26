@@ -1,0 +1,25 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Tue, 3 May 2011 13:14:20 +0200
+Subject: Don't respond with HTTP OK in chained SOAP commands. TR-069 requires
+ this.
+
+Signed-off-by: Daniel Egger <daniel.egger@sphairon.com>
+---
+ gsoap/src/symbol2.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/gsoap/src/symbol2.c b/gsoap/src/symbol2.c
+index fff9e1e..a59b87c 100644
+--- a/gsoap/src/symbol2.c
++++ b/gsoap/src/symbol2.c
+@@ -3932,7 +3932,7 @@ gen_serve_method(FILE *fd, Table *table, Entry *param, char *name)
+     fprintf(fd,"\n\t\t\t return soap->error;");
+     fprintf(fd,"\n\t};");
+     fprintf(fd,"\n\tif (soap_end_count(soap)");
+-    fprintf(fd,"\n\t || soap_response(soap, SOAP_OK)");
++    fprintf(fd,"\n\t || soap_connect(soap, soap->endpoint, \"\")");
+     fprintf(fd,"\n\t || soap_envelope_begin_out(soap)");
+     fprintf(fd,"\n\t || soap_putheader(soap)");
+     fprintf(fd,"\n\t || soap_body_begin_out(soap)");
+--
+

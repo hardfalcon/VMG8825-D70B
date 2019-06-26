@@ -1,0 +1,14 @@
+/dts-v1/;
+
+#include "test.dtsi"
+
+/ {
+	model = "Test 002";
+	compatible = "test,test002", "test,test";
+
+	memory {
+		device_type = "memory";
+		reg = <0x00000000 0x400000>;
+	};
+};
+

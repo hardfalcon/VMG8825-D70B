@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2014-2019 Sphairon GmbH (a Zyxel company)
+ */
+
+/dts-v1/;
+
+#include "xrx200-vmg5304.dtsi"
+
+/ {
+	model = "Zyxel vmg5304 series [441]";
+	compatible = "zyxel,vmg5304", "lantiq,vr9", "lantiq,xway";
+};

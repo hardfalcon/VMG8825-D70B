@@ -1,0 +1,61 @@
+diff --git a/Makefile b/Makefile
+index dfed85caa2211ac964461354a9d21970fbe99633..af2b16155449c6b0aa0aaf4e1fe2e099a4f67771 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,7 +1,7 @@
+ VERSION = 1
+ PATCHLEVEL = 22
+ SUBLEVEL = 1
+-EXTRAVERSION = -sphairon13
++EXTRAVERSION = -sphairon14
+ NAME = Unnamed
+ 
+ # *DOCUMENTATION*
+diff --git a/sphairon/config.generic b/sphairon/config.generic
+index 12fea0a335284ab493fdee1a80c1acea4cb4b1d3..23f92a80b77297156d799730301251d9df4ce0fd 100644
+--- a/sphairon/config.generic
++++ b/sphairon/config.generic
+@@ -292,8 +292,8 @@ CONFIG_UNIQ=y
+ CONFIG_USLEEP=y
+ # CONFIG_UUDECODE is not set
+ # CONFIG_UUENCODE is not set
+-# CONFIG_WC is not set
+-# CONFIG_FEATURE_WC_LARGE is not set
++CONFIG_WC=y
++CONFIG_FEATURE_WC_LARGE=y
+ # CONFIG_WHOAMI is not set
+ # CONFIG_YES is not set
+ 
+@@ -715,7 +715,7 @@ CONFIG_LOCK=y
+ # CONFIG_RUNLEVEL is not set
+ # CONFIG_RX is not set
+ # CONFIG_SETSID is not set
+-# CONFIG_STRINGS is not set
++CONFIG_STRINGS=y
+ # CONFIG_TASKSET is not set
+ # CONFIG_FEATURE_TASKSET_FANCY is not set
+ CONFIG_TIME=y
+diff --git a/sphairon/config.host b/sphairon/config.host
+index b0cb765b3a5413a499ba748d55a13e4cfe18a50e..785f3e61795b1980846be93ab4548758777608e6 100644
+--- a/sphairon/config.host
++++ b/sphairon/config.host
+@@ -292,8 +292,8 @@ CONFIG_UNIQ=y
+ CONFIG_USLEEP=y
+ # CONFIG_UUDECODE is not set
+ # CONFIG_UUENCODE is not set
+-# CONFIG_WC is not set
+-# CONFIG_FEATURE_WC_LARGE is not set
++CONFIG_WC=y
++CONFIG_FEATURE_WC_LARGE=y
+ # CONFIG_WHOAMI is not set
+ # CONFIG_YES is not set
+ 
+@@ -715,7 +715,7 @@ CONFIG_LOCK=y
+ # CONFIG_RUNLEVEL is not set
+ # CONFIG_RX is not set
+ # CONFIG_SETSID is not set
+-# CONFIG_STRINGS is not set
++CONFIG_STRINGS=y
+ # CONFIG_TASKSET is not set
+ # CONFIG_FEATURE_TASKSET_FANCY is not set
+ CONFIG_TIME=y

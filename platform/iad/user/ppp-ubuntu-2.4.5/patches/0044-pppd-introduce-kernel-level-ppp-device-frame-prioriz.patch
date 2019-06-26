@@ -1,0 +1,166 @@
+From: Maik Dybek <maik.dybek@sphairon.com>
+Date: Tue, 29 Aug 2017 10:39:34 +0200
+Subject: pppd: introduce kernel level ppp device frame priorization setting
+
+---
+ include/linux/if_ppp.h |  2 ++
+ pppd/Makefile.linux    |  8 ++++++++
+ pppd/options.c         | 12 +++++++++++-
+ pppd/pppd.h            |  2 ++
+ pppd/sys-linux.c       | 31 +++++++++++++++++++++++++++++++
+ 5 files changed, 54 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/if_ppp.h b/include/linux/if_ppp.h
+index 1101fc7..d68925c 100644
+--- a/include/linux/if_ppp.h
++++ b/include/linux/if_ppp.h
+@@ -137,6 +137,8 @@ struct ifpppcstatsreq {
+  * Ioctl definitions.
+  */
+ 
++#define	PPPIOCGETPRIORITY _IOR('t', 92, int)	/* get frame send priority */
++#define	PPPIOCSETPRIORITY _IOW('t', 91, int)	/* set frame send priority */
+ #define	PPPIOCGFLAGS	_IOR('t', 90, int)	/* get configuration flags */
+ #define	PPPIOCSFLAGS	_IOW('t', 89, int)	/* set configuration flags */
+ #define	PPPIOCGASYNCMAP	_IOR('t', 88, int)	/* get async map */
+diff --git a/pppd/Makefile.linux b/pppd/Makefile.linux
+index 9c1cd42..68cf4a7 100644
+--- a/pppd/Makefile.linux
++++ b/pppd/Makefile.linux
+@@ -55,6 +55,9 @@ USE_CRYPT=y
+ # of pppd!
+ #HAVE_MULTILINK=y
+ 
++# Uncomment the next line to enable kernel level ppp device frame priority
++#HAVE_KPPPDEV_PRIORITY=y
++
+ # Uncomment the next line to enable the TDB database (enabled by default.)
+ # If you enable multilink, then TDB is automatically enabled also.
+ # Linux distributions: Please leave TDB ENABLED in your builds.
+@@ -152,6 +155,11 @@ ifdef HAVE_MULTILINK
+ 	PPPDOBJS += multilink.o
+ endif
+ 
++# Set ppp session control data kernel priority
++ifdef HAVE_KPPPDEV_PRIORITY
++	CFLAGS += -DHAVE_KPPPDEV_PRIORITY
++endif
++
+ # TDB
+ ifdef USE_TDB
+ 	CFLAGS += -DUSE_TDB=1
+diff --git a/pppd/options.c b/pppd/options.c
+index a0eccd4..324877b 100644
+--- a/pppd/options.c
++++ b/pppd/options.c
+@@ -123,6 +123,8 @@ bool	dryrun;			/* print out option values and exit */
+ char	*domain;		/* domain name set by domain option */
+ int	child_wait = 5;		/* # seconds to wait for children at exit */
+ unsigned char mac_to_use[ETH_ALEN] = {0,0,0,0,0,0};   /* use this MAC-Address */
++int	kpppdevpriority_flag = 0;	/* Tell the kernel to set ppp device frame priority flag */
++int	kpppdevpriority = 0;	/* Tell the kernel to set ppp device frame skb->priority */
+ 
+ #ifdef MAXOCTETS
+ unsigned int  maxoctets = 0;    /* default - no limit */
+@@ -333,7 +335,15 @@ option_t general_options[] = {
+     { "mo-direction", o_special, setmodir,
+       "Set direction for limit traffic (sum,in,out,max)" },
+     { "mo-timeout", o_int, &maxoctets_timeout,
+-      "Check for traffic limit every N seconds", OPT_PRIO | OPT_LLIMIT | 1 },
++      "Check for traffic limit every N seconds", OPT_PRIO },
++#endif
++
++#ifdef HAVE_KPPPDEV_PRIORITY
++    { "set_kpppdevpriority", o_int, &kpppdevpriority_flag,
++      "Flag to enable kernel's session data priority",
++       OPT_INC | OPT_NOARG | 1 },
++    { "kpppdevpriority", o_int, &kpppdevpriority,
++      "Set kernel's session data skb->priority", OPT_PRIO },
+ #endif
+ 
+     { NULL }
+diff --git a/pppd/pppd.h b/pppd/pppd.h
+index 9b0a10d..c2f040f 100644
+--- a/pppd/pppd.h
++++ b/pppd/pppd.h
+@@ -325,6 +325,8 @@ extern char	*bundle_name;	/* bundle name for multilink */
+ extern bool	dump_options;	/* print out option values */
+ extern bool	dryrun;		/* check everything, print options, exit */
+ extern int	child_wait;	/* # seconds to wait for children at end */
++extern int	kpppdevpriority_flag;	/* Tell the kernel to set ppp device frame priority flag */
++extern int	kpppdevpriority;	/* Tell the kernel to set ppp device frame skb->priority */
+ 
+ #ifdef MAXOCTETS
+ extern unsigned int maxoctets;	     /* Maximum octetes per session (in bytes) */
+diff --git a/pppd/sys-linux.c b/pppd/sys-linux.c
+index 63074ec..9d2f26b 100644
+--- a/pppd/sys-linux.c
++++ b/pppd/sys-linux.c
+@@ -240,6 +240,7 @@ static int get_ether_addr (u_int32_t ipaddr, struct sockaddr *hwaddr,
+ 			   char *name, int namelen);
+ static void decode_version (char *buf, int *version, int *mod, int *patch);
+ static int set_kdebugflag(int level);
++static int set_kpppdev_priority(int fd, int priority);
+ static int ppp_registered(void);
+ static int make_ppp_unit(void);
+ 
+@@ -391,6 +392,23 @@ static int set_kdebugflag (int requested_level)
+ 
+ /********************************************************************
+  *
++ * set_kpppdev_priority - Define the kernel sbk->priority for written
++ * ppp device frames
++ */
++
++static int set_kpppdev_priority(int fd, int priority)
++{
++    if (ioctl(fd, PPPIOCSETPRIORITY, &priority) < 0) {
++    if (  !ok_error (errno) )
++        error("ioctl(PPPIOCSETPRIORITY) on fd %d: failed with %m(%d)\n", fd, errno);
++    return 0;
++    }
++
++    return 1;
++}
++
++/********************************************************************
++ *
+  * tty_establish_ppp - Turn the serial port into a ppp interface.
+  */
+ 
+@@ -479,6 +497,12 @@ int generic_establish_ppp (int fd)
+ 	    error("Couldn't attach to channel %d: %m", chindex);
+ 	    goto err_close;
+ 	}
++
++	if (kpppdevpriority_flag) {
++	    dbglog("Set kpppdev channel %d priority to %d (LCP Frames)", chindex, kpppdevpriority);
++	    set_kpppdev_priority(fd, kpppdevpriority);
++	}
++
+ 	flags = fcntl(fd, F_GETFL);
+ 	if (flags == -1 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
+ 	    warn("Couldn't set /dev/ppp (channel) to nonblock: %m");
+@@ -632,6 +656,7 @@ static int make_ppp_unit()
+ 	ppp_dev_fd = open("/dev/ppp", O_RDWR);
+ 	if (ppp_dev_fd < 0)
+ 		fatal("Couldn't open /dev/ppp: %m");
++
+ 	flags = fcntl(ppp_dev_fd, F_GETFL);
+ 	if (flags == -1
+ 	    || fcntl(ppp_dev_fd, F_SETFL, flags | O_NONBLOCK) == -1)
+@@ -646,6 +671,12 @@ static int make_ppp_unit()
+ 	}
+ 	if (x < 0)
+ 		error("Couldn't create new ppp unit: %m");
++
++	if (kpppdevpriority_flag) {
++		dbglog("Set kpppdev req_unit %d priority to %d (IPCP and IP6CP Frames)", req_unit, kpppdevpriority);
++		set_kpppdev_priority(ppp_dev_fd, kpppdevpriority);
++	}
++
+ 	return x;
+ }
+ 
+--
+

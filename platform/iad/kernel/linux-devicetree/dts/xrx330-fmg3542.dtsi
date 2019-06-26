@@ -1,0 +1,287 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2014-2019 Sphairon GmbH (a Zyxel company)
+ */
+
+#include <dt-bindings/gpio/gpio.h>
+#include "xrx330.dtsi"
+
+/ {
+	memory {
+		device_type = "memory";
+		reg = <0 0x8000000>;
+	};
+
+	gpio-keys-polled {
+		compatible = "gpio-keys-polled";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		poll-interval = <101>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pins_gpio_keys_default>;
+
+		reset {
+			label = "reset-btn";
+			gpios = <&gpio 17 GPIO_ACTIVE_LOW>;	/* GPIO17, LO active, debounced */
+			linux,code = <0x100>;	/* BTN_0 */
+		};
+		wps {
+			label = "wps-btn";
+			gpios = <&gpio 15 GPIO_ACTIVE_LOW>;	/* GPIO15, LO active, debounced */
+			linux,code = <0x101>;	/* BTN_1 */
+		};
+		dc {
+			label = "vdcin-int";
+			gpios = <&gpio 1 GPIO_ACTIVE_HIGH>;    /* GPIO1, HI active? */
+			linux,code = <0x104>;	/* BTN_4 */
+		};
+		power {
+			label = "power-int";
+			gpios = <&gpio 9 GPIO_ACTIVE_LOW>;    /* GPIO9, LO active */
+			linux,code = <0x105>;	/* BTN_5 */
+		};
+	};
+
+	gpio-leds {
+		compatible = "gpio-leds";
+
+		power_green {
+			label = "green:power";
+			gpios = <&gpio 5 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+		power_red {
+			label = "red:power";
+			gpios = <&gpio 10 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+	};
+};
+
+&gpio {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_default>;
+
+	pins_default: pins_default {
+	};
+
+	pins_eth_default: pins_eth_default {
+		mdio {
+			lantiq,groups = "mdio";
+			lantiq,function = "mdio";
+			lantiq,output = <1>;
+		};
+	};
+
+	pins_gpio_keys_default: pins_gpio_keys_default {
+		gpio_in {
+			lantiq,pins = "io1", "io9",
+					"io15", "io17";
+			lantiq,output = <0>;
+		};
+	};
+
+	pins_gpio_leds_default: pins_gpio_leds_default {
+		gpio_low_active2 {
+			lantiq,pins = "io5", "io10";
+			lantiq,output = <1>;
+		};
+	};
+
+	pins_nand_default: pins_nand_default {
+		nand_out {
+			lantiq,groups = "nand cle",
+					"nand ale", "nand rd",
+					"nand wr", "nand wp",
+					"nand data";
+			lantiq,function = "ebu";
+			lantiq,output = <1>;
+		};
+		nand_in {
+			lantiq,groups = "nand rdy";
+			lantiq,function = "ebu";
+			lantiq,output = <0>;
+		};
+	};
+
+	pins_ssio_default: pins_ssio_default {
+		ssio_out {
+			lantiq,groups = "ssio tx";
+			lantiq,function = "ssio";
+			lantiq,output = <1>;
+		};
+		ssio_in {
+			lantiq,groups = "ssio rx", "ssio clk";
+			lantiq,function = "ssio";
+			lantiq,output = <0>;
+		};
+		clk {
+			lantiq,groups = "clkout0";
+			lantiq,function = "cgu";
+			lantiq,output = <1>;
+		};
+		slic_reset {
+			lantiq,pins = "io0";
+			lantiq,pull = <0>;
+			lantiq,open-drain = <0>;
+			lantiq,output = <1>;
+			lantiq,drive = <1>;
+		};
+	};
+
+	pins_mtlk_default: pins_mtlk_default {
+		hw_type {
+			lantiq,pins = "io6";
+			lantiq,pull = <0>;
+			lantiq,output = <0>;
+		};
+	};
+};
+
+&mps {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_ssio_default>;
+
+	lantiq,slic-reset = <&gpio 0 GPIO_ACTIVE_HIGH>;
+};
+
+&eth {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_eth_default>;
+
+	gphy@0 {
+		lantiq,phy-mode = "11g";
+		status = "ok";
+	};
+
+	gphy@1 {
+		lantiq,phy-mode = "11g";
+		status = "ok";
+	};
+
+	gphy@2 {
+		lantiq,phy-mode = "11g";
+		status = "ok";
+	};
+
+	gphy@3 {
+		lantiq,phy-mode = "11g";
+		status = "ok";
+	};
+
+	mdio@0 {
+		phy0: ethernet-phy@1 {
+			compatible = "lantiq,pef7071", "ethernet-phy-ieee802.3-c22";
+			/*interrupt-parent = <&icu0>;
+			interrupts = <122>;*/
+			reg = <0x1>;
+			lantiq,led0 = <0x0>;
+			lantiq,led1 = <0x7003>;
+			lantiq,led2 = <0x0>;
+		};
+
+		phy1: ethernet-phy@2 {
+			compatible = "lantiq,pef7071", "ethernet-phy-ieee802.3-c22";
+			/*interrupt-parent = <&icu0>;
+			interrupts = <122>;*/
+			reg = <0x2>;
+			lantiq,led0 = <0x0>;
+			lantiq,led1 = <0x7003>;
+			lantiq,led2 = <0x0>;
+		};
+
+		phy2: ethernet-phy@3 {
+			compatible = "lantiq,pef7071", "ethernet-phy-ieee802.3-c22";
+			/*interrupt-parent = <&icu0>;
+			interrupts = <122>;*/
+			reg = <0x3>;
+			lantiq,led0 = <0x0>;
+			lantiq,led1 = <0x7003>;
+			lantiq,led2 = <0x0>;
+		};
+
+		phy3: ethernet-phy@4 {
+			compatible = "lantiq,pef7071", "ethernet-phy-ieee802.3-c22";
+			/*interrupt-parent = <&icu0>;
+			interrupts = <122>;*/
+			reg = <0x4>;
+			lantiq,led0 = <0x0>;
+			lantiq,led1 = <0x7003>;
+			lantiq,led2 = <0x0>;
+		};
+		phy4: ethernet-phy@5 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			/*interrupt-parent = <&icu0>;
+			interrupts = <122>;*/
+			reg = <0x5>;	/* MDIO device address 0x5 */
+		};
+	};
+
+	ethernet@1 {
+		phy-handle = <&phy0>;
+		phy-mode = "gmii";
+		status = "ok";
+		lantiq,port-name = "sw-p1-lan1";
+	};
+
+	ethernet@2 {
+		phy-handle = <&phy1>;
+		phy-mode = "gmii";
+		status = "ok";
+		lantiq,port-name = "sw-p2-lan3";
+	};
+
+	ethernet@3 {
+		phy-handle = <&phy2>;
+		phy-mode = "gmii";
+		status = "ok";
+		lantiq,port-name = "sw-p3-m2m";
+	};
+
+	ethernet@4 {
+		phy-handle = <&phy3>;
+		phy-mode = "gmii";
+		status = "ok";
+		lantiq,port-name = "sw-p4-lan2";
+	};
+
+	ethernet@5 {
+		phy-handle = <&phy4>;
+		phy-mode = "rgmii-id";
+		status = "ok";
+		lantiq,port-name = "sw-p5-wanoe";
+		lantiq,wanoe;
+	};
+};
+
+&usb0 {
+	status = "ok";
+};
+
+&pcie0 {
+	status = "ok";
+	lantiq,reset-gpio = <&gpio 27 GPIO_ACTIVE_LOW>;  /* PCI_RESET on GPIO 27, pull up, low active */
+};
+
+&localbus {
+	nand@1 {
+		compatible = "gen_nand", "lantiq,nand-xway";
+		reg = <1 0x0 0x2000000>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		linux,mtd-name = "nand-xway";
+		bbt-use-flash;
+		bank-width = <2>;
+		pinctrl-names = "default";
+		lantiq,cs = <1>;
+		pinctrl-0 = <&pins_nand_default>;
+	};
+};
+
+&mtlk {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_mtlk_default>;
+	gpios = <&gpio 6 GPIO_ACTIVE_LOW>;
+	status = "ok";
+};

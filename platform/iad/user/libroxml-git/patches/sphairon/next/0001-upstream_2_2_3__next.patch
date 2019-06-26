@@ -1,0 +1,125 @@
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000000000000000000000000000000000000..dc446d927a5b27f6f08cdd10a4cfe60a3a3e8086
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1 @@
++# gitignore file
+diff --git a/inc/roxml.h b/inc/roxml.h
+index ca7033b63cc66c14dd6328b3f8ba3e037b178c24..bb3a17407561dbce2a16c38eb70d733f8e76f7e3 100644
+--- a/inc/roxml.h
++++ b/inc/roxml.h
+@@ -37,6 +37,10 @@
+ #include <pthread.h>
+ #endif
+ 
++#ifdef __cplusplus
++extern "C" {
++#endif
++
+ /**
+  * \def ROXML_API
+  * 
+@@ -226,7 +230,7 @@ node_t *ROXML_API roxml_load_buf(char *buffer);
+  * \see roxml_load_fd
+  * \see roxml_load_buf
+  */
+-node_t *ROXML_API roxml_load_doc(char *filename);
++node_t *ROXML_API roxml_load_doc(const char *filename);
+ 
+ /** \brief load function for file descriptors
+  *
+@@ -500,7 +504,7 @@ int ROXML_API roxml_get_cmt_nb(node_t *n);
+  * }
+  * \endcode
+  */
+-node_t *ROXML_API roxml_get_chld(node_t *n, char *name, int nth);
++node_t *ROXML_API roxml_get_chld(node_t *n, const char *name, int nth);
+ 
+ /** \brief chlds number getter function
+  *
+@@ -704,7 +708,7 @@ int ROXML_API roxml_get_nodes_nb(node_t *n, int type);
+  * \see roxml_get_cmt
+  * \see roxml_get_pi
+  */
+-node_t *ROXML_API roxml_get_nodes(node_t *n, int type, char *name, int nth);
++node_t *ROXML_API roxml_get_nodes(node_t *n, int type, const char *name, int nth);
+ 
+ /** \brief number of attribute getter function
+  *
+@@ -756,7 +760,7 @@ int ROXML_API roxml_get_attr_nb(node_t *n);
+  * }
+  * \endcode
+  */
+-node_t *ROXML_API roxml_get_attr(node_t *n, char *name, int nth);
++node_t *ROXML_API roxml_get_attr(node_t *n, const char *name, int nth);
+ 
+ /** \brief exec path function
+  *
+@@ -770,7 +774,7 @@ node_t *ROXML_API roxml_get_attr(node_t *n, char *name, int nth);
+  *
+  * handled xpath are described in \ref xpath
+  */
+-node_t **ROXML_API roxml_xpath(node_t *n, char *path, int *nb_ans);
++node_t **ROXML_API roxml_xpath(node_t *n, const char *path, int *nb_ans);
+ 
+ /** \brief node type function
+  *
+@@ -1089,4 +1093,8 @@ void ROXML_API roxml_del_node(node_t *n);
+  */
+ int ROXML_API roxml_commit_changes(node_t *n, char *dest, char **buffer, int human);
+ 
++#ifdef __cplusplus
++}
++#endif
++
+ #endif /* ROXML_H */
+diff --git a/src/roxml.c b/src/roxml.c
+index 476cebe1f398828cb353efded001aa37f8129986..fd4d883e0406d0228b2d90cd62dbddeaeb95607d 100644
+--- a/src/roxml.c
++++ b/src/roxml.c
+@@ -368,7 +368,7 @@ int ROXML_API roxml_get_nodes_nb(node_t *n, int type)
+ 	return nb;
+ }
+ 
+-node_t ROXML_API *roxml_get_nodes(node_t *n, int type, char *name, int nth)
++node_t ROXML_API *roxml_get_nodes(node_t *n, int type, const char *name, int nth)
+ {
+ 	node_t *ptr = NULL;
+ 
+@@ -517,7 +517,7 @@ int ROXML_API roxml_get_attr_nb(node_t *n)
+ 	return roxml_get_nodes_nb(n, ROXML_ATTR_NODE);
+ }
+ 
+-node_t ROXML_API *roxml_get_attr(node_t *n, char *name, int nth)
++node_t ROXML_API *roxml_get_attr(node_t *n, const char *name, int nth)
+ {
+ 	return roxml_get_nodes(n, ROXML_ATTR_NODE, name, nth);
+ }
+@@ -527,7 +527,7 @@ int ROXML_API roxml_get_chld_nb(node_t *n)
+ 	return roxml_get_nodes_nb(n, ROXML_ELM_NODE);
+ }
+ 
+-node_t ROXML_API *roxml_get_chld(node_t *n, char *name, int nth)
++node_t ROXML_API *roxml_get_chld(node_t *n, const char *name, int nth)
+ {
+ 	return roxml_get_nodes(n, ROXML_ELM_NODE, name, nth);
+ }
+@@ -639,7 +639,7 @@ node_t ROXML_API *roxml_load_fd(int fd)
+ 	return roxml_load(current_node, file, NULL);
+ }
+ 
+-node_t ROXML_API *roxml_load_doc(char *filename)
++node_t ROXML_API *roxml_load_doc(const char *filename)
+ {
+ 	node_t *current_node = NULL;
+ 	FILE *file = fopen(filename, "rb");
+@@ -662,7 +662,7 @@ node_t ROXML_API *roxml_load_buf(char *buffer)
+ 	return roxml_load(current_node, NULL, buffer);
+ }
+ 
+-node_t ROXML_API **roxml_xpath(node_t *n, char *path, int *nb_ans)
++node_t ROXML_API **roxml_xpath(node_t *n, const char *path, int *nb_ans)
+ {
+ 	int index = 0;
+ 	int count = 0;

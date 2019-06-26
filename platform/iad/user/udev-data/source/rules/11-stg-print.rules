@@ -1,0 +1,13 @@
+#stg-printer rules
+
+SUBSYSTEM!="usb" goto PR_EXIT
+ACTION!="add" goto PR_REMOVE
+#/sys/bus/usb/drivers/usblp/<3-1.4:1.0>/usb/lp0
+#/sys/devices/pci0000:00/0000:00:0f.2/usb3/3-1/3-1.4/<3-1.4:1.0>/usb/lp0
+KERNEL=="lp*", PROGRAM="/bin/print_device_action_handler add %p", SYMLINK+="lpd/printer/lp%n", goto PR_EXIT
+
+LABEL PR_REMOVE
+ACTION!="remove" goto PR_EXIT
+KERNEL=="lp*", ACTION=="remove", RUN+="/bin/print_device_action_handler rem %p"
+
+LABEL PR_EXIT

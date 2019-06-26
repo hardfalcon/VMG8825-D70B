@@ -1,0 +1,68 @@
+From 4b69aa6935074010eb87c88c177a0914984c8a4a Mon Sep 17 00:00:00 2001
+From: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+Date: Mon, 13 Dec 2010 14:12:07 +0100
+Subject: Fixed CFLAGS and LDFLAGS usage
+
+---
+ Makefile            |   11 ++++++-----
+ extensions/Makefile |    4 ++--
+ 2 files changed, 8 insertions(+), 7 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index e0b0de1..bdeddf4 100644
+--- a/Makefile
++++ b/Makefile
+@@ -7,16 +7,17 @@ PROGVERSION:=$(PROGVERSION_)-$(PROGRELEASE)
+ PROGDATE:=June\ 2009
+ 
+ # default paths
+-LIBDIR:=/usr/lib
++LIBDIR:=/lib
+ MANDIR:=/usr/local/man
+-BINDIR:=/usr/local/sbin
++BINDIR:=/sbin
+ ETCDIR:=/etc
+-INITDIR:=/etc/rc.d/init.d
++INITDIR:=/etc/init.d
+ SYSCONFIGDIR:=/etc/sysconfig
+ DESTDIR:=
+ 
+-CFLAGS:=-Wall -Wunused
++CFLAGS:=-Wall -Wunused $(EXTRA_CFLAGS)
+ CFLAGS_SH_LIB:=-fPIC
++LDFLAGS:=$(EXTRA_LDFLAGS)
+ CC:=gcc
+ LD:=ld
+ 
+@@ -85,7 +86,7 @@ ebtables-standalone.o: ebtables-standalone.c include/ebtables_u.h
+ 
+ .PHONY: libebtc
+ libebtc: $(OBJECTS2)
+-	$(CC) -shared -Wl,-soname,libebtc.so -o libebtc.so -lc $(OBJECTS2)
++	$(CC) $(LDFLAGS) -shared -Wl,-soname,libebtc.so -o libebtc.so -lc $(OBJECTS2)
+ 
+ ebtables: $(OBJECTS) ebtables-standalone.o libebtc
+ 	$(CC) $(CFLAGS) $(CFLAGS_SH_LIB) -o $@ ebtables-standalone.o -I$(KERNEL_INCLUDES) -L. -Lextensions -lebtc $(EXT_LIBSI) \
+diff --git a/extensions/Makefile b/extensions/Makefile
+index 0ac4f7a..b3548e8 100644
+--- a/extensions/Makefile
++++ b/extensions/Makefile
+@@ -11,13 +11,13 @@ EXT_LIBSI+=$(foreach T,$(EXT_FUNC), -lebt_$(T))
+ EXT_LIBSI+=$(foreach T,$(EXT_TABLES), -lebtable_$(T))
+ 
+ extensions/ebt_%.so: extensions/ebt_%.o
+-	$(CC) -shared -o $@ -lc $< -nostartfiles
++	$(CC) $(LDFLAGS) -shared -o $@ -lc $< -nostartfiles
+ 
+ extensions/libebt_%.so: extensions/ebt_%.so
+ 	mv $< $@
+ 
+ extensions/ebtable_%.so: extensions/ebtable_%.o
+-	$(CC) -shared -o $@ -lc $< -nostartfiles
++	$(CC) $(LDFLAGS) -shared -o $@ -lc $< -nostartfiles
+ 
+ extensions/libebtable_%.so: extensions/ebtable_%.so
+ 	mv $< $@
+-- 
+1.7.3.3
+

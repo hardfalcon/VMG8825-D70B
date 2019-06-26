@@ -1,0 +1,1571 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE ioctls SYSTEM "drv_tapi_io.dtd">
+<!--
+
+                              Copyright (c) 2014
+                            Lantiq Deutschland GmbH
+
+  For licensing information, see the file 'LICENSE' in the root folder of
+  this software module.
+
+-->
+<!--
+   \file drv_tapi_io.xml
+   Description of TAPI v4 ioctl handlers
+-->
+<ioctls>
+   <ioctl name="IFX_TAPI_CH_INIT">
+      <context>device</context>
+      <handler kind="high-level">IFX_TAPI_Phone_Init</handler>
+      <argument kind="pointer">IFX_TAPI_CH_INIT_t const</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_DEV_START">
+      <context>device</context>
+      <handler kind="high-level">IFX_TAPI_DeviceStart</handler>
+      <argument kind="pointer">IFX_TAPI_DEV_START_CFG_t const</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_DEV_STOP">
+      <context>device</context>
+      <handler kind="high-level">IFX_TAPI_DeviceStop</handler>
+   </ioctl>
+   <ioctl name="IFX_TAPI_LINE_FEED_SET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_Set_Linefeed</handler>
+      <argument kind="integer"/>
+   </ioctl>
+   <ioctl name="IFX_TAPI_LINE_FEED_GET">
+      <context>channel</context>
+      <handler kind="low-level">ALM.Line_Mode_Get</handler>
+      <argument kind="pointer">IFX_TAPI_LINE_FEED_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_LINE_TYPE_SET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_Set_LineType</handler>
+      <argument kind="pointer">IFX_TAPI_LINE_TYPE_CFG_t const</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_WLEC_PHONE_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_LecMode_Alm_Set</handler>
+      <argument kind="pointer">IFX_TAPI_WLEC_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_ALM_LEC</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_WLEC_PHONE_CFG_GET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_LecMode_Alm_Get</handler>
+      <argument kind="pointer">IFX_TAPI_WLEC_CFG_t</argument>
+      <features>
+         <feature>TAPI_FEAT_ALM_LEC</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_WLEC_PCM_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_LecMode_Pcm_Set</handler>
+      <argument kind="pointer">IFX_TAPI_WLEC_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_PCM_LEC</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_WLEC_PCM_CFG_GET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_LecMode_Pcm_Get</handler>
+      <argument kind="pointer">IFX_TAPI_WLEC_CFG_t</argument>
+      <features>
+         <feature>TAPI_FEAT_PCM_LEC</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_LINE_HOOK_VT_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_Dial_SetValidationTime</handler>
+      <argument kind="pointer">IFX_TAPI_LINE_HOOK_VT_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_DIAL</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PHONE_VOLUME_SET">
+      <context>channel</context>
+      <handler kind="low-level">ALM.Volume_Set</handler>
+      <argument kind="pointer">IFX_TAPI_LINE_VOLUME_t const</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PCM_VOLUME_SET">
+      <context>channel</context>
+      <handler kind="low-level">PCM.Volume_Set</handler>
+      <argument kind="pointer">IFX_TAPI_LINE_VOLUME_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_PCM</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PHONE_RELATIVE_LEVEL_SET">
+      <context>channel</context>
+      <handler kind="low-level">ALM.TxRxGain_Set</handler>
+      <argument kind="pointer">IFX_TAPI_GAIN_t const</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PHONE_RELATIVE_LEVEL_GET">
+      <context>channel</context>
+      <handler kind="low-level">ALM.TxRxGain_Get</handler>
+      <argument kind="pointer">IFX_TAPI_GAIN_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_LINE_LEVEL_SET">
+      <context>channel</context>
+      <handler kind="low-level">ALM.Volume_High_Level</handler>
+      <argument kind="integer"/>
+   </ioctl>
+   <ioctl name="IFX_TAPI_LINE_HOOK_STATUS_GET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_HookstateGet</handler>
+      <argument kind="pointer">IFX_TAPI_LINE_HOOK_STATUS_GET_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_METER_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_Meter_Config</handler>
+      <argument kind="pointer">IFX_TAPI_METER_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_METERING</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_METER_START">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_Meter_Start</handler>
+      <argument kind="pointer">IFX_TAPI_METER_START_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_METERING</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_METER_STOP">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_Meter_Stop</handler>
+      <features>
+         <feature>TAPI_FEAT_METERING</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_METER_BURST">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_Meter_Burst</handler>
+      <argument kind="pointer">IFX_TAPI_METER_BURST_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_METERING</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_METER_STATISTICS_GET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_Meter_Stat</handler>
+      <argument kind="pointer">IFX_TAPI_METER_STATISTICS_t</argument>
+      <features>
+         <feature>TAPI_FEAT_METERING</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TONE_LEVEL_SET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_Tone_Set_Level</handler>
+      <argument kind="pointer">IFX_TAPI_PREDEF_TONE_LEVEL_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_TONEGEN</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TONE_TABLE_CFG_SET">
+      <handler kind="high-level">TAPI_Phone_Tone_TableConf</handler>
+      <argument kind="pointer">IFX_TAPI_TONE_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_TONETABLE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TONE_PLAY">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Target_Tone_Play</handler>
+      <argument kind="pointer">IFX_TAPI_TONE_PLAY_t</argument>
+      <features>
+         <feature>TAPI_FEAT_TONEGEN</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TONE_LOCAL_PLAY">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_Tone_Local_Play</handler>
+      <argument kind="integer"/>
+      <features>
+         <feature>TAPI_FEAT_TONEGEN</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TONE_NET_PLAY">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_Tone_Net_Play</handler>
+      <argument kind="integer"/>
+      <features>
+         <feature>TAPI_FEAT_TONEGEN</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TONE_BUSY_PLAY">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_Tone_Busy</handler>
+      <features>
+         <feature>TAPI_FEAT_TONEGEN</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TONE_RINGBACK_PLAY">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_Tone_Ringback</handler>
+      <features>
+         <feature>TAPI_FEAT_TONEGEN</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TONE_DIALTONE_PLAY">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_Tone_Dial</handler>
+      <features>
+         <feature>TAPI_FEAT_TONEGEN</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TONE_LOCAL_STOP">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_Tone_Local_Stop</handler>
+      <argument kind="integer"/>
+      <features>
+         <feature>TAPI_FEAT_TONEGEN</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TONE_NET_STOP">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_Tone_Net_Stop</handler>
+      <argument kind="integer"/>
+      <features>
+         <feature>TAPI_FEAT_TONEGEN</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TONE_STOP">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_Tone_Def_Stop</handler>
+      <argument kind="pointer">IFX_TAPI_TONE_PLAY_t</argument>
+      <features>
+         <feature>TAPI_FEAT_TONEGEN</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_SIG_DETECT_ENABLE">
+      <context>channel</context>
+      <handler kind="low-level">SIG.MFTD_Enable</handler>
+      <argument kind="pointer">IFX_TAPI_SIG_DETECTION_t const</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_SIG_DETECT_DISABLE">
+      <context>channel</context>
+      <handler kind="low-level">SIG.MFTD_Disable</handler>
+      <argument kind="pointer">IFX_TAPI_SIG_DETECTION_t const</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_DTMF_RX_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_DTMFR_Cfg_Set</handler>
+      <argument kind="pointer">IFX_TAPI_DTMF_RX_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_DTMF</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_DTMF_RX_CFG_GET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_DTMFR_Cfg_Get</handler>
+      <argument kind="pointer">IFX_TAPI_DTMF_RX_CFG_t</argument>
+      <features>
+         <feature>TAPI_FEAT_DTMF</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TONE_CPTD_START">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_DetectToneStart</handler>
+      <argument kind="pointer">IFX_TAPI_TONE_CPTD_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_CPTD</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TONE_CPTD_STOP">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_DetectToneStop</handler>
+      <argument kind="pointer">IFX_TAPI_TONE_CPTD_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_CPTD</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CID_RX_START">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_CidRx_Start</handler>
+      <argument kind="pointer">IFX_TAPI_CID_RX_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_CID</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CID_RX_STOP">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_CidRx_Stop</handler>
+      <argument kind="pointer">IFX_TAPI_CID_RX_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_CID</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CID_RX_STATUS_GET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_CidRx_Status</handler>
+      <argument kind="pointer">IFX_TAPI_CID_RX_STATUS_t</argument>
+      <features>
+         <feature>TAPI_FEAT_CID</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CID_RX_DATA_GET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_Get_CidRxData</handler>
+      <argument kind="pointer">IFX_TAPI_CID_RX_DATA_t</argument>
+      <features>
+         <feature>TAPI_FEAT_CID</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CID_TX_INFO_START">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_CID_Info_Tx</handler>
+      <argument kind="pointer">IFX_TAPI_CID_MSG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_CID</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CID_TX_INFO_STOP">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_CID_Stop_Tx</handler>
+      <features>
+         <feature>TAPI_FEAT_CID</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CID_TX_SEQ_START">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_CID_Seq_Tx</handler>
+      <argument kind="pointer">IFX_TAPI_CID_MSG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_CID</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CID_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_CID_SetConfig</handler>
+      <argument kind="pointer">IFX_TAPI_CID_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_CID</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_AAL_CFG_SET">
+      <context>channel</context>
+      <!-- UNSUPPORTED by Tv4
+      <handler kind="high-level">TAPI_LL_Phone_Aal_Set</handler>
+      -->
+      <argument kind="pointer">IFX_TAPI_PCK_AAL_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_PACKET_AAL</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_AAL_PROFILE_SET">
+      <context>channel</context>
+      <!-- UNSUPPORTED by Tv4
+      <handler kind="high-level">TAPI_LL_Phone_AalProfile</handler>
+      -->
+      <argument kind="pointer">IFX_TAPI_PCK_AAL_PROFILE_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_PACKET_AAL</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_RTP_CFG_SET">
+      <context>channel</context>
+      <handler kind="low-level">COD.RTP_Cfg</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_RTP_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_EV_OOB_DTMF_SET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_EVENT_PKT_EV_Oob_Dtmf_Set</handler>
+      <argument kind="integer"/>
+      <features>
+         <feature>TAPI_FEAT_RTP_OOB</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_EV_OOB_MFTD_SET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_EVENT_PKT_EV_Oob_Mftd_Set</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_EV_OOB_MFTD_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_RTP_OOB</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_RTP_PT_CFG_SET">
+      <context>channel</context>
+      <handler kind="low-level">COD.RTP_PayloadTable_Cfg</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_RTP_PT_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_NET_CFG_SET">
+      <context>channel</context>
+      <handler kind="low-level">COD.NET_Cfg</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_NET_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_RTCP_STATISTICS_GET">
+      <context>channel</context>
+      <handler kind="low-level">COD.RTCP_Get</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_RTCP_STATISTICS_t</argument>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_RTCP_STATISTICS_RESET">
+      <context>channel</context>
+      <handler kind="low-level">COD.RTCP_Reset</handler>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_RTCP_XR_BLOCK_GET">
+      <context>channel</context>
+      <handler kind="low-level">COD.RTCP_XR_Get</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_RTCP_XR_BLOCK_GET_t</argument>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_EV_GENERATE">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_EVENT_PKT_EV_Generate</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_EV_GENERATE_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_RTP_OOB</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_EV_GENERATE_ABCD_CFG">
+      <context>channel</context>
+      <handler kind="low-level">COD.RTP_EV_GenerateAbcdCfg</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_EV_GENERATE_ABCD_CFG_t const</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_FLUSH">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_PKT_Flush</handler>
+      <features>
+         <feature>TAPI_FEAT_PACKET</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_JB_CFG_SET">
+      <context>channel</context>
+      <handler kind="low-level">COD.JB_Cfg</handler>
+      <argument kind="pointer">IFX_TAPI_JB_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_JB_STATISTICS_GET">
+      <context>channel</context>
+      <handler kind="low-level">COD.JB_Stat_Get</handler>
+      <argument kind="pointer">IFX_TAPI_JB_STATISTICS_t</argument>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_JB_STATISTICS_RESET">
+      <context>channel</context>
+      <handler kind="low-level">COD.JB_Stat_Reset</handler>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_MAP_PHONE_ADD">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_MapAdd</handler>
+      <argument kind="pointer">IFX_TAPI_MAP_PHONE_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_MAP_PHONE_REMOVE">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_MapRemove</handler>
+      <argument kind="pointer">IFX_TAPI_MAP_PHONE_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_MAP_DATA_ADD">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Data_Channel_Add</handler>
+      <argument kind="pointer">IFX_TAPI_MAP_DATA_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_MAP_DATA_REMOVE">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Data_Channel_Remove</handler>
+      <argument kind="pointer">IFX_TAPI_MAP_DATA_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_MAP_PCM_ADD">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_PCM_MapAdd</handler>
+      <argument kind="pointer">IFX_TAPI_MAP_PCM_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_PCM</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_MAP_PCM_REMOVE">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_PCM_MapRemove</handler>
+      <argument kind="pointer">IFX_TAPI_MAP_PCM_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_PCM</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_MAP_DECT_ADD">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_DECT_MapAdd</handler>
+      <argument kind="pointer">IFX_TAPI_MAP_DECT_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_DECT</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_MAP_DECT_REMOVE">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_DECT_MapRemove</handler>
+      <argument kind="pointer">IFX_TAPI_MAP_DECT_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_DECT</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_MAP_MON_ADD">
+      <context>channel</context>
+      <handler kind="low-level">CON.Mon_Channel_Add</handler>
+      <argument kind="pointer">IFX_TAPI_MAP_MON_CFG_t const</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_MAP_MON_REMOVE">
+      <context>channel</context>
+      <handler kind="low-level">CON.Mon_Channel_Remove</handler>
+      <argument kind="pointer">IFX_TAPI_MAP_MON_CFG_t const</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_ENC_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_COD_ENC_CFG_Set</handler>
+      <argument kind="pointer">IFX_TAPI_ENC_CFG_SET_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_DEC_CFG_SET">
+      <context>channel</context>
+      <handler kind="low-level">COD.DEC_Cfg</handler>
+      <argument kind="pointer">IFX_TAPI_DEC_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_ENC_START">
+      <context>channel</context>
+      <handler kind="low-level">COD.ENC_Start</handler>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_ENC_STOP">
+      <context>channel</context>
+      <handler kind="low-level">COD.ENC_Stop</handler>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_ENC_HOLD">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_COD_ENC_Hold</handler>
+      <argument kind="integer"/>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_DEC_START">
+      <context>channel</context>
+      <handler kind="low-level">COD.DEC_Start</handler>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_DEC_STOP">
+      <context>channel</context>
+      <handler kind="low-level">COD.DEC_Stop</handler>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_COD_DEC_HP_SET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_COD_DEC_HP_Set</handler>
+      <argument kind="integer"/>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_COD_VOLUME_SET">
+      <context>channel</context>
+      <handler kind="low-level">COD.Volume_Set</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_VOLUME_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_ENC_AGC_CFG">
+      <context>channel</context>
+      <handler kind="low-level">COD.AGC_Cfg</handler>
+      <argument kind="pointer">IFX_TAPI_ENC_AGC_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_ENC_AGC_ENABLE">
+      <context>channel</context>
+      <handler kind="low-level">COD.AGC_Enable</handler>
+      <argument kind="integer"/>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_ENC_VAD_CFG_SET">
+      <context>channel</context>
+      <handler kind="low-level">COD.VAD_Cfg</handler>
+      <argument kind="integer"/>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_COD_ANNOUNCE_CFG_SET">
+      <context>device</context>
+      <handler kind="low-level">COD.Ann_Cfg</handler>
+      <argument kind="pointer">IFX_TAPI_COD_ANNOUNCE_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_ANNOUNCEMENTS</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_COD_ANNOUNCE_BUFFER_FREE">
+      <context>device</context>
+      <handler kind="low-level">COD.Ann_Free</handler>
+      <argument kind="pointer">IFX_TAPI_COD_ANNOUNCE_BUFFER_FREE_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_ANNOUNCEMENTS</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_COD_ANNOUNCE_START">
+      <context>channel</context>
+      <handler kind="low-level">COD.Ann_Start</handler>
+      <argument kind="pointer">IFX_TAPI_COD_ANNOUNCE_START_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_ANNOUNCEMENTS</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_COD_ANNOUNCE_STOP">
+      <context>channel</context>
+      <handler kind="low-level">COD.Ann_Stop</handler>
+      <features>
+         <feature>TAPI_FEAT_ANNOUNCEMENTS</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_ENC_ROOM_NOISE_DETECT_START">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_COD_ENC_Room_Noise_Start</handler>
+      <argument kind="pointer">IFX_TAPI_ENC_ROOM_NOISE_DETECT_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_BABYPHONE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_ENC_ROOM_NOISE_DETECT_STOP">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_COD_ENC_Room_Noise_Stop</handler>
+      <features>
+         <feature>TAPI_FEAT_BABYPHONE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_KPI_CH_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_KPI_ChCfgSet</handler>
+      <argument kind="pointer">IFX_TAPI_KPI_CH_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_KPI</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_KPI_GRP_CFG_SET">
+      <handler kind="high-level">IFX_TAPI_KPI_GrpCfgSet</handler>
+      <argument kind="pointer">IFX_TAPI_KPI_GRP_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_KPI</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_VERSION_GET">
+      <handler kind="high-level">TAPI_Phone_Get_Version</handler>
+      <argument kind="pointer">IFX_char_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_DEBUG_REPORT_SET">
+      <context>device</context>
+      <handler kind="high-level">TAPI_DebugReportSet</handler>
+      <argument kind="integer"/>
+   </ioctl>
+   <ioctl name="IFX_TAPI_VERSION_CHECK">
+      <handler kind="high-level">TAPI_Phone_Check_Version</handler>
+      <argument kind="pointer">IFX_TAPI_VERSION_t const</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CAP_NR">
+      <context>device</context>
+      <handler kind="high-level">IFX_TAPI_Cap_Nr_Get</handler>
+      <argument kind="pointer">IFX_TAPI_CAP_NR_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CAP_LIST">
+      <context>device</context>
+      <handler kind="low-level">CAP_List_Get</handler>
+      <argument kind="pointer">IFX_TAPI_CAP_LIST_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CAP_NLIST">
+      <context>device</context>
+      <handler kind="low-level">CAP_List_Get</handler>
+      <argument kind="pointer">IFX_TAPI_CAP_LIST_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CAP_CHECK">
+      <context>device</context>
+      <handler kind="low-level">CAP_Check</handler>
+      <argument kind="pointer">IFX_TAPI_CAP_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_LASTERR">
+      <context>device</context>
+      <handler kind="high-level">TAPI_Last_Err_Get</handler>
+      <argument kind="pointer">IFX_TAPI_Error_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_RING_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_Ring_SetConfig</handler>
+      <argument kind="pointer">IFX_TAPI_RING_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_RINGENGINE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_RING_CADENCE_HR_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_Ring_SetCadenceHighRes</handler>
+      <argument kind="pointer">IFX_TAPI_RING_CADENCE_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_RINGENGINE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_RING_CFG_GET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_Ring_GetConfig</handler>
+      <argument kind="pointer">IFX_TAPI_RING_CFG_t</argument>
+      <features>
+         <feature>TAPI_FEAT_RINGENGINE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_RING">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_Ring_DoBlocking</handler>
+      <features>
+         <feature>TAPI_FEAT_RINGENGINE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_RING_MAX_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_Ring_SetMaxRings</handler>
+      <argument kind="integer"/>
+      <features>
+         <feature>TAPI_FEAT_RINGENGINE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_RING_CADENCE_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_Ring_SetCadence</handler>
+      <argument kind="integer"/>
+      <features>
+         <feature>TAPI_FEAT_RINGENGINE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_RING_START">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_Ring_Start</handler>
+      <features>
+         <feature>TAPI_FEAT_RINGENGINE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_RING_STOP">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_Ring_Stop</handler>
+      <features>
+         <feature>TAPI_FEAT_RINGENGINE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PCM_IF_CFG_SET">
+      <context>device</context>
+      <states>
+         <state>TAPI_DS_INIT</state>
+      </states>
+      <handler kind="high-level">TAPI_Phone_PCM_IF_Set_Config</handler>
+      <argument kind="pointer">IFX_TAPI_PCM_IF_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_PCM</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PCM_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_PCM_Set_Config</handler>
+      <argument kind="pointer">IFX_TAPI_PCM_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_PCM</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PCM_CFG_GET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_PCM_Get_Config</handler>
+      <argument kind="pointer">IFX_TAPI_PCM_CFG_t</argument>
+      <features>
+         <feature>TAPI_FEAT_PCM</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PCM_ACTIVATION_SET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_PCM_Set_Activation</handler>
+      <argument kind="integer"/>
+      <features>
+         <feature>TAPI_FEAT_PCM</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PCM_ACTIVATION_GET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_PCM_Get_Activation</handler>
+      <argument kind="pointer">IFX_TAPI_PCM_ACTIVATION_t</argument>
+      <features>
+         <feature>TAPI_FEAT_PCM</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PCM_HDLC_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_PCM_HDLC_Set</handler>
+      <argument kind="pointer">IFX_TAPI_PCM_HDLC_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_HDLC</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PCM_LOOP_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_PCM_Loop_Set</handler>
+      <argument kind="pointer">IFX_TAPI_PCM_LOOP_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_PCM</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PCM_DEC_HP_SET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Phone_PCM_DEC_HP_Set</handler>
+      <argument kind="integer"/>
+      <features>
+         <feature>TAPI_FEAT_PCM</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_T38_SESS_START">
+      <context>channel</context>
+      <handler kind="low-level">COD.FAX_Start</handler>
+      <argument kind="pointer">IFX_TAPI_T38_SESS_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_FAX_STACK</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_T38_SESS_STOP">
+      <context>channel</context>
+      <handler kind="low-level">COD.FAX_Stop</handler>
+      <features>
+         <feature>TAPI_FEAT_FAX_STACK</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_T38_SESS_STATISTICS_GET">
+      <context>channel</context>
+      <handler kind="low-level">COD.FAX_Stat_Get</handler>
+      <argument kind="pointer">IFX_TAPI_T38_SESS_STATISTICS_t</argument>
+      <features>
+         <feature>TAPI_FEAT_FAX_STACK</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_T38_CAP_GET">
+      <context>device</context>
+      <states>
+         <state>TAPI_DS_INIT</state>
+      </states>
+      <handler kind="low-level">COD.FAX_Cap_Get</handler>
+      <argument kind="pointer">IFX_TAPI_T38_CAP_t</argument>
+      <features>
+         <feature>TAPI_FEAT_FAX_STACK</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_T38_CFG_SET">
+      <context>channel</context>
+      <handler kind="low-level">COD.FAX_Cfg_Set</handler>
+      <argument kind="pointer">IFX_TAPI_T38_FAX_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_FAX_STACK</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_T38_CFG_GET">
+      <context>channel</context>
+      <handler kind="low-level">COD.FAX_Cfg_Get</handler>
+      <argument kind="pointer">IFX_TAPI_T38_FAX_CFG_t</argument>
+      <features>
+         <feature>TAPI_FEAT_FAX_STACK</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_T38_FDP_CFG_SET">
+      <context>channel</context>
+      <handler kind="low-level">COD.FAX_FDP_Cfg_Set</handler>
+      <argument kind="pointer">IFX_TAPI_T38_FDP_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_FAX_STACK</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_T38_FDP_CFG_GET">
+      <context>channel</context>
+      <handler kind="low-level">COD.FAX_FDP_Cfg_Get</handler>
+      <argument kind="pointer">IFX_TAPI_T38_FDP_CFG_t</argument>
+      <features>
+         <feature>TAPI_FEAT_FAX_STACK</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_T38_TRACE_SET">
+      <context>channel</context>
+      <handler kind="low-level">COD.FAX_TraceSet</handler>
+      <argument kind="pointer">IFX_TAPI_T38_TRACE_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_FAX_STACK</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_T38_MOD_START">
+      <context>channel</context>
+      <handler kind="low-level">COD.T38_Mod_Enable</handler>
+      <argument kind="pointer">IFX_TAPI_T38_MOD_DATA_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_FAX_T38</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_T38_DEMOD_START">
+      <context>channel</context>
+      <handler kind="low-level">COD.T38_DeMod_Enable</handler>
+      <argument kind="pointer">IFX_TAPI_T38_DEMOD_DATA_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_FAX_T38</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_T38_STOP">
+      <context>channel</context>
+      <handler kind="low-level">COD.T38_Datapump_Disable</handler>
+      <features>
+         <feature>TAPI_FEAT_FAX_T38</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_T38_STATUS_GET">
+      <context>channel</context>
+      <handler kind="low-level">COD.T38_Status_Get</handler>
+      <argument kind="pointer">IFX_TAPI_T38_STATUS_t</argument>
+      <features>
+         <feature>TAPI_FEAT_FAX_T38</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TEST_HOOKGEN">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_Test_Hook_Gen</handler>
+      <argument kind="integer"/>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TEST_LOOP">
+      <context>channel</context>
+      <handler kind="low-level">ALM.TestLoop</handler>
+      <argument kind="pointer">IFX_TAPI_TEST_LOOP_t const</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_EVENT_GET">
+      <context>driver</context>
+      <handler kind="high-level">TAPI_Event_Get</handler>
+      <argument kind="pointer">IFX_TAPI_EVENT_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_EVENT_ENABLE">
+      <context>driver</context>
+      <states>
+         <state>TAPI_DS_NONE</state>
+      </states>
+      <handler kind="high-level">IOCTL_TAPI_EventEnable</handler>
+      <argument kind="pointer">IFX_TAPI_EVENT_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_EVENT_DISABLE">
+      <context>driver</context>
+      <states>
+         <state>TAPI_DS_NONE</state>
+      </states>
+      <handler kind="high-level">IOCTL_TAPI_EventDisable</handler>
+      <argument kind="pointer">IFX_TAPI_EVENT_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_EVENT_MULTI_ENABLE">
+      <context>driver</context>
+      <states>
+         <state>TAPI_DS_NONE</state>
+      </states>
+      <handler kind="high-level">TAPI_EventMultiEnable</handler>
+      <argument kind="pointer">IFX_TAPI_EVENT_MULTI_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_EVENT_MULTI_DISABLE">
+      <context>driver</context>
+      <states>
+         <state>TAPI_DS_NONE</state>
+      </states>
+      <handler kind="high-level">TAPI_EventMultiDisable</handler>
+      <argument kind="pointer">IFX_TAPI_EVENT_MULTI_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_POLL_CONFIG">
+      <handler kind="high-level">TAPI_IrqPollConf</handler>
+      <argument kind="pointer">IFX_TAPI_POLL_CONFIG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_POLL</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_POLL_DEV_ADD">
+      <context>device</context>
+      <handler kind="high-level">TAPI_PoolDevAdd</handler>
+      <features>
+         <feature>TAPI_FEAT_POLL</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_POLL_DEV_REM">
+      <context>device</context>
+      <handler kind="high-level">TAPI_PoolDevRem</handler>
+      <features>
+         <feature>TAPI_FEAT_POLL</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_POLL_TEST">
+      <handler kind="high-level">TAPI_Poll_Test</handler>
+      <features>
+         <feature>TAPI_FEAT_POLL</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_FXO_DIAL_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_FXO_Dial_Cfg_Set</handler>
+      <argument kind="pointer">IFX_TAPI_FXO_DIAL_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_FXO</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_FXO_FLASH_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_FXO_Flash_Cfg_Set</handler>
+      <argument kind="pointer">IFX_TAPI_FXO_FLASH_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_FXO</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_FXO_OSI_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_FXO_OSI_Cfg_Set</handler>
+      <argument kind="pointer">IFX_TAPI_FXO_OSI_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_FXO</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_FXO_DIAL_START">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_FXO_Dial_Start</handler>
+      <argument kind="pointer">IFX_TAPI_FXO_DIAL_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_FXO</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_FXO_DIAL_STOP">
+      <context>channel</context>
+      <handler kind="low-level">SIG.DTMFG_Stop</handler>
+      <features>
+         <feature>TAPI_FEAT_FXO</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_FXO_HOOK_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_FXO_Hook_Set</handler>
+      <argument kind="integer"/>
+      <features>
+         <feature>TAPI_FEAT_FXO</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_FXO_FLASH_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_FXO_Flash_Set</handler>
+      <features>
+         <feature>TAPI_FEAT_FXO</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_FXO_BAT_GET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_FXO_Bat_Get</handler>
+      <argument kind="pointer">IFX_TAPI_FXO_BAT_t</argument>
+      <features>
+         <feature>TAPI_FEAT_FXO</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_FXO_HOOK_GET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_FXO_Hook_Get</handler>
+      <argument kind="pointer">IFX_TAPI_FXO_HOOK_CFG_t</argument>
+      <features>
+         <feature>TAPI_FEAT_FXO</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_FXO_APOH_GET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_FXO_Apoh_Get</handler>
+      <argument kind="pointer">IFX_TAPI_FXO_APOH_t</argument>
+      <features>
+         <feature>TAPI_FEAT_FXO</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_FXO_RING_GET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_FXO_Ring_Get</handler>
+      <argument kind="pointer">IFX_TAPI_FXO_RING_STATUS_t</argument>
+      <features>
+         <feature>TAPI_FEAT_FXO</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_FXO_POLARITY_GET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_FXO_Polarity_Get</handler>
+      <argument kind="pointer">IFX_TAPI_FXO_POLARITY_t</argument>
+      <features>
+         <feature>TAPI_FEAT_FXO</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_FXO_LINE_MODE_SET">
+      <context>channel</context>
+      <handler kind="low-level">ALM.FXO_LineModeSet</handler>
+      <argument kind="pointer">IFX_TAPI_FXO_LINE_MODE_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_FXO</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_DECT_ACTIVATION_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_DECT_Activation_Set</handler>
+      <argument kind="integer"/>
+      <features>
+         <feature>TAPI_FEAT_DECT</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_DECT_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_DECT_Cfg_Set</handler>
+      <argument kind="pointer">IFX_TAPI_DECT_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_DECT</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_DECT_ENC_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_DECT_Enc_Cfg_Set</handler>
+      <argument kind="pointer">IFX_TAPI_DECT_ENC_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_DECT</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_DECT_EC_CFG_SET">
+      <context>channel</context>
+      <handler kind="low-level">DECT.EC_Cfg</handler>
+      <argument kind="pointer">IFX_TAPI_DECT_EC_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_DECT</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_DECT_VOLUME_SET">
+      <context>channel</context>
+      <handler kind="low-level">DECT.Gain_Set</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_VOLUME_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_DECT</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_DECT_STATISTICS_GET">
+      <context>channel</context>
+      <handler kind="low-level">DECT.Statistic</handler>
+      <argument kind="pointer">IFX_TAPI_DECT_STATISTICS_t</argument>
+      <features>
+         <feature>TAPI_FEAT_DECT</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TONE_DECT_PLAY">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_DECT_Tone_Play</handler>
+      <argument kind="integer"/>
+      <features>
+         <feature>TAPI_FEAT_DECT</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TONE_DECT_STOP">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_DECT_Tone_Stop</handler>
+      <features>
+         <feature>TAPI_FEAT_DECT</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_MWL_ACTIVATION_SET">
+      <context>channel</context>
+      <handler kind="low-level">ALM.MWL_Activation_Set</handler>
+      <argument kind="pointer">IFX_TAPI_MWL_ACTIVATION_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_MWL</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_MWL_ACTIVATION_GET">
+      <context>channel</context>
+      <handler kind="low-level">ALM.MWL_Activation_Get</handler>
+      <argument kind="pointer">IFX_TAPI_MWL_ACTIVATION_t</argument>
+      <features>
+         <feature>TAPI_FEAT_MWL</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PEAK_DETECT_START">
+      <context>channel</context>
+      <handler kind="low-level">SIG.PEAKD_Start</handler>
+      <argument kind="pointer">IFX_TAPI_PEAK_DETECT_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_PEAKD</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PEAK_DETECT_STOP">
+      <context>channel</context>
+      <handler kind="low-level">SIG.PEAKD_Stop</handler>
+      <argument kind="pointer">IFX_TAPI_PEAK_DETECT_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_PEAKD</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PEAK_DETECT_RESULT_GET">
+      <context>channel</context>
+      <handler kind="low-level">SIG.PEAKD_Result</handler>
+      <argument kind="pointer">IFX_TAPI_PEAK_DETECT_RESULT_GET_t</argument>
+      <features>
+         <feature>TAPI_FEAT_PEAKD</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TONE_MF_R2_START">
+      <context>channel</context>
+      <handler kind="low-level">SIG.MF_R2_Start</handler>
+      <argument kind="pointer">IFX_TAPI_TONE_MF_R2_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_MF_R2</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_TONE_MF_R2_STOP">
+      <context>channel</context>
+      <handler kind="low-level">SIG.MF_R2_Stop</handler>
+      <argument kind="pointer">IFX_TAPI_TONE_MF_R2_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_MF_R2</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CALIBRATION_START">
+      <context>channel</context>
+      <handler kind="low-level">ALM.Calibration_Start</handler>
+      <features>
+         <feature>TAPI_FEAT_CALIBRATION</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CALIBRATION_STOP">
+      <context>channel</context>
+      <handler kind="low-level">ALM.Calibration_Stop</handler>
+      <features>
+         <feature>TAPI_FEAT_CALIBRATION</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CALIBRATION_RESULTS_GET">
+      <context>channel</context>
+      <handler kind="low-level">ALM.Calibration_Results_Get</handler>
+      <argument kind="pointer">IFX_TAPI_CALIBRATION_CFG_t</argument>
+      <features>
+         <feature>TAPI_FEAT_CALIBRATION</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CALIBRATION_CFG_SET">
+      <context>channel</context>
+      <handler kind="low-level">ALM.Calibration_Set</handler>
+      <argument kind="pointer">IFX_TAPI_CALIBRATION_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_CALIBRATION</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CALIBRATION_CFG_GET">
+      <context>channel</context>
+      <handler kind="low-level">ALM.Calibration_Get</handler>
+      <argument kind="pointer">IFX_TAPI_CALIBRATION_CFG_t</argument>
+      <features>
+         <feature>TAPI_FEAT_CALIBRATION</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_COMTEL_START">
+      <context>channel</context>
+      <handler kind="low-level">ALM.ComTel_Start</handler>
+      <argument kind="pointer">IFX_TAPI_COMTEL_t const</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CONTMEASUREMENT_REQ">
+      <context>channel</context>
+      <handler kind="low-level">ALM.ContMeasReq</handler>
+      <features>
+         <feature>TAPI_FEAT_CONT_MEAS</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CONTMEASUREMENT_GET">
+      <context>channel</context>
+      <handler kind="low-level">ALM.ContMeasGet</handler>
+      <argument kind="pointer">IFX_TAPI_CONTMEASUREMENT_GET_t</argument>
+      <features>
+         <feature>TAPI_FEAT_CONT_MEAS</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_CONTMEASUREMENT_RESET">
+      <context>channel</context>
+      <handler kind="low-level">ALM.ContMeasReset</handler>
+      <features>
+         <feature>TAPI_FEAT_CONT_MEAS</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_LINE_MEASURE_CAPACITANCE_START">
+      <context>channel</context>
+      <handler kind="high-level">IOCTL_TAPI_PPD_CapMeasStart</handler>
+      <features>
+         <feature>TAPI_FEAT_CAP_MEAS</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_LINE_MEASURE_CAPACITANCE_STOP">
+      <context>channel</context>
+      <handler kind="high-level">IOCTL_TAPI_PPD_CapMeasStop</handler>
+      <features>
+         <feature>TAPI_FEAT_CAP_MEAS</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_LINE_BATTERY_VOLTAGE_GET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_LineBatteryVoltageGet</handler>
+      <argument kind="pointer">IFX_TAPI_LINE_BATTERY_VOLTAGE_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_LINE_BATTERY_VOLTAGE_SET">
+      <context>channel</context>
+      <handler kind="high-level">TAPI_LineBatteryVoltageSet</handler>
+      <argument kind="integer"/>
+   </ioctl>
+   <ioctl name="IFX_TAPI_NLT_TEST_START">
+      <context>channel</context>
+      <handler kind="low-level">NLT.NLT_test_start</handler>
+      <argument kind="pointer">IFX_TAPI_NLT_TEST_START_t</argument>
+      <features>
+         <feature>TAPI_FEAT_NLT</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_NLT_RESULT_GET">
+      <context>channel</context>
+      <handler kind="low-level">NLT.NLT_result_get</handler>
+      <argument kind="pointer">IFX_TAPI_NLT_RESULT_GET_t</argument>
+      <features>
+         <feature>TAPI_FEAT_NLT</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_NLT_CONFIGURATION_OL_SET">
+      <context>channel</context>
+      <handler kind="low-level">ALM.NLT_OLConfigSet</handler>
+      <argument kind="pointer">IFX_TAPI_NLT_CONFIGURATION_OL_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_NLT_CONFIGURATION_OL_GET">
+      <context>channel</context>
+      <handler kind="low-level">ALM.NLT_OLConfigGet</handler>
+      <argument kind="pointer">IFX_TAPI_NLT_CONFIGURATION_OL_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_NLT_CONFIGURATION_RMES_SET">
+      <context>channel</context>
+      <handler kind="low-level">ALM.NLT_RmesConfigSet</handler>
+      <argument kind="pointer">IFX_TAPI_NLT_CONFIGURATION_RMES_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_NLT_CAPACITANCE_RESULT_GET">
+      <context>channel</context>
+      <handler kind="low-level">ALM.NLT_capacitance_result_get</handler>
+      <argument kind="pointer">IFX_TAPI_NLT_CAPACITANCE_RESULT_t</argument>
+      <features>
+         <feature>TAPI_FEAT_CAP_MEAS</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_NLT_CAPACITANCE_START">
+      <context>channel</context>
+      <handler kind="high-level">IOCTL_TAPI_PPD_NLTCapMeasStart</handler>
+      <argument kind="pointer">IFX_TAPI_NLT_CAPACITANCE_START_t</argument>
+      <features>
+         <feature>TAPI_FEAT_CAP_MEAS</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_NLT_CAPACITANCE_STOP">
+      <context>channel</context>
+      <handler kind="high-level">IOCTL_TAPI_PPD_NLTCapMeasStop</handler>
+      <argument kind="pointer">IFX_TAPI_NLT_CAPACITANCE_STOP_t</argument>
+      <features>
+         <feature>TAPI_FEAT_CAP_MEAS</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_VERSION_DEV_ENTRY_GET">
+      <context>device</context>
+      <handler kind="low-level">VersionDevEntryGet</handler>
+      <argument kind="pointer">IFX_TAPI_VERSION_DEV_ENTRY_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_VERSION_CH_ENTRY_GET">
+      <context>channel</context>
+      <handler kind="low-level">ALM.VersionChEntry_Get</handler>
+      <argument kind="pointer">IFX_TAPI_VERSION_CH_ENTRY_t</argument>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_RTP_EXT_STATISTICS_GET">
+      <context>channel</context>
+      <handler kind="low-level">COD.RTP_Ext_Stat_Get</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_RTP_EXT_STATISTICS_GET_t</argument>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_RTP_EXT_STATISTICS_CFG">
+      <context>channel</context>
+      <handler kind="low-level">COD.RTP_Ext_Stat_Cfg</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_RTP_EXT_STATISTICS_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_VOICE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_GR909_START">
+      <context>channel</context>
+      <handler kind="low-level">ALM.GR909_Start</handler>
+      <argument kind="pointer">IFX_TAPI_GR909_START_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_GR909</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_GR909_STOP">
+      <context>channel</context>
+      <handler kind="low-level">ALM.GR909_Stop</handler>
+      <features>
+         <feature>TAPI_FEAT_GR909</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_GR909_RESULT">
+      <context>channel</context>
+      <handler kind="low-level">ALM.GR909_Result</handler>
+      <argument kind="pointer">IFX_TAPI_GR909_RESULT_t</argument>
+      <features>
+         <feature>TAPI_FEAT_GR909</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_COD_MOS_CFG_SET">
+      <context>channel</context>
+      <handler kind="low-level">COD.MOS_Cfg</handler>
+      <argument kind="pointer">IFX_TAPI_COD_MOS_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_MOS_LQE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_COD_MOS_RESULT_GET">
+      <context>channel</context>
+      <handler kind="low-level">COD.MOS_Result_Get</handler>
+      <argument kind="pointer">IFX_TAPI_COD_MOS_t</argument>
+      <features>
+         <feature>TAPI_FEAT_MOS_LQE</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_LINE_PHONE_DETECT_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_PPD_Cfg_Set</handler>
+      <argument kind="pointer">IFX_TAPI_LINE_PHONE_DETECT_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_PHONE_DETECTION</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_LINE_PHONE_DETECT_CFG_GET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_PPD_Cfg_Get</handler>
+      <argument kind="pointer">IFX_TAPI_LINE_PHONE_DETECT_CFG_t</argument>
+      <features>
+         <feature>TAPI_FEAT_PHONE_DETECTION</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_SRTP_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_SRTP_CfgSet</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_SRTP_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_SRTP</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_SRTP_MKI_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_SRTP_MKI_Set</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_SRTP_MKI_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_SRTP</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_SRTP_MKI_CFG_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_SRTP_MKI_CfgSet</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_SRTP_MKI_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_SRTP</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_SRTP_CAP_GET">
+      <context>device</context>
+      <handler kind="high-level">IFX_TAPI_SRTP_CapGet</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_SRTP_CAP_GET_t</argument>
+      <features>
+         <feature>TAPI_FEAT_SRTP</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_SRTP_STATISTICS_GET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_SRTP_StatGet</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_SRTP_STATISTICS_GET_t</argument>
+      <features>
+         <feature>TAPI_FEAT_SRTP</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_SRTP_STATISTICS_RESET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_SRTP_StatReset</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_SRTP_STATISTICS_RESET_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_SRTP</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_SRTP_PACKET_INDEX_SET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_SRTP_PckIdxSet</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_SRTP_PACKET_INDEX_SET_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_SRTP</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PKT_SRTP_PACKET_INDEX_GET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_SRTP_PckIdxGet</handler>
+      <argument kind="pointer">IFX_TAPI_PKT_SRTP_PACKET_INDEX_GET_t</argument>
+      <features>
+         <feature>TAPI_FEAT_SRTP</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_PCM_MUTE_CFG_SET">
+      <context>channel</context>
+      <handler kind="low-level">PCM.Mute</handler>
+      <argument kind="pointer">IFX_TAPI_PCM_MUTE_CFG_t const</argument>
+      <features>
+         <feature>TAPI_FEAT_PCM</feature>
+      </features>
+   </ioctl>
+   <ioctl name="IFX_TAPI_COD_AMR_GET">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_COD_AMR_Get</handler>
+      <argument kind="pointer">IFX_TAPI_COD_AMR_t</argument>
+      <features>
+         <feature>TAPI_FEAT_AMR</feature>
+      </features>
+   </ioctl>
+</ioctls>

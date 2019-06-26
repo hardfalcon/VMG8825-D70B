@@ -1,0 +1,9 @@
+include bsp/lantiq-ugw/xrx330-vdsp.scc
+include bsp/lantiq-ugw/xrx330-vrx518.scc
+include bsp/lantiq-ugw/mtd-nand.scc
+include bsp/lantiq-ugw/pci.scc
+include cfg/net-phy-rtl821x.scc
+include features/mtd/nand.scc
+include features/i2c/i2c.scc
+include features/pci/pci.scc
+include flavors/sphairon-router.scc

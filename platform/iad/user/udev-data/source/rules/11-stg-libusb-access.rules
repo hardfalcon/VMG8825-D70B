@@ -1,0 +1,6 @@
+# grant USB API ( libusb-1.0) access rights for web-frontend
+# this is currently a hack but it works for right now
+
+# setting permissions
+SUBSYSTEM=="usb",ACTION=="add",RUN+="chmod 777 /proc/bus/usb/*/*"
+

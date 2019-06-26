@@ -1,0 +1,270 @@
+diff --git a/Configure b/Configure
+index 9c803dc0663da83c8dd20e8a2ae6e71f4e5a70b0..4f21d8a12a49ecba5652bdf4b8e479144df405a1 100755
+--- a/Configure
++++ b/Configure
+@@ -403,6 +403,10 @@ my %table=(
+ "linux-alpha-ccc","ccc:-fast -readonly_strings -DL_ENDIAN -DTERMIO::-D_REENTRANT:::SIXTY_FOUR_BIT_LONG RC4_CHUNK DES_INT DES_PTR DES_RISC1 DES_UNROLL:${alpha_asm}",
+ "linux-alpha+bwx-ccc","ccc:-fast -readonly_strings -DL_ENDIAN -DTERMIO::-D_REENTRANT:::SIXTY_FOUR_BIT_LONG RC4_CHAR RC4_CHUNK DES_INT DES_PTR DES_RISC1 DES_UNROLL:${alpha_asm}",
+ 
++# Sphairon Linux targets:
++"linux-mips-sphairon","gcc:-DB_ENDIAN -DTERMIO \$(SPHAIRON_CFLAGS) \$(DEPFLAG)::-D_REENTRANT::-ldl:BN_LLONG RC4_CHAR RC4_CHUNK DES_INT DES_UNROLL DES_RISC2:${mips32_asm}:o32:dlfcn:linux-shared:-fPIC::.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
++"linux-powerpc-sphairon","gcc:-DB_ENDIAN -DTERMIO \$(SPHAIRON_CFLAGS) \$(DEPFLAG)::-D_REENTRANT::-ldl:BN_LLONG RC4_CHAR RC4_CHUNK DES_RISC1 DES_UNROLL:${ppc32_asm}:linux32:dlfcn:linux-shared:-fPIC::.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
++
+ # Android: linux-* but without -DTERMIO and pointers to headers and libs.
+ "android","gcc:-mandroid -I\$(ANDROID_DEV)/include -B\$(ANDROID_DEV)/lib -O3 -fomit-frame-pointer -Wall::-D_REENTRANT::-ldl:BN_LLONG RC4_CHAR RC4_CHUNK DES_INT DES_UNROLL BF_PTR:${no_asm}:dlfcn:linux-shared:-fPIC::.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
+ "android-x86","gcc:-mandroid -I\$(ANDROID_DEV)/include -B\$(ANDROID_DEV)/lib -O3 -fomit-frame-pointer -Wall::-D_REENTRANT::-ldl:BN_LLONG ${x86_gcc_des} ${x86_gcc_opts}:".eval{my $asm=${x86_elf_asm};$asm=~s/:elf/:android/;$asm}.":dlfcn:linux-shared:-fPIC::.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
+diff --git a/Makefile.org b/Makefile.org
+index 2db31ead6fa9fa3565b9bf84119023fb8e5f6775..62ccb01d4eb05c636b9c3ffd39e477980a481068 100644
+--- a/Makefile.org
++++ b/Makefile.org
+@@ -135,7 +135,7 @@ FIPSCANLIB=
+ 
+ BASEADDR=
+ 
+-DIRS=   crypto ssl engines apps test tools
++DIRS=   crypto ssl
+ ENGDIRS= ccgost
+ SHLIBDIRS= crypto ssl
+ 
+@@ -268,26 +268,26 @@ reflect:
+ 	@[ -n "$(THIS)" ] && $(CLEARENV) && $(MAKE) $(THIS) -e $(BUILDENV)
+ 
+ sub_all: build_all
+-build_all: build_libs build_apps build_tests build_tools
++build_all: build_libs
+ 
+-build_libs: build_crypto build_ssl build_engines
++build_libs: build_crypto build_ssl
+ 
+ build_crypto:
+-	@dir=crypto; target=all; $(BUILD_ONE_CMD)
+-build_ssl:
+-	@dir=ssl; target=all; $(BUILD_ONE_CMD)
+-build_engines:
+-	@dir=engines; target=all; $(BUILD_ONE_CMD)
+-build_apps:
+-	@dir=apps; target=all; $(BUILD_ONE_CMD)
+-build_tests:
+-	@dir=test; target=all; $(BUILD_ONE_CMD)
++	+@dir=crypto; target=all; $(BUILD_ONE_CMD)
++build_ssl: build_crypto
++	+@dir=ssl; target=all; $(BUILD_ONE_CMD)
++build_engines: build_crypto
++	+@dir=engines; target=all; $(BUILD_ONE_CMD)
++build_apps: build_crypto build_ssl
++	+@dir=apps; target=all; $(BUILD_ONE_CMD)
++build_tests: build_crypto build_ssl
++	+@dir=test; target=all; $(BUILD_ONE_CMD)
+ build_tools:
+-	@dir=tools; target=all; $(BUILD_ONE_CMD)
++	+@dir=tools; target=all; $(BUILD_ONE_CMD)
+ 
+ all_testapps: build_libs build_testapps
+ build_testapps:
+-	@dir=crypto; target=testapps; $(BUILD_ONE_CMD)
++	+@dir=crypto; target=testapps; $(BUILD_ONE_CMD)
+ 
+ fips_premain_dso$(EXE_EXT): libcrypto.a
+ 	[ -z "$(FIPSCANLIB)" ] || $(CC) $(CFLAG) -Iinclude \
+@@ -310,7 +310,7 @@ libcrypto$(SHLIB_EXT): libcrypto.a fips_premain_dso$(EXE_EXT)
+ 
+ libssl$(SHLIB_EXT): libcrypto$(SHLIB_EXT) libssl.a
+ 	@if [ "$(SHLIB_TARGET)" != "" ]; then \
+-		$(MAKE) SHLIBDIRS=ssl SHLIBDEPS='-lcrypto' build-shared; \
++		$(MAKE) -e SHLIBDIRS=ssl SHLIBDEPS='-lcrypto' build-shared; \
+ 	else \
+ 		echo "There's no support for shared libraries on this platform" >&2; \
+ 		exit 1; \
+@@ -406,7 +406,7 @@ libclean:
+ 
+ clean:	libclean
+ 	rm -f shlib/*.o *.o core a.out fluff rehash.time testlog make.log cctest cctest.c
+-	@set -e; target=clean; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=clean; $(RECURSIVE_BUILD_CMD)
+ 	rm -f $(LIBS)
+ 	rm -f openssl.pc libssl.pc libcrypto.pc
+ 	rm -f speed.* .pure
+@@ -422,12 +422,12 @@ makefile.one: files
+ 
+ files:
+ 	$(PERL) $(TOP)/util/files.pl Makefile > $(TOP)/MINFO
+-	@set -e; target=files; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=files; $(RECURSIVE_BUILD_CMD)
+ 
+ links:
+ 	@$(PERL) $(TOP)/util/mkdir-p.pl include/openssl
+ 	@$(PERL) $(TOP)/util/mklink.pl include/openssl $(EXHEADER)
+-	@set -e; target=links; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=links; $(RECURSIVE_BUILD_CMD)
+ 
+ gentests:
+ 	@(cd test && echo "generating dummy tests (if needed)..." && \
+@@ -459,7 +459,7 @@ report:
+ 	@$(PERL) util/selftest.pl
+ 
+ depend:
+-	@set -e; target=depend; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=depend; $(RECURSIVE_BUILD_CMD)
+ 
+ lint:
+ 	@set -e; target=lint; $(RECURSIVE_BUILD_CMD)
+@@ -537,9 +537,9 @@ dist:
+ dist_pem_h:
+ 	(cd crypto/pem; $(MAKE) -e $(BUILDENV) pem.h; $(MAKE) clean)
+ 
+-install: all install_docs install_sw
++install: all install_sw
+ 
+-install_sw:
++install_sw: all
+ 	@$(PERL) $(TOP)/util/mkdir-p.pl $(INSTALL_PREFIX)$(INSTALLTOP)/bin \
+ 		$(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR) \
+ 		$(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR)/engines \
+@@ -553,7 +553,7 @@ install_sw:
+ 	(cp $$i $(INSTALL_PREFIX)$(INSTALLTOP)/include/openssl/$$i; \
+ 	chmod 644 $(INSTALL_PREFIX)$(INSTALLTOP)/include/openssl/$$i ); \
+ 	done;
+-	@set -e; target=install; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=install; $(RECURSIVE_BUILD_CMD)
+ 	@set -e; liblist="$(LIBS)"; for i in $$liblist ;\
+ 	do \
+ 		if [ -f "$$i" ]; then \
+diff --git a/Makefile.shared b/Makefile.shared
+index e753f44e18fdf6878a25024e5939f6f0d7db6305..27318f46e29e8c5fa43fadcf89ae25452cd0bd34 100644
+--- a/Makefile.shared
++++ b/Makefile.shared
+@@ -92,7 +92,7 @@ CALC_VERSIONS=	\
+ LINK_APP=	\
+   ( $(SET_X);   \
+     LIBDEPS="$${LIBDEPS:-$(LIBDEPS)}"; \
+-    LDCMD="$${LDCMD:-$(CC)}"; LDFLAGS="$${LDFLAGS:-$(CFLAGS)}"; \
++    LDCMD="$${LDCMD:-$(CC)}"; LDFLAGS="${SPHAIRON_LDFLAGS} $${LDFLAGS:-$(CFLAGS)}"; \
+     LIBPATH=`for x in $$LIBDEPS; do echo $$x; done | sed -e 's/^ *-L//;t' -e d | uniq`; \
+     LIBPATH=`echo $$LIBPATH | sed -e 's/ /:/g'`; \
+     LD_LIBRARY_PATH=$$LIBPATH:$$LD_LIBRARY_PATH \
+@@ -102,7 +102,7 @@ LINK_SO=	\
+   ( $(SET_X);   \
+     LIBDEPS="$${LIBDEPS:-$(LIBDEPS)}"; \
+     SHAREDCMD="$${SHAREDCMD:-$(CC)}"; \
+-    SHAREDFLAGS="$${SHAREDFLAGS:-$(CFLAGS) $(SHARED_LDFLAGS)}"; \
++    SHAREDFLAGS="${SPHAIRON_LDFLAGS} $${SHAREDFLAGS:-$(CFLAGS) $(SHARED_LDFLAGS)}"; \
+     LIBPATH=`for x in $$LIBDEPS; do echo $$x; done | sed -e 's/^ *-L//;t' -e d | uniq`; \
+     LIBPATH=`echo $$LIBPATH | sed -e 's/ /:/g'`; \
+     LD_LIBRARY_PATH=$$LIBPATH:$$LD_LIBRARY_PATH \
+@@ -151,9 +151,9 @@ DO_GNU_SO=$(CALC_VERSIONS); \
+ 	SHLIB_SUFFIX=; \
+ 	ALLSYMSFLAGS='-Wl,--whole-archive'; \
+ 	NOALLSYMSFLAGS='-Wl,--no-whole-archive'; \
+-	SHAREDFLAGS="$(CFLAGS) $(SHARED_LDFLAGS) -shared -Wl,-Bsymbolic -Wl,-soname=$$SHLIB$$SHLIB_SOVER$$SHLIB_SUFFIX"
++	SHAREDFLAGS="$(CFLAGS) $(SHARED_LDFLAGS) -shared -Wl,-soname=$$SHLIB$$SHLIB_SOVER$$SHLIB_SUFFIX"
+ 
+-DO_GNU_APP=LDFLAGS="$(CFLAGS) -Wl,-rpath,$(LIBRPATH)"
++DO_GNU_APP=LDFLAGS="$(CFLAGS)"
+ 
+ #This is rather special.  It's a special target with which one can link
+ #applications without bothering with any features that have anything to
+diff --git a/crypto/Makefile b/crypto/Makefile
+index 947dd5d44ec5e9698de9539a8878c57891d72898..8d268ec24238e5a41bbd432e995e8a27d5e41a42 100644
+--- a/crypto/Makefile
++++ b/crypto/Makefile
+@@ -86,17 +86,17 @@ testapps:
+ 	@if [ -z "$(THIS)" ]; then $(MAKE) -f $(TOP)/Makefile reflect THIS=$@; fi
+ 
+ subdirs:
+-	@target=all; $(RECURSIVE_MAKE)
++	+@target=all; $(RECURSIVE_MAKE)
+ 
+ files:
+ 	$(PERL) $(TOP)/util/files.pl Makefile >> $(TOP)/MINFO
+-	@target=files; $(RECURSIVE_MAKE)
++	+@target=files; $(RECURSIVE_MAKE)
+ 
+ links:
+ 	@$(PERL) $(TOP)/util/mklink.pl ../include/openssl $(EXHEADER)
+ 	@$(PERL) $(TOP)/util/mklink.pl ../test $(TEST)
+ 	@$(PERL) $(TOP)/util/mklink.pl ../apps $(APPS)
+-	@target=links; $(RECURSIVE_MAKE)
++	+@target=links; $(RECURSIVE_MAKE)
+ 
+ # lib: $(LIB): are splitted to avoid end-less loop
+ lib:	$(LIB)
+@@ -107,12 +107,12 @@ $(LIB):	$(LIBOBJ)
+ 	$(RANLIB) $(LIB) || echo Never mind.
+ 
+ shared: buildinf.h lib subdirs
+-	if [ -n "$(SHARED_LIBS)" ]; then \
+-		(cd ..; $(MAKE) $(SHARED_LIB)); \
++	+if [ -n "$(SHARED_LIBS)" ]; then \
++		(cd ..; $(MAKE) -e $(SHARED_LIB)); \
+ 	fi
+ 
+ libs:
+-	@target=lib; $(RECURSIVE_MAKE)
++	+@target=lib; $(RECURSIVE_MAKE)
+ 
+ install:
+ 	@[ -n "$(INSTALLTOP)" ] # should be set by top Makefile...
+@@ -121,7 +121,7 @@ install:
+ 	(cp $$i $(INSTALL_PREFIX)$(INSTALLTOP)/include/openssl/$$i; \
+ 	chmod 644 $(INSTALL_PREFIX)$(INSTALLTOP)/include/openssl/$$i ); \
+ 	done;
+-	@target=install; $(RECURSIVE_MAKE)
++	+@target=install; $(RECURSIVE_MAKE)
+ 
+ lint:
+ 	@target=lint; $(RECURSIVE_MAKE)
+@@ -130,12 +130,12 @@ depend:
+ 	@[ -z "$(THIS)" -o -f buildinf.h ] || touch buildinf.h # fake buildinf.h if it does not exist
+ 	@[ -z "$(THIS)" ] || $(MAKEDEPEND) -- $(CFLAG) $(INCLUDE) $(DEPFLAG) -- $(PROGS) $(LIBSRC)
+ 	@[ -z "$(THIS)" -o -s buildinf.h ] || rm buildinf.h
+-	@[ -z "$(THIS)" ] || (set -e; target=depend; $(RECURSIVE_MAKE) )
+-	@if [ -z "$(THIS)" ]; then $(MAKE) -f $(TOP)/Makefile reflect THIS=$@; fi
++	+@[ -z "$(THIS)" ] || (set -e; target=depend; $(RECURSIVE_MAKE) )
++	+@if [ -z "$(THIS)" ]; then $(MAKE) -f $(TOP)/Makefile reflect THIS=$@; fi
+ 
+ clean:
+ 	rm -f buildinf.h *.s *.o */*.o *.obj lib tags core .pure .nfs* *.old *.bak fluff
+-	@target=clean; $(RECURSIVE_MAKE)
++	+@target=clean; $(RECURSIVE_MAKE)
+ 
+ dclean:
+ 	$(PERL) -pe 'if (/^# DO NOT DELETE THIS LINE/) {print; exit(0);}' $(MAKEFILE) >Makefile.new
+diff --git a/crypto/evp/c_alld.c b/crypto/evp/c_alld.c
+index 311e1fe2f8517bed047be77608238d8db0dc75da..3b81c0d1ba01c56b1ed6b8f6e42d8751f458f21c 100644
+--- a/crypto/evp/c_alld.c
++++ b/crypto/evp/c_alld.c
+@@ -108,7 +108,7 @@ void OpenSSL_add_all_digests(void)
+ 	EVP_add_digest(EVP_sha384());
+ 	EVP_add_digest(EVP_sha512());
+ #endif
+-#ifndef OPENSSL_NO_WHIRLPOOL
++#ifndef OPENSSL_NO_WHRLPOOL
+ 	EVP_add_digest(EVP_whirlpool());
+ #endif
+ 	}
+diff --git a/crypto/evp/m_wp.c b/crypto/evp/m_wp.c
+index c51bc2d5d1eed3f355dca8e7f7a31b3fce4a4f8c..90f11d25d5cf24dcc439acdc1937bcf70ec095bf 100644
+--- a/crypto/evp/m_wp.c
++++ b/crypto/evp/m_wp.c
+@@ -3,7 +3,7 @@
+ #include <stdio.h>
+ #include "cryptlib.h"
+ 
+-#ifndef OPENSSL_NO_WHIRLPOOL
++#ifndef OPENSSL_NO_WHRLPOOL
+ 
+ #include <openssl/evp.h>
+ #include <openssl/objects.h>
+diff --git a/ssl/Makefile b/ssl/Makefile
+index debe07405bf805346104f12157883e6e430dfdc8..4f5da77e071ff9d5e9a03a0efbeb77009cae4e8c 100644
+--- a/ssl/Makefile
++++ b/ssl/Makefile
+@@ -62,7 +62,7 @@ lib:	$(LIBOBJ)
+ 
+ shared: lib
+ 	if [ -n "$(SHARED_LIBS)" ]; then \
+-		(cd ..; $(MAKE) $(SHARED_LIB)); \
++		(cd ..; $(MAKE) -e $(SHARED_LIB)); \
+ 	fi
+ 
+ files:

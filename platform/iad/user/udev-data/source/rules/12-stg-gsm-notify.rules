@@ -1,0 +1,27 @@
+# GSM/UMTS device support
+# switching the device is done via usb_modeswitch rules, installed by module
+# usb_modeswitch
+#
+# notifying the services is done via gsm_device_action_handler
+# which depends on usb_modeswitch and the presumption, that supported devices
+# a) contain some tty's
+# b) have a usb_modeswitch configuration
+# c) are in usb_modeswitch white list
+
+# speed up things, so
+ACTION!="add", GOTO="gsm_notify_add_rules_end"
+
+# This adds a bunch of symlink's under /dev/gsm/
+KERNEL=="ttyUSB*", ATTRS{bNumConfigurations}=="*", SUBSYSTEM=="tty", SYMLINK+="ttyGSM%n", PROGRAM="/bin/gsm_device_action_handler add %p", SYMLINK+="%c", RUN+="/bin/logger -t usb_mod %c"
+KERNEL=="ttyACM*", ATTRS{bNumConfigurations}=="*", SUBSYSTEM=="tty", SYMLINK+="ttyGSM%n", PROGRAM="/bin/gsm_device_action_handler add %p", SYMLINK+="%c", RUN+="/bin/logger -t usb_mod %c"
+
+LABEL="gsm_notify_add_rules_end"
+
+# speed up things, so
+ACTION!="remove", GOTO="gsm_notify_remove_rules_end"
+
+KERNEL=="ttyUSB*", ATTRS{bNumConfigurations}=="*", SUBSYSTEM=="tty", ACTION=="remove", RUN+="/bin/gsm_device_action_handler rem %p"
+KERNEL=="ttyACM*", ATTRS{bNumConfigurations}=="*", SUBSYSTEM=="tty", ACTION=="remove", RUN+="/bin/gsm_device_action_handler rem %p"
+
+LABEL="gsm_notify_remove_rules_end"
+

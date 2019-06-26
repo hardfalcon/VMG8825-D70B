@@ -1,0 +1,488 @@
+From: Daniel Schwierzeck <daniel.schwierzeck@gmail.com>
+Date: Tue, 23 Oct 2012 01:14:16 +0200
+Subject: vsftpd own passwd
+
+Signed-off-by: Daniel Schwierzeck <daniel.schwierzeck@gmail.com>
+---
+ Makefile     |   3 +-
+ builddefs.h  |   2 +-
+ parseconf.c  |   3 +
+ sysdeputil.c | 353 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tunables.c   |   6 +
+ tunables.h   |   3 +
+ 6 files changed, 367 insertions(+), 3 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index fc13dce..e0f7eaf 100644
+--- a/Makefile
++++ b/Makefile
+@@ -4,9 +4,8 @@ INSTALL	=	install
+ IFLAGS  = -idirafter dummyinc
+ #CFLAGS = -g
+ CFLAGS	=	-O2 -Wall -W -Wshadow #-pedantic -Werror -Wconversion
+-
+ LIBS	=	`./vsf_findlibs.sh`
+-LINK	=	-Wl,-s
++LINK	=
+ 
+ OBJS	=	main.o utility.o prelogin.o ftpcmdio.o postlogin.o privsock.o \
+ 		tunables.o ftpdataio.o secbuf.o ls.o \
+diff --git a/builddefs.h b/builddefs.h
+index e908352..e97321b 100644
+--- a/builddefs.h
++++ b/builddefs.h
+@@ -2,7 +2,7 @@
+ #define VSF_BUILDDEFS_H
+ 
+ #undef VSF_BUILD_TCPWRAPPERS
+-#define VSF_BUILD_PAM
++#undef VSF_BUILD_PAM
+ #undef VSF_BUILD_SSL
+ 
+ #endif /* VSF_BUILDDEFS_H */
+diff --git a/parseconf.c b/parseconf.c
+index e1c6f80..94c6f7c 100644
+--- a/parseconf.c
++++ b/parseconf.c
+@@ -178,6 +178,9 @@ parseconf_str_array[] =
+   { "dsa_private_key_file", &tunable_dsa_private_key_file },
+   { "ca_certs_file", &tunable_ca_certs_file },
+   { "cmds_denied", &tunable_cmds_denied },
++#ifdef VSF_OWN_PASSWD
++  { "own_passwd", &tunable_own_passwd },
++#endif
+   { 0, 0 }
+ };
+ 
+diff --git a/sysdeputil.c b/sysdeputil.c
+index 04a5cf8..3fd228a 100644
+--- a/sysdeputil.c
++++ b/sysdeputil.c
+@@ -16,6 +16,10 @@
+ #include "tunables.h"
+ #include "builddefs.h"
+ 
++#ifdef VSF_OWN_PASSWD
++#include "stdio.h"
++#endif
++
+ /* For Linux, this adds nothing :-) */
+ #include "port/porting_junk.h"
+ 
+@@ -205,6 +209,343 @@ static char* s_p_proctitle = 0;
+ static int s_zero_fd = -1;
+ #endif
+ 
++
++#ifdef VSF_OWN_PASSWD
++/*
++* 090805/HG: we don't need VSF_SYSDEP_HAVE_SHADOW. Therefore we undef it
++*
++*/
++#undef VSF_SYSDEP_HAVE_SHADOW
++
++enum VSF_PASSWD_EXTENSION
++{
++   VSF_PASSWD_MAX_NUM_LINE     = 10,
++   VSF_PASSWD_MAX_LINE_LEN     = 80,
++   VSF_PASSWD_MAX_USERNAME_LEN = 50,
++   VSF_PASSWD_MAX_PASSWD_LEN   = 50,
++   VSF_PASSWD_MAX_UID_LEN      = 10,
++   VSF_PASSWD_MAX_GID_LEN      = 10,
++   VSF_PASSWD_MAX_GECOS_LEN    = 50,
++   VSF_PASSWD_MAX_DIR_LEN      = 50,
++   VSF_PASSWD_MAX_SHELL_LEN    = 50
++};
++
++enum VSF_PASSWD_ERR_CODES
++{
++   VSF_PASSWD_SUCCESS = 0,
++   VSF_PASSWD_ERR,
++   VSF_PASSWD_FOPEN_ERR,
++   VSF_PASSWD_TOO_MANY_LINES,
++   VSF_PASSWD_USERNAME_TOO_LONG,
++   VSF_PASSWD_FIELD_TOO_LONG,
++   VSF_PASSWD_NOMEMORY
++};
++
++enum VSF_PASSWD_STATUS_CODES
++{
++   VSF_PASSWD_UNVALID,
++   VSF_PASSWD_VALID
++};
++
++struct st_pwd
++{
++   unsigned int  status;
++   char          line[VSF_PASSWD_MAX_NUM_LINE][VSF_PASSWD_MAX_LINE_LEN];
++};
++
++static struct st_pwd passw;
++static struct passwd pwd[VSF_PASSWD_MAX_NUM_LINE];
++
++static struct passwd* get_own_passwd(char *user);
++static int get_lines_to_passwd();
++static int check_user_name(char* pwd_line,char* user);
++static int get_user_name(char* pwd_line, char *user_name);
++static int read_lines(void);
++
++static struct passwd* get_own_passwd(char *user)
++{
++   int            i,ret;
++   static struct passwd* pw;
++
++   ret = read_lines();
++   if((ret ==  VSF_PASSWD_SUCCESS)&&(passw.status == VSF_PASSWD_VALID))
++   {
++      ret = get_lines_to_passwd();
++      if(ret ==  VSF_PASSWD_SUCCESS)
++      {
++         for(i=0;i<VSF_PASSWD_MAX_NUM_LINE;i++)
++         {
++            pw= &pwd[i];
++            if (check_user_name(pw->pw_name,user) == VSF_PASSWD_SUCCESS)
++            {
++               return pw;
++            }
++         }
++      }
++   }
++   return NULL;
++}
++
++static int get_lines_to_passwd()
++{
++   int i,j,k,ret;
++   struct passwd* pw;
++   char c;
++
++   ret = VSF_PASSWD_SUCCESS;
++   i=j=k=0;
++
++   if(passw.status != VSF_PASSWD_VALID)
++   {
++      ret = VSF_PASSWD_ERR;
++   }
++   else
++   {
++      for(i=0;i<VSF_PASSWD_MAX_NUM_LINE;i++)
++      {
++         k=0;
++         pw=&pwd[i];
++         //get name
++         if(pw->pw_name == NULL)
++         {
++            pw->pw_name =  vsf_sysutil_malloc(VSF_PASSWD_MAX_USERNAME_LEN);
++            if(pw->pw_name == NULL)
++            {
++               goto err_nomemory;
++            }
++         }
++         j=0;
++         c=passw.line[i][k];
++         while ((c != ':') && (c != 0))
++         {
++            pw->pw_name[j] = c;
++            j++;
++            k++;
++            if (j >= VSF_PASSWD_MAX_USERNAME_LEN)
++            {
++                goto err_len;
++            }
++            c=passw.line[i][k];
++         }
++         pw->pw_name[j] = 0;
++         k++;
++
++         // get passwd
++         if(pw->pw_passwd == NULL)
++         {
++            pw->pw_passwd =  vsf_sysutil_malloc(VSF_PASSWD_MAX_PASSWD_LEN);
++            if(pw->pw_passwd == NULL)
++            {
++               goto err_nomemory;
++            }
++         }
++         j=0;
++         c=passw.line[i][k];
++         while ((c != ':') && (c != 0))
++         {
++            pw->pw_passwd[j] = c;
++            j++;
++            k++;
++            if (j >= VSF_PASSWD_MAX_PASSWD_LEN)
++            {
++                goto err_len;
++            }
++            c=passw.line[i][k];
++         }
++         pw->pw_passwd[j] = 0;
++         k++;
++
++         //get uid: ignore it
++         j=0;
++         c=passw.line[i][k];
++         while ((c != ':') && (c != 0))
++         {
++            j++;
++            k++;
++            if (j >= VSF_PASSWD_MAX_UID_LEN)
++            {
++                goto err_len;
++            }
++            c=passw.line[i][k];
++         }
++         k++;
++
++         //get gid: ignore it
++         j=0;
++         c=passw.line[i][k];
++         while ((c != ':') && (c != 0))
++         {
++            j++;
++            k++;
++            if (j >= VSF_PASSWD_MAX_GID_LEN)
++            {
++                goto err_len;
++            }
++            c=passw.line[i][k];
++         }
++         k++;
++
++         // get gecos
++         if(pw->pw_gecos == NULL)
++         {
++            pw->pw_gecos =  vsf_sysutil_malloc(VSF_PASSWD_MAX_GECOS_LEN);
++            if(pw->pw_gecos == NULL)
++            {
++               goto err_nomemory;
++            }
++         }
++         j=0;
++         c=passw.line[i][k];
++         while ((c != ':') && (c != 0))
++         {
++            pw->pw_gecos[j] = c;
++            j++;
++            k++;
++            if (j >= VSF_PASSWD_MAX_GECOS_LEN)
++            {
++                goto err_len;
++            }
++            c=passw.line[i][k];
++         }
++         pw->pw_gecos[j] = 0;
++         k++;
++         // get dir
++         if(pw->pw_dir == NULL)
++         {
++            pw->pw_dir =  vsf_sysutil_malloc(VSF_PASSWD_MAX_DIR_LEN);
++            if(pw->pw_dir == NULL)
++            {
++               goto err_nomemory;
++            }
++         }
++         j=0;
++         c=passw.line[i][k];
++         while ((c != ':') && (c != 0))
++         {
++            pw->pw_dir[j] = c;
++            j++;
++            k++;
++            if (j >= VSF_PASSWD_MAX_DIR_LEN)
++            {
++                goto err_len;
++            }
++            c=passw.line[i][k];
++         }
++         pw->pw_dir[j] = 0;
++         k++;
++
++         // get shell
++         if(pw->pw_shell == NULL)
++         {
++            pw->pw_shell =  vsf_sysutil_malloc(VSF_PASSWD_MAX_SHELL_LEN);
++            if(pw->pw_shell == NULL)
++            {
++               goto err_nomemory;
++            }
++         }
++         j=0;
++         c=passw.line[i][k];
++         while ((c != ':') && (c != 0))
++         {
++            pw->pw_shell[j] = c;
++            j++;
++            k++;
++            if (j >= VSF_PASSWD_MAX_SHELL_LEN)
++            {
++                goto err_len;
++            }
++            c=passw.line[i][k];
++         }
++         pw->pw_shell[j] = 0;
++         k++;
++      }
++   }
++   return ret;
++err_nomemory:
++   ret=VSF_PASSWD_NOMEMORY;
++   goto free_memory;
++err_len:
++   ret=VSF_PASSWD_FIELD_TOO_LONG;
++free_memory:
++   if(pw->pw_name)
++   {
++      vsf_sysutil_free(pw->pw_name);
++      pw->pw_name = NULL;
++   }
++   if(pw->pw_passwd)
++   {
++      vsf_sysutil_free(pw->pw_passwd);
++      pw->pw_passwd = NULL;
++   }
++   if(pw->pw_gecos)
++   {
++      vsf_sysutil_free(pw->pw_gecos);
++      pw->pw_gecos = NULL;
++   }
++   if(pw->pw_dir)
++   {
++      vsf_sysutil_free(pw->pw_dir);
++      pw->pw_dir = NULL;
++   }
++   if(pw->pw_shell)
++   {
++      vsf_sysutil_free(pw->pw_shell);
++      pw->pw_shell = NULL;
++   }
++   return ret;
++}
++
++static int check_user_name(char* name,char* user)
++{
++   return vsf_sysutil_strcmp(name,user);
++}
++
++static int read_lines(void)
++{
++   FILE * fl;
++   int i,j,c,ret;
++   ret = VSF_PASSWD_SUCCESS;
++
++   fl = fopen(tunable_own_passwd,"r");
++   if (fl == NULL)
++   {
++      return VSF_PASSWD_FOPEN_ERR;
++   }
++   i=0;
++   j=0;
++   passw.status=VSF_PASSWD_UNVALID;
++
++   c=fgetc(fl);
++
++   while ((c != EOF) && (i<VSF_PASSWD_MAX_NUM_LINE))
++   {
++      if(c == '\n')
++      {
++          passw.line[i][j] = 0;
++          i++;                  //read next line
++          j=0;
++      }
++      else
++      {
++          passw.line[i][j] = (char)c;
++          j++;
++      }
++      c=fgetc(fl);
++   }
++
++   if(i >= VSF_PASSWD_MAX_NUM_LINE)
++   {
++      fclose(fl);
++      return VSF_PASSWD_TOO_MANY_LINES;
++   }
++   fclose(fl);
++   passw.status=VSF_PASSWD_VALID;
++   return ret;
++}
++
++#endif
++
++
+ /* File private functions/variables */
+ static int do_sendfile(const int out_fd, const int in_fd,
+                        unsigned int num_send, filesize_t start_pos);
+@@ -223,7 +564,11 @@ vsf_sysdep_check_auth(const struct mystr* p_user_str,
+                       const struct mystr* p_remote_host)
+ {
+   const char* p_crypted;
++#ifdef VSF_OWN_PASSWD
++  const struct passwd* p_pwd = get_own_passwd((char *)str_getbuf(p_user_str));
++#else
+   const struct passwd* p_pwd = getpwnam(str_getbuf(p_user_str));
++#endif
+   (void) p_remote_host;
+   if (p_pwd == NULL)
+   {
+@@ -274,12 +619,20 @@ vsf_sysdep_check_auth(const struct mystr* p_user_str,
+     }
+   }
+   #endif /* VSF_SYSDEP_HAVE_SHADOW */
++#ifdef VSF_OWN_PASSWD
++  if (vsf_sysutil_strcmp(str_getbuf(p_pass_str), p_pwd->pw_passwd) == 0)
++  {
++    return 1;
++  }
++  return 0;
++#else
+   p_crypted = crypt(str_getbuf(p_pass_str), p_pwd->pw_passwd);
+   if (!vsf_sysutil_strcmp(p_crypted, p_pwd->pw_passwd))
+   {
+     return 1;
+   }
+   return 0;
++#endif
+ }
+ 
+ #else /* VSF_SYSDEP_HAVE_PAM */
+diff --git a/tunables.c b/tunables.c
+index fa716b2..28d15ca 100644
+--- a/tunables.c
++++ b/tunables.c
+@@ -135,6 +135,9 @@ const char* tunable_dsa_cert_file;
+ const char* tunable_ssl_ciphers;
+ const char* tunable_rsa_private_key_file;
+ const char* tunable_dsa_private_key_file;
++#ifdef VSF_OWN_PASSWD
++const char* tunable_own_passwd;
++#endif //#ifdef VSF_OWN_PASSWD
+ const char* tunable_ca_certs_file;
+ 
+ static void install_str_setting(const char* p_value, const char** p_storage);
+@@ -275,6 +278,9 @@ tunables_load_defaults()
+   install_str_setting("DES-CBC3-SHA", &tunable_ssl_ciphers);
+   install_str_setting(0, &tunable_rsa_private_key_file);
+   install_str_setting(0, &tunable_dsa_private_key_file);
++#ifdef VSF_OWN_PASSWD
++  install_str_setting("/etc/vsftpd/vsftpd_passwd",&tunable_own_passwd);
++#endif //#ifdef VSF_OWN_PASSWD
+   install_str_setting(0, &tunable_ca_certs_file);
+ }
+ 
+diff --git a/tunables.h b/tunables.h
+index b47f96a..a62f25f 100644
+--- a/tunables.h
++++ b/tunables.h
+@@ -137,6 +137,9 @@ extern const char* tunable_dsa_cert_file;
+ extern const char* tunable_ssl_ciphers;
+ extern const char* tunable_rsa_private_key_file;
+ extern const char* tunable_dsa_private_key_file;
++#ifdef VSF_OWN_PASSWD
++extern const char* tunable_own_passwd;
++#endif //#ifdef VSF_OWN_PASSWD
+ extern const char* tunable_ca_certs_file;
+ extern const char* tunable_cmds_denied;
+ 
+--
+

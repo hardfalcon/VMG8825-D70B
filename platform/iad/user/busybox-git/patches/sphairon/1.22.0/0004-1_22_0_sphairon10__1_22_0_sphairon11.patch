@@ -1,0 +1,35 @@
+diff --git a/Makefile b/Makefile
+index 5077cc663a9c28e5daee085e4b4ee3b1f6fa66e3..687b636f64a43ce5548fa593ff1bc8d47146f47f 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,7 +1,7 @@
+ VERSION = 1
+ PATCHLEVEL = 22
+ SUBLEVEL = 1
+-EXTRAVERSION = -sphairon10
++EXTRAVERSION = -sphairon11
+ NAME = Unnamed
+ 
+ # *DOCUMENTATION*
+diff --git a/sphairon/config.generic b/sphairon/config.generic
+index 97d9837bd017d788376f4a1addbc467c7a2bc3fb..9dd3334875129e3dd8c699a5e6fdf246b4da9311 100644
+--- a/sphairon/config.generic
++++ b/sphairon/config.generic
+@@ -787,7 +787,7 @@ CONFIG_IFUPDOWN_IFSTATE_PATH=""
+ # CONFIG_FEATURE_IFUPDOWN_IPV6 is not set
+ # CONFIG_FEATURE_IFUPDOWN_MAPPING is not set
+ # CONFIG_FEATURE_IFUPDOWN_EXTERNAL_DHCP is not set
+-# CONFIG_INETD is not set
++CONFIG_INETD=y
+ # CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO is not set
+ # CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD is not set
+ # CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME is not set
+@@ -827,7 +827,7 @@ CONFIG_TELNETD=y
+ CONFIG_FEATURE_TELNETD_STANDALONE=y
+ # CONFIG_FEATURE_TELNETD_INETD_WAIT is not set
+ CONFIG_TFTP=y
+-# CONFIG_TFTPD is not set
++CONFIG_TFTPD=y
+ 
+ #
+ # Common options for tftp/tftpd

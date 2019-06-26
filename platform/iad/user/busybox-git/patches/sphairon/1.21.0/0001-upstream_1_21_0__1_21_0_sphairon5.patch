@@ -1,0 +1,5649 @@
+diff --git a/Makefile b/Makefile
+index c31ca899b5963cbe2e65185e108a0b8b8f6c097d..b25f074b86fadc74c745b56793362b3008ec8a60 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,7 +1,7 @@
+ VERSION = 1
+ PATCHLEVEL = 21
+-SUBLEVEL = 0
+-EXTRAVERSION =
++SUBLEVEL = 1
++EXTRAVERSION = -sphairon5
+ NAME = Unnamed
+ 
+ # *DOCUMENTATION*
+diff --git a/archival/libarchive/decompress_unxz.c b/archival/libarchive/decompress_unxz.c
+index 79b48a152e77e440060f53fd379945f7741adf0e..986b7b191b06491a29b97c6d1b1be3c7e65f3bd0 100644
+--- a/archival/libarchive/decompress_unxz.c
++++ b/archival/libarchive/decompress_unxz.c
+@@ -30,8 +30,8 @@ static uint32_t xz_crc32(const uint8_t *buf, size_t size, uint32_t crc)
+ /* We use arch-optimized unaligned accessors */
+ #define get_unaligned_le32(buf) ({ uint32_t v; move_from_unaligned32(v, buf); SWAP_LE32(v); })
+ #define get_unaligned_be32(buf) ({ uint32_t v; move_from_unaligned32(v, buf); SWAP_BE32(v); })
+-#define put_unaligned_le32(val, buf) move_to_unaligned16(buf, SWAP_LE32(val))
+-#define put_unaligned_be32(val, buf) move_to_unaligned16(buf, SWAP_BE32(val))
++#define put_unaligned_le32(val, buf) move_to_unaligned32(buf, SWAP_LE32(val))
++#define put_unaligned_be32(val, buf) move_to_unaligned32(buf, SWAP_BE32(val))
+ 
+ #include "unxz/xz_dec_bcj.c"
+ #include "unxz/xz_dec_lzma2.c"
+@@ -40,6 +40,7 @@ static uint32_t xz_crc32(const uint8_t *buf, size_t size, uint32_t crc)
+ IF_DESKTOP(long long) int FAST_FUNC
+ unpack_xz_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd)
+ {
++	enum xz_ret xz_result;
+ 	struct xz_buf iobuf;
+ 	struct xz_dec *state;
+ 	unsigned char *membuf;
+@@ -63,9 +64,8 @@ unpack_xz_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd)
+ 	/* Limit memory usage to about 64 MiB. */
+ 	state = xz_dec_init(XZ_DYNALLOC, 64*1024*1024);
+ 
++	xz_result = X_OK;
+ 	while (1) {
+-		enum xz_ret r;
+-
+ 		if (iobuf.in_pos == iobuf.in_size) {
+ 			int rd = safe_read(src_fd, membuf, BUFSIZ);
+ 			if (rd < 0) {
+@@ -73,28 +73,57 @@ unpack_xz_stream(transformer_aux_data_t *aux, int src_fd, int dst_fd)
+ 				total = -1;
+ 				break;
+ 			}
++			if (rd == 0 && xz_result == XZ_STREAM_END)
++				break;
+ 			iobuf.in_size = rd;
+ 			iobuf.in_pos = 0;
+ 		}
++		if (xz_result == XZ_STREAM_END) {
++			/*
++			 * Try to start decoding next concatenated stream.
++			 * Stream padding must always be a multiple of four
++			 * bytes to preserve four-byte alignment. To keep the
++			 * code slightly smaller, we aren't as strict here as
++			 * the .xz spec requires. We just skip all zero-bytes
++			 * without checking the alignment and thus can accept
++			 * files that aren't valid, e.g. the XZ utils test
++			 * files bad-0pad-empty.xz and bad-0catpad-empty.xz.
++			 */
++			do {
++				if (membuf[iobuf.in_pos] != 0) {
++					xz_dec_reset(state);
++					goto do_run;
++				}
++				iobuf.in_pos++;
++			} while (iobuf.in_pos < iobuf.in_size);
++		}
++ do_run:
+ //		bb_error_msg(">in pos:%d size:%d out pos:%d size:%d",
+ //				iobuf.in_pos, iobuf.in_size, iobuf.out_pos, iobuf.out_size);
+-		r = xz_dec_run(state, &iobuf);
++		xz_result = xz_dec_run(state, &iobuf);
+ //		bb_error_msg("<in pos:%d size:%d out pos:%d size:%d r:%d",
+-//				iobuf.in_pos, iobuf.in_size, iobuf.out_pos, iobuf.out_size, r);
++//				iobuf.in_pos, iobuf.in_size, iobuf.out_pos, iobuf.out_size, xz_result);
+ 		if (iobuf.out_pos) {
+ 			xwrite(dst_fd, iobuf.out, iobuf.out_pos);
+ 			IF_DESKTOP(total += iobuf.out_pos;)
+ 			iobuf.out_pos = 0;
+ 		}
+-		if (r == XZ_STREAM_END) {
+-			break;
++		if (xz_result == XZ_STREAM_END) {
++			/*
++			 * Can just "break;" here, if not for concatenated
++			 * .xz streams.
++			 * Checking for padding may require buffer
++			 * replenishment. Can't do it here.
++			 */
++			continue;
+ 		}
+-		if (r != XZ_OK && r != XZ_UNSUPPORTED_CHECK) {
++		if (xz_result != XZ_OK && xz_result != XZ_UNSUPPORTED_CHECK) {
+ 			bb_error_msg("corrupted data");
+ 			total = -1;
+ 			break;
+ 		}
+ 	}
++
+ 	xz_dec_end(state);
+ 	free(membuf);
+ 
+diff --git a/include/applets.src.h b/include/applets.src.h
+index 29ab1670651187bc05af7b491c32377f53d77328..9ae76b634ae145fa688ddffed0860af5d397b5f1 100644
+--- a/include/applets.src.h
++++ b/include/applets.src.h
+@@ -217,6 +217,7 @@ IF_LN(APPLET_NOEXEC(ln, ln, BB_DIR_BIN, BB_SUID_DROP, ln))
+ IF_LOAD_POLICY(APPLET(load_policy, BB_DIR_USR_SBIN, BB_SUID_DROP))
+ IF_LOADFONT(APPLET(loadfont, BB_DIR_USR_SBIN, BB_SUID_DROP))
+ IF_LOADKMAP(APPLET(loadkmap, BB_DIR_SBIN, BB_SUID_DROP))
++IF_LOCK(APPLET(lock, BB_DIR_BIN, BB_SUID_DROP))
+ IF_LOGGER(APPLET(logger, BB_DIR_USR_BIN, BB_SUID_DROP))
+ /* Needs to be run by root or be suid root - needs to change uid and gid: */
+ IF_LOGIN(APPLET(login, BB_DIR_BIN, BB_SUID_REQUIRE))
+diff --git a/include/platform.h b/include/platform.h
+index 12823065815662cf52f1f48737ba5666f2633f2d..f4deb30c0f5764b4a434365bec526e062b7370f3 100644
+--- a/include/platform.h
++++ b/include/platform.h
+@@ -228,7 +228,7 @@ typedef uint32_t bb__aliased_uint32_t FIX_ALIASING;
+ # define move_from_unaligned32(v, u32p) (memcpy(&(v), (u32p), 4))
+ # define move_to_unaligned16(u16p, v) do { \
+ 	uint16_t __t = (v); \
+-	memcpy((u16p), &__t, 4); \
++	memcpy((u16p), &__t, 2); \
+ } while (0)
+ # define move_to_unaligned32(u32p, v) do { \
+ 	uint32_t __t = (v); \
+diff --git a/miscutils/Config.src b/miscutils/Config.src
+index b9fc196d8d6dee7024aabbbe41b0999455119795..d69c75e57a7a52126ae154583cd3e4d79636d6f4 100644
+--- a/miscutils/Config.src
++++ b/miscutils/Config.src
+@@ -419,6 +419,11 @@ config FEATURE_HDPARM_HDIO_GETSET_DMA
+ 	help
+ 	  Enables the 'hdparm -d' option to get/set using_dma flag.
+ 
++config LOCK
++	bool "lock"
++	help
++	  Small utility for using locks in scripts
++
+ config MAKEDEVS
+ 	bool "makedevs"
+ 	default y
+diff --git a/miscutils/Kbuild.src b/miscutils/Kbuild.src
+index 8c498643b1998738b79c793bcf29f1d0858e0749..456da9c7b0dc5be55f48eba6f6c2ca05d76ec476 100644
+--- a/miscutils/Kbuild.src
++++ b/miscutils/Kbuild.src
+@@ -29,6 +29,7 @@ lib-$(CONFIG_INOTIFYD)    += inotifyd.o
+ lib-$(CONFIG_FEATURE_LAST_SMALL)+= last.o
+ lib-$(CONFIG_FEATURE_LAST_FANCY)+= last_fancy.o
+ lib-$(CONFIG_LESS)        += less.o
++lib-$(CONFIG_LOCK)        += lock.o
+ lib-$(CONFIG_MAKEDEVS)    += makedevs.o
+ lib-$(CONFIG_MAN)         += man.o
+ lib-$(CONFIG_MICROCOM)    += microcom.o
+diff --git a/miscutils/lock.c b/miscutils/lock.c
+new file mode 100644
+index 0000000000000000000000000000000000000000..45e474a8b11fb28a0db861afcd0216023b8c94a3
+--- /dev/null
++++ b/miscutils/lock.c
+@@ -0,0 +1,137 @@
++/*
++ * Copyright (C) 2006 Felix Fietkau <nbd@openwrt.org>
++ *
++ * This is free software, licensed under the GNU General Public License v2.
++ */
++
++//usage:#define lock_trivial_usage
++//usage:       "[-suw] <filename>"
++//usage:#define lock_full_usage ""
++
++#include <sys/types.h>
++#include <sys/file.h>
++#include <sys/stat.h>
++#include <signal.h>
++#include <fcntl.h>
++#include <unistd.h>
++#include <stdio.h>
++#include "busybox.h"
++
++static int unlock = 0;
++static int shared = 0;
++static int waitonly = 0;
++static int fd;
++static char *file;
++
++static void usage(char *name)
++{
++	fprintf(stderr, "Usage: %s [-suw] <filename>\n"
++	                "	-s	Use shared locking\n"
++	                "	-u	Unlock\n"
++	                "	-w	Wait for the lock to become free, don't acquire lock\n"
++					"\n", name);
++	exit(1);
++}
++
++static void exit_unlock(int sig)
++{
++	flock(fd, LOCK_UN);
++	exit(0);
++}
++
++static int do_unlock(void)
++{
++	FILE *f;
++	int i;
++
++	if ((f = fopen(file, "r")) == NULL)
++		return 0;
++
++	fscanf(f, "%d", &i);
++	if (i > 0)
++		kill(i, SIGTERM);
++
++	fclose(f);
++
++	return 0;
++}
++
++static int do_lock(void)
++{
++	int pid;
++	char pidstr[8];
++
++	if ((fd = open(file, O_RDWR | O_CREAT | O_EXCL, 0700)) < 0) {
++		if ((fd = open(file, O_RDWR)) < 0) {
++			fprintf(stderr, "Can't open %s\n", file);
++			return 1;
++		}
++	}
++
++	if (flock(fd, (shared ? LOCK_SH : LOCK_EX)) < 0) {
++		fprintf(stderr, "Can't lock %s\n", file);
++		return 1;
++	}
++
++	pid = fork();
++
++	if (pid < 0)
++		return -1;
++
++	if (pid == 0) {
++		signal(SIGKILL, exit_unlock);
++		signal(SIGTERM, exit_unlock);
++		signal(SIGINT, exit_unlock);
++		if (waitonly)
++			exit_unlock(0);
++		else
++			while (1)
++				sleep(1);
++	} else {
++		if (!waitonly) {
++			lseek(fd, 0, SEEK_SET);
++			ftruncate(fd, 0);
++			sprintf(pidstr, "%d\n", pid);
++			write(fd, pidstr, strlen(pidstr));
++			close(fd);
++		}
++
++		return 0;
++	}
++	return 0;
++}
++
++int lock_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
++int lock_main(int argc, char **argv)
++{
++	char **args = &argv[1];
++	int c = argc - 1;
++
++	while ((*args != NULL) && (*args)[0] == '-') {
++		char *ch = *args;
++		while (*(++ch) > 0) {
++			switch(*ch) {
++				case 'w':
++					waitonly = 1;
++					break;
++				case 's':
++					shared = 1;
++					break;
++				case 'u':
++					unlock = 1;
++					break;
++			}
++		}
++		c--;
++		args++;
++	}
++
++	if (c != 1)
++		usage(argv[0]);
++
++	file = *args;
++	if (unlock)
++		return do_unlock();
++	else
++		return do_lock();
++}
+diff --git a/miscutils/watchdog.c b/miscutils/watchdog.c
+index d3a76edf07260bb30dae417d5299886db22f2e9c..b2f1cabf8f5fe42c0c6163272ecc623b01b0cbfa 100644
+--- a/miscutils/watchdog.c
++++ b/miscutils/watchdog.c
+@@ -65,6 +65,9 @@ int watchdog_main(int argc, char **argv)
+ 	if (!(opts & OPT_FOREGROUND))
+ 		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
+ 
++	/* Create pidfile */
++	write_pidfile("/var/run/watchdog.pid");
++
+ 	if (opts & OPT_HTIMER)
+ 		htimer_duration = xatou_sfx(ht_arg, suffixes);
+ 	stimer_duration = htimer_duration / 2;
+diff --git a/networking/udhcp/dhcpc.c b/networking/udhcp/dhcpc.c
+index 0862288718296f1c0ea32db58ced1a607d655f27..06907c0996688c0178cbdbc2d6179f9cdfa5a6af 100644
+--- a/networking/udhcp/dhcpc.c
++++ b/networking/udhcp/dhcpc.c
+@@ -669,7 +669,7 @@ static int raw_bcast_from_client_config_ifindex(struct dhcp_packet *packet)
+ 
+ /* Broadcast a DHCP discover packet to the network, with an optionally requested IP */
+ /* NOINLINE: limit stack usage in caller */
+-static NOINLINE int send_discover(uint32_t xid, uint32_t requested)
++static NOINLINE int send_discover(uint32_t xid, uint32_t requested, uint16_t secs)
+ {
+ 	struct dhcp_packet packet;
+ 
+@@ -680,6 +680,7 @@ static NOINLINE int send_discover(uint32_t xid, uint32_t requested)
+ 	init_packet(&packet, DHCPDISCOVER);
+ 
+ 	packet.xid = xid;
++	packet.secs = secs;
+ 	if (requested)
+ 		udhcp_add_simple_option(&packet, DHCP_REQUESTED_IP, requested);
+ 
+@@ -698,7 +699,7 @@ static NOINLINE int send_discover(uint32_t xid, uint32_t requested)
+  * "The client _broadcasts_ a DHCPREQUEST message..."
+  */
+ /* NOINLINE: limit stack usage in caller */
+-static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requested)
++static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requested, uint16_t secs)
+ {
+ 	struct dhcp_packet packet;
+ 	struct in_addr addr;
+@@ -722,6 +723,7 @@ static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requeste
+ 	init_packet(&packet, DHCPREQUEST);
+ 
+ 	packet.xid = xid;
++	packet.secs = secs;
+ 	udhcp_add_simple_option(&packet, DHCP_REQUESTED_IP, requested);
+ 
+ 	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
+@@ -739,7 +741,7 @@ static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requeste
+ 
+ /* Unicast or broadcast a DHCP renew message */
+ /* NOINLINE: limit stack usage in caller */
+-static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
++static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr, uint16_t secs)
+ {
+ 	struct dhcp_packet packet;
+ 
+@@ -765,6 +767,7 @@ static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
+ 
+ 	packet.xid = xid;
+ 	packet.ciaddr = ciaddr;
++	packet.secs = secs;
+ 
+ 	/* Add options: maxsize,
+ 	 * optionally: hostname, fqdn, vendorclass,
+@@ -1388,6 +1391,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 		/* silence "uninitialized!" warning */
+ 		unsigned timestamp_before_wait = timestamp_before_wait;
+ 
++		unsigned transaction_start = transaction_start;
++
+ 		//bb_error_msg("sockfd:%d, listen_mode:%d", sockfd, listen_mode);
+ 
+ 		/* Was opening raw or udp socket here
+@@ -1421,6 +1426,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 		/* If timeout dropped to zero, time to become active:
+ 		 * resend discover/renew/whatever
+ 		 */
++		unsigned now = (unsigned)monotonic_sec();
+ 		if (retval == 0) {
+ 			/* When running on a bridge, the ifindex may have changed
+ 			 * (e.g. if member interfaces were added/removed
+@@ -1443,10 +1449,12 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 			switch (state) {
+ 			case INIT_SELECTING:
+ 				if (!discover_retries || packet_num < discover_retries) {
+-					if (packet_num == 0)
++					if (packet_num == 0) {
+ 						xid = random_xid();
+-					/* broadcast */
+-					send_discover(xid, requested_ip);
++						transaction_start = now;
++					}
++
++					send_discover(xid, requested_ip, (now - transaction_start)); /* broadcast */
+ 					timeout = discover_timeout;
+ 					packet_num++;
+ 					continue;
+@@ -1471,9 +1479,12 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 				packet_num = 0;
+ 				continue;
+ 			case REQUESTING:
++				if (packet_num == 0)
++					transaction_start = now;
++
+ 				if (!discover_retries || packet_num < discover_retries) {
+ 					/* send broadcast select packet */
+-					send_select(xid, server_addr, requested_ip);
++					send_select(xid, server_addr, requested_ip, (now - transaction_start));
+ 					timeout = discover_timeout;
+ 					packet_num++;
+ 					continue;
+@@ -1489,6 +1500,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 				/* 1/2 lease passed, enter renewing state */
+ 				state = RENEWING;
+ 				client_config.first_secs = 0; /* make secs field count from 0 */
++				transaction_start = now;
+ 				change_listen_mode(LISTEN_KERNEL);
+ 				log1("Entering renew state");
+ 				/* fall right through */
+@@ -1505,13 +1517,14 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 			 * Anyway, it does recover by eventually failing through
+ 			 * into INIT_SELECTING state.
+ 			 */
+-					send_renew(xid, server_addr, requested_ip);
++					send_renew(xid, server_addr, requested_ip, (now - transaction_start));
+ 					timeout >>= 1;
+ 					continue;
+ 				}
+ 				/* Timed out, enter rebinding state */
+ 				log1("Entering rebinding state");
+ 				state = REBINDING;
++				transaction_start = now;
+ 				/* fall right through */
+ 			case REBINDING:
+ 				/* Switch to bcast receive */
+@@ -1520,13 +1533,15 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 				 * try to find DHCP server using broadcast */
+ 				if (timeout > 0) {
+ 					/* send a broadcast renew request */
+-					send_renew(xid, 0 /*INADDR_ANY*/, requested_ip);
++					send_renew(xid, 0 /*INADDR_ANY*/, requested_ip, (now - transaction_start));
+ 					timeout >>= 1;
+ 					continue;
+ 				}
+ 				/* Timed out, enter init state */
+ 				bb_info_msg("Lease lost, entering init state");
+ 				udhcp_run_script(NULL, "deconfig");
++				transaction_start = now;
++				change_listen_mode(LISTEN_RAW);
+ 				state = INIT_SELECTING;
+ 				client_config.first_secs = 0; /* make secs field count from 0 */
+ 				/*timeout = 0; - already is */
+diff --git a/shell/ash.c b/shell/ash.c
+index 31fbc550a62532ecb99a831a71ae7c31b7e2c312..70e0c1922d82bfe530fe1b6315b114ad593d5e4c 100644
+--- a/shell/ash.c
++++ b/shell/ash.c
+@@ -10198,6 +10198,10 @@ options(int cmdline)
+ 	int val;
+ 	int c;
+ 
++	/* eggerd: "Fix" shell to always read profile, some would consider this
++	 * a bug in our scripts .... */
++	isloginsh = 1;
++
+ 	if (cmdline)
+ 		minusc = NULL;
+ 	while ((p = *argptr) != NULL) {
+diff --git a/sphairon/config.generic b/sphairon/config.generic
+new file mode 100644
+index 0000000000000000000000000000000000000000..0bcc94b5a3d746189e91e52b8a50a4139934e479
+--- /dev/null
++++ b/sphairon/config.generic
+@@ -0,0 +1,1023 @@
++#
++# Automatically generated make config: don't edit
++# Busybox version: 1.21.1
++#
++CONFIG_HAVE_DOT_CONFIG=y
++
++#
++# Busybox Settings
++#
++
++#
++# General Configuration
++#
++# CONFIG_DESKTOP is not set
++# CONFIG_EXTRA_COMPAT is not set
++# CONFIG_INCLUDE_SUSv2 is not set
++# CONFIG_USE_PORTABLE_CODE is not set
++CONFIG_PLATFORM_LINUX=y
++CONFIG_FEATURE_BUFFERS_USE_MALLOC=y
++# CONFIG_FEATURE_BUFFERS_GO_ON_STACK is not set
++# CONFIG_FEATURE_BUFFERS_GO_IN_BSS is not set
++CONFIG_SHOW_USAGE=y
++CONFIG_FEATURE_VERBOSE_USAGE=y
++# CONFIG_FEATURE_COMPRESS_USAGE is not set
++CONFIG_FEATURE_INSTALLER=y
++CONFIG_INSTALL_NO_USR=y
++# CONFIG_LOCALE_SUPPORT is not set
++# CONFIG_UNICODE_SUPPORT is not set
++# CONFIG_UNICODE_USING_LOCALE is not set
++# CONFIG_FEATURE_CHECK_UNICODE_IN_ENV is not set
++CONFIG_SUBST_WCHAR=0
++CONFIG_LAST_SUPPORTED_WCHAR=0
++# CONFIG_UNICODE_COMBINING_WCHARS is not set
++# CONFIG_UNICODE_WIDE_WCHARS is not set
++# CONFIG_UNICODE_BIDI_SUPPORT is not set
++# CONFIG_UNICODE_NEUTRAL_TABLE is not set
++# CONFIG_UNICODE_PRESERVE_BROKEN is not set
++CONFIG_LONG_OPTS=y
++CONFIG_FEATURE_DEVPTS=y
++# CONFIG_FEATURE_CLEAN_UP is not set
++# CONFIG_FEATURE_UTMP is not set
++# CONFIG_FEATURE_WTMP is not set
++CONFIG_FEATURE_PIDFILE=y
++CONFIG_PID_FILE_PATH="/run"
++CONFIG_FEATURE_SUID=y
++# CONFIG_FEATURE_SUID_CONFIG is not set
++# CONFIG_FEATURE_SUID_CONFIG_QUIET is not set
++# CONFIG_SELINUX is not set
++CONFIG_FEATURE_PREFER_APPLETS=y
++CONFIG_BUSYBOX_EXEC_PATH="/bin/busybox"
++CONFIG_FEATURE_SYSLOG=y
++CONFIG_FEATURE_HAVE_RPC=y
++
++#
++# Build Options
++#
++# CONFIG_STATIC is not set
++# CONFIG_PIE is not set
++# CONFIG_NOMMU is not set
++# CONFIG_BUILD_LIBBUSYBOX is not set
++# CONFIG_FEATURE_INDIVIDUAL is not set
++# CONFIG_FEATURE_SHARED_BUSYBOX is not set
++CONFIG_LFS=y
++CONFIG_CROSS_COMPILER_PREFIX=""
++CONFIG_SYSROOT=""
++CONFIG_EXTRA_CFLAGS=""
++CONFIG_EXTRA_LDFLAGS=""
++CONFIG_EXTRA_LDLIBS=""
++
++#
++# Debugging Options
++#
++# CONFIG_DEBUG is not set
++# CONFIG_DEBUG_PESSIMIZE is not set
++# CONFIG_WERROR is not set
++CONFIG_NO_DEBUG_LIB=y
++# CONFIG_DMALLOC is not set
++# CONFIG_EFENCE is not set
++
++#
++# Installation Options ("make install" behavior)
++#
++CONFIG_INSTALL_APPLET_SYMLINKS=y
++# CONFIG_INSTALL_APPLET_HARDLINKS is not set
++# CONFIG_INSTALL_APPLET_SCRIPT_WRAPPERS is not set
++# CONFIG_INSTALL_APPLET_DONT is not set
++# CONFIG_INSTALL_SH_APPLET_SYMLINK is not set
++# CONFIG_INSTALL_SH_APPLET_HARDLINK is not set
++# CONFIG_INSTALL_SH_APPLET_SCRIPT_WRAPPER is not set
++CONFIG_PREFIX="${ROOTFS}"
++
++#
++# Busybox Library Tuning
++#
++# CONFIG_FEATURE_SYSTEMD is not set
++CONFIG_FEATURE_RTMINMAX=y
++CONFIG_PASSWORD_MINLEN=5
++CONFIG_MD5_SMALL=1
++CONFIG_SHA3_SMALL=1
++CONFIG_FEATURE_FAST_TOP=y
++# CONFIG_FEATURE_ETC_NETWORKS is not set
++CONFIG_FEATURE_USE_TERMIOS=y
++CONFIG_FEATURE_EDITING=y
++CONFIG_FEATURE_EDITING_MAX_LEN=1024
++# CONFIG_FEATURE_EDITING_VI is not set
++CONFIG_FEATURE_EDITING_HISTORY=50
++# CONFIG_FEATURE_EDITING_SAVEHISTORY is not set
++# CONFIG_FEATURE_EDITING_SAVE_ON_EXIT is not set
++# CONFIG_FEATURE_REVERSE_SEARCH is not set
++CONFIG_FEATURE_TAB_COMPLETION=y
++# CONFIG_FEATURE_USERNAME_COMPLETION is not set
++# CONFIG_FEATURE_EDITING_FANCY_PROMPT is not set
++# CONFIG_FEATURE_EDITING_ASK_TERMINAL is not set
++# CONFIG_FEATURE_NON_POSIX_CP is not set
++CONFIG_FEATURE_VERBOSE_CP_MESSAGE=y
++CONFIG_FEATURE_COPYBUF_KB=1
++CONFIG_FEATURE_SKIP_ROOTFS=y
++CONFIG_MONOTONIC_SYSCALL=y
++# CONFIG_IOCTL_HEX2STR_ERROR is not set
++# CONFIG_FEATURE_HWIB is not set
++
++#
++# Applets
++#
++
++#
++# Archival Utilities
++#
++# CONFIG_FEATURE_SEAMLESS_XZ is not set
++# CONFIG_FEATURE_SEAMLESS_LZMA is not set
++CONFIG_FEATURE_SEAMLESS_BZ2=y
++CONFIG_FEATURE_SEAMLESS_GZ=y
++# CONFIG_FEATURE_SEAMLESS_Z is not set
++# CONFIG_AR is not set
++# CONFIG_FEATURE_AR_LONG_FILENAMES is not set
++# CONFIG_FEATURE_AR_CREATE is not set
++# CONFIG_BUNZIP2 is not set
++CONFIG_BZIP2=y
++# CONFIG_CPIO is not set
++# CONFIG_FEATURE_CPIO_O is not set
++# CONFIG_FEATURE_CPIO_P is not set
++# CONFIG_DPKG is not set
++# CONFIG_DPKG_DEB is not set
++# CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY is not set
++# CONFIG_GUNZIP is not set
++CONFIG_GZIP=y
++# CONFIG_FEATURE_GZIP_LONG_OPTIONS is not set
++CONFIG_GZIP_FAST=0
++# CONFIG_LZOP is not set
++# CONFIG_LZOP_COMPR_HIGH is not set
++# CONFIG_RPM2CPIO is not set
++# CONFIG_RPM is not set
++CONFIG_TAR=y
++CONFIG_FEATURE_TAR_CREATE=y
++# CONFIG_FEATURE_TAR_AUTODETECT is not set
++# CONFIG_FEATURE_TAR_FROM is not set
++# CONFIG_FEATURE_TAR_OLDGNU_COMPATIBILITY is not set
++# CONFIG_FEATURE_TAR_OLDSUN_COMPATIBILITY is not set
++# CONFIG_FEATURE_TAR_GNU_EXTENSIONS is not set
++# CONFIG_FEATURE_TAR_LONG_OPTIONS is not set
++# CONFIG_FEATURE_TAR_TO_COMMAND is not set
++# CONFIG_FEATURE_TAR_UNAME_GNAME is not set
++# CONFIG_FEATURE_TAR_NOPRESERVE_TIME is not set
++# CONFIG_FEATURE_TAR_SELINUX is not set
++# CONFIG_UNCOMPRESS is not set
++# CONFIG_UNLZMA is not set
++# CONFIG_FEATURE_LZMA_FAST is not set
++# CONFIG_LZMA is not set
++# CONFIG_UNXZ is not set
++# CONFIG_XZ is not set
++# CONFIG_UNZIP is not set
++
++#
++# Coreutils
++#
++CONFIG_BASENAME=y
++CONFIG_CAT=y
++CONFIG_DATE=y
++CONFIG_FEATURE_DATE_ISOFMT=y
++# CONFIG_FEATURE_DATE_NANO is not set
++# CONFIG_FEATURE_DATE_COMPAT is not set
++# CONFIG_HOSTID is not set
++# CONFIG_ID is not set
++# CONFIG_GROUPS is not set
++CONFIG_TEST=y
++# CONFIG_FEATURE_TEST_64 is not set
++CONFIG_TOUCH=y
++# CONFIG_FEATURE_TOUCH_SUSV3 is not set
++CONFIG_TR=y
++# CONFIG_FEATURE_TR_CLASSES is not set
++# CONFIG_FEATURE_TR_EQUIV is not set
++# CONFIG_BASE64 is not set
++# CONFIG_WHO is not set
++# CONFIG_USERS is not set
++# CONFIG_CAL is not set
++# CONFIG_CATV is not set
++# CONFIG_CHGRP is not set
++CONFIG_CHMOD=y
++CONFIG_CHOWN=y
++# CONFIG_FEATURE_CHOWN_LONG_OPTIONS is not set
++# CONFIG_CHROOT is not set
++# CONFIG_CKSUM is not set
++# CONFIG_COMM is not set
++CONFIG_CP=y
++# CONFIG_FEATURE_CP_LONG_OPTIONS is not set
++CONFIG_CUT=y
++CONFIG_DD=y
++CONFIG_FEATURE_DD_SIGNAL_HANDLING=y
++CONFIG_FEATURE_DD_THIRD_STATUS_LINE=y
++CONFIG_FEATURE_DD_IBS_OBS=y
++CONFIG_DF=y
++# CONFIG_FEATURE_DF_FANCY is not set
++# CONFIG_DIRNAME is not set
++# CONFIG_DOS2UNIX is not set
++# CONFIG_UNIX2DOS is not set
++CONFIG_DU=y
++CONFIG_FEATURE_DU_DEFAULT_BLOCKSIZE_1K=y
++CONFIG_ECHO=y
++CONFIG_FEATURE_FANCY_ECHO=y
++CONFIG_ENV=y
++# CONFIG_FEATURE_ENV_LONG_OPTIONS is not set
++# CONFIG_EXPAND is not set
++# CONFIG_FEATURE_EXPAND_LONG_OPTIONS is not set
++CONFIG_EXPR=y
++CONFIG_EXPR_MATH_SUPPORT_64=y
++CONFIG_FALSE=y
++# CONFIG_FOLD is not set
++# CONFIG_FSYNC is not set
++# CONFIG_HEAD is not set
++# CONFIG_FEATURE_FANCY_HEAD is not set
++# CONFIG_INSTALL is not set
++# CONFIG_FEATURE_INSTALL_LONG_OPTIONS is not set
++CONFIG_LN=y
++# CONFIG_LOGNAME is not set
++CONFIG_LS=y
++CONFIG_FEATURE_LS_FILETYPES=y
++CONFIG_FEATURE_LS_FOLLOWLINKS=y
++# CONFIG_FEATURE_LS_RECURSIVE is not set
++CONFIG_FEATURE_LS_SORTFILES=y
++CONFIG_FEATURE_LS_TIMESTAMPS=y
++CONFIG_FEATURE_LS_USERNAME=y
++# CONFIG_FEATURE_LS_COLOR is not set
++# CONFIG_FEATURE_LS_COLOR_IS_DEFAULT is not set
++CONFIG_MD5SUM=y
++CONFIG_MKDIR=y
++# CONFIG_FEATURE_MKDIR_LONG_OPTIONS is not set
++CONFIG_MKFIFO=y
++CONFIG_MKNOD=y
++CONFIG_MV=y
++# CONFIG_FEATURE_MV_LONG_OPTIONS is not set
++CONFIG_NICE=y
++# CONFIG_NOHUP is not set
++CONFIG_OD=y
++# CONFIG_PRINTENV is not set
++# CONFIG_PRINTF is not set
++CONFIG_PWD=y
++CONFIG_READLINK=y
++CONFIG_FEATURE_READLINK_FOLLOW=y
++# CONFIG_REALPATH is not set
++CONFIG_RM=y
++CONFIG_RMDIR=y
++# CONFIG_FEATURE_RMDIR_LONG_OPTIONS is not set
++CONFIG_SEQ=y
++# CONFIG_SHA1SUM is not set
++# CONFIG_SHA256SUM is not set
++# CONFIG_SHA512SUM is not set
++# CONFIG_SHA3SUM is not set
++CONFIG_SLEEP=y
++# CONFIG_FEATURE_FANCY_SLEEP is not set
++# CONFIG_FEATURE_FLOAT_SLEEP is not set
++CONFIG_SORT=y
++# CONFIG_FEATURE_SORT_BIG is not set
++# CONFIG_SPLIT is not set
++# CONFIG_FEATURE_SPLIT_FANCY is not set
++# CONFIG_STAT is not set
++# CONFIG_FEATURE_STAT_FORMAT is not set
++CONFIG_STTY=y
++# CONFIG_SUM is not set
++CONFIG_SYNC=y
++# CONFIG_TAC is not set
++CONFIG_TAIL=y
++# CONFIG_FEATURE_FANCY_TAIL is not set
++CONFIG_TEE=y
++CONFIG_FEATURE_TEE_USE_BLOCK_IO=y
++CONFIG_TRUE=y
++# CONFIG_TTY is not set
++CONFIG_UNAME=y
++# CONFIG_UNEXPAND is not set
++# CONFIG_FEATURE_UNEXPAND_LONG_OPTIONS is not set
++CONFIG_UNIQ=y
++CONFIG_USLEEP=y
++# CONFIG_UUDECODE is not set
++# CONFIG_UUENCODE is not set
++# CONFIG_WC is not set
++# CONFIG_FEATURE_WC_LARGE is not set
++# CONFIG_WHOAMI is not set
++# CONFIG_YES is not set
++
++#
++# Common options for cp and mv
++#
++# CONFIG_FEATURE_PRESERVE_HARDLINKS is not set
++
++#
++# Common options for ls, more and telnet
++#
++CONFIG_FEATURE_AUTOWIDTH=y
++
++#
++# Common options for df, du, ls
++#
++CONFIG_FEATURE_HUMAN_READABLE=y
++
++#
++# Common options for md5sum, sha1sum, sha256sum, sha512sum, sha3sum
++#
++CONFIG_FEATURE_MD5_SHA1_SUM_CHECK=y
++
++#
++# Console Utilities
++#
++# CONFIG_CHVT is not set
++# CONFIG_FGCONSOLE is not set
++# CONFIG_CLEAR is not set
++# CONFIG_DEALLOCVT is not set
++# CONFIG_DUMPKMAP is not set
++# CONFIG_KBD_MODE is not set
++# CONFIG_LOADFONT is not set
++# CONFIG_LOADKMAP is not set
++# CONFIG_OPENVT is not set
++# CONFIG_RESET is not set
++# CONFIG_RESIZE is not set
++# CONFIG_FEATURE_RESIZE_PRINT is not set
++# CONFIG_SETCONSOLE is not set
++# CONFIG_FEATURE_SETCONSOLE_LONG_OPTIONS is not set
++# CONFIG_SETFONT is not set
++# CONFIG_FEATURE_SETFONT_TEXTUAL_MAP is not set
++CONFIG_DEFAULT_SETFONT_DIR=""
++# CONFIG_SETKEYCODES is not set
++# CONFIG_SETLOGCONS is not set
++# CONFIG_SHOWKEY is not set
++# CONFIG_FEATURE_LOADFONT_PSF2 is not set
++# CONFIG_FEATURE_LOADFONT_RAW is not set
++
++#
++# Debian Utilities
++#
++CONFIG_MKTEMP=y
++# CONFIG_PIPE_PROGRESS is not set
++# CONFIG_RUN_PARTS is not set
++# CONFIG_FEATURE_RUN_PARTS_LONG_OPTIONS is not set
++# CONFIG_FEATURE_RUN_PARTS_FANCY is not set
++CONFIG_START_STOP_DAEMON=y
++CONFIG_FEATURE_START_STOP_DAEMON_FANCY=y
++CONFIG_FEATURE_START_STOP_DAEMON_LONG_OPTIONS=y
++CONFIG_WHICH=y
++
++#
++# Editors
++#
++# CONFIG_PATCH is not set
++CONFIG_VI=y
++CONFIG_FEATURE_VI_MAX_LEN=4096
++CONFIG_FEATURE_VI_8BIT=y
++CONFIG_FEATURE_VI_COLON=y
++CONFIG_FEATURE_VI_YANKMARK=y
++CONFIG_FEATURE_VI_SEARCH=y
++CONFIG_FEATURE_VI_REGEX_SEARCH=y
++# CONFIG_FEATURE_VI_USE_SIGNALS is not set
++CONFIG_FEATURE_VI_DOT_CMD=y
++CONFIG_FEATURE_VI_READONLY=y
++# CONFIG_FEATURE_VI_SETOPTS is not set
++CONFIG_FEATURE_VI_SET=y
++CONFIG_FEATURE_VI_WIN_RESIZE=y
++CONFIG_FEATURE_VI_ASK_TERMINAL=y
++CONFIG_AWK=y
++# CONFIG_FEATURE_AWK_LIBM is not set
++CONFIG_CMP=y
++# CONFIG_DIFF is not set
++# CONFIG_FEATURE_DIFF_LONG_OPTIONS is not set
++# CONFIG_FEATURE_DIFF_DIR is not set
++# CONFIG_ED is not set
++CONFIG_SED=y
++# CONFIG_FEATURE_ALLOW_EXEC is not set
++
++#
++# Finding Utilities
++#
++# CONFIG_FIND is not set
++# CONFIG_FEATURE_FIND_PRINT0 is not set
++# CONFIG_FEATURE_FIND_MTIME is not set
++# CONFIG_FEATURE_FIND_MMIN is not set
++# CONFIG_FEATURE_FIND_PERM is not set
++# CONFIG_FEATURE_FIND_TYPE is not set
++# CONFIG_FEATURE_FIND_XDEV is not set
++# CONFIG_FEATURE_FIND_MAXDEPTH is not set
++# CONFIG_FEATURE_FIND_NEWER is not set
++# CONFIG_FEATURE_FIND_INUM is not set
++# CONFIG_FEATURE_FIND_EXEC is not set
++# CONFIG_FEATURE_FIND_USER is not set
++# CONFIG_FEATURE_FIND_GROUP is not set
++# CONFIG_FEATURE_FIND_NOT is not set
++# CONFIG_FEATURE_FIND_DEPTH is not set
++# CONFIG_FEATURE_FIND_PAREN is not set
++# CONFIG_FEATURE_FIND_SIZE is not set
++# CONFIG_FEATURE_FIND_PRUNE is not set
++# CONFIG_FEATURE_FIND_DELETE is not set
++# CONFIG_FEATURE_FIND_PATH is not set
++# CONFIG_FEATURE_FIND_REGEX is not set
++# CONFIG_FEATURE_FIND_CONTEXT is not set
++# CONFIG_FEATURE_FIND_LINKS is not set
++CONFIG_GREP=y
++CONFIG_FEATURE_GREP_EGREP_ALIAS=y
++CONFIG_FEATURE_GREP_FGREP_ALIAS=y
++# CONFIG_FEATURE_GREP_CONTEXT is not set
++# CONFIG_XARGS is not set
++# CONFIG_FEATURE_XARGS_SUPPORT_CONFIRMATION is not set
++# CONFIG_FEATURE_XARGS_SUPPORT_QUOTES is not set
++# CONFIG_FEATURE_XARGS_SUPPORT_TERMOPT is not set
++# CONFIG_FEATURE_XARGS_SUPPORT_ZERO_TERM is not set
++
++#
++# Init Utilities
++#
++# CONFIG_BOOTCHARTD is not set
++# CONFIG_FEATURE_BOOTCHARTD_BLOATED_HEADER is not set
++# CONFIG_FEATURE_BOOTCHARTD_CONFIG_FILE is not set
++CONFIG_HALT=y
++# CONFIG_FEATURE_CALL_TELINIT is not set
++CONFIG_TELINIT_PATH=""
++CONFIG_INIT=y
++CONFIG_FEATURE_USE_INITTAB=y
++# CONFIG_FEATURE_KILL_REMOVED is not set
++CONFIG_FEATURE_KILL_DELAY=0
++# CONFIG_FEATURE_INIT_SCTTY is not set
++CONFIG_FEATURE_INIT_SYSLOG=y
++# CONFIG_FEATURE_EXTRA_QUIET is not set
++# CONFIG_FEATURE_INIT_COREDUMPS is not set
++# CONFIG_FEATURE_INITRD is not set
++CONFIG_INIT_TERMINAL_TYPE="linux"
++# CONFIG_MESG is not set
++# CONFIG_FEATURE_MESG_ENABLE_ONLY_GROUP is not set
++
++#
++# Login/Password Management Utilities
++#
++# CONFIG_ADD_SHELL is not set
++# CONFIG_REMOVE_SHELL is not set
++# CONFIG_FEATURE_SHADOWPASSWDS is not set
++# CONFIG_USE_BB_PWD_GRP is not set
++# CONFIG_USE_BB_SHADOW is not set
++# CONFIG_USE_BB_CRYPT is not set
++# CONFIG_USE_BB_CRYPT_SHA is not set
++# CONFIG_ADDUSER is not set
++# CONFIG_FEATURE_ADDUSER_LONG_OPTIONS is not set
++# CONFIG_FEATURE_CHECK_NAMES is not set
++CONFIG_FIRST_SYSTEM_ID=0
++CONFIG_LAST_SYSTEM_ID=0
++# CONFIG_ADDGROUP is not set
++# CONFIG_FEATURE_ADDGROUP_LONG_OPTIONS is not set
++# CONFIG_FEATURE_ADDUSER_TO_GROUP is not set
++# CONFIG_DELUSER is not set
++# CONFIG_DELGROUP is not set
++# CONFIG_FEATURE_DEL_USER_FROM_GROUP is not set
++# CONFIG_GETTY is not set
++# CONFIG_LOGIN is not set
++# CONFIG_LOGIN_SESSION_AS_CHILD is not set
++# CONFIG_PAM is not set
++# CONFIG_LOGIN_SCRIPTS is not set
++# CONFIG_FEATURE_NOLOGIN is not set
++# CONFIG_FEATURE_SECURETTY is not set
++CONFIG_PASSWD=y
++# CONFIG_FEATURE_PASSWD_WEAK_CHECK is not set
++CONFIG_CRYPTPW=y
++# CONFIG_CHPASSWD is not set
++CONFIG_FEATURE_DEFAULT_PASSWD_ALGO="des"
++CONFIG_SU=y
++# CONFIG_FEATURE_SU_SYSLOG is not set
++# CONFIG_FEATURE_SU_CHECKS_SHELLS is not set
++# CONFIG_SULOGIN is not set
++# CONFIG_VLOCK is not set
++
++#
++# Linux Ext2 FS Progs
++#
++# CONFIG_CHATTR is not set
++# CONFIG_FSCK is not set
++# CONFIG_LSATTR is not set
++# CONFIG_TUNE2FS is not set
++
++#
++# Linux Module Utilities
++#
++CONFIG_MODINFO=y
++# CONFIG_MODPROBE_SMALL is not set
++# CONFIG_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE is not set
++# CONFIG_FEATURE_MODPROBE_SMALL_CHECK_ALREADY_LOADED is not set
++CONFIG_INSMOD=y
++CONFIG_RMMOD=y
++CONFIG_LSMOD=y
++CONFIG_FEATURE_LSMOD_PRETTY_2_6_OUTPUT=y
++CONFIG_MODPROBE=y
++# CONFIG_FEATURE_MODPROBE_BLACKLIST is not set
++CONFIG_DEPMOD=y
++
++#
++# Options common to multiple modutils
++#
++# CONFIG_FEATURE_2_4_MODULES is not set
++# CONFIG_FEATURE_INSMOD_TRY_MMAP is not set
++# CONFIG_FEATURE_INSMOD_VERSION_CHECKING is not set
++# CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS is not set
++# CONFIG_FEATURE_INSMOD_LOADINKMEM is not set
++# CONFIG_FEATURE_INSMOD_LOAD_MAP is not set
++# CONFIG_FEATURE_INSMOD_LOAD_MAP_FULL is not set
++CONFIG_FEATURE_CHECK_TAINTED_MODULE=y
++CONFIG_FEATURE_MODUTILS_ALIAS=y
++CONFIG_FEATURE_MODUTILS_SYMBOLS=y
++CONFIG_DEFAULT_MODULES_DIR="/lib/modules"
++CONFIG_DEFAULT_DEPMOD_FILE="modules.dep"
++
++#
++# Linux System Utilities
++#
++CONFIG_BLOCKDEV=y
++# CONFIG_MDEV is not set
++# CONFIG_FEATURE_MDEV_CONF is not set
++# CONFIG_FEATURE_MDEV_RENAME is not set
++# CONFIG_FEATURE_MDEV_RENAME_REGEXP is not set
++# CONFIG_FEATURE_MDEV_EXEC is not set
++# CONFIG_FEATURE_MDEV_LOAD_FIRMWARE is not set
++# CONFIG_REV is not set
++# CONFIG_ACPID is not set
++# CONFIG_FEATURE_ACPID_COMPAT is not set
++# CONFIG_BLKID is not set
++# CONFIG_FEATURE_BLKID_TYPE is not set
++CONFIG_DMESG=y
++# CONFIG_FEATURE_DMESG_PRETTY is not set
++# CONFIG_FBSET is not set
++# CONFIG_FEATURE_FBSET_FANCY is not set
++# CONFIG_FEATURE_FBSET_READMODE is not set
++# CONFIG_FDFLUSH is not set
++# CONFIG_FDFORMAT is not set
++# CONFIG_FDISK is not set
++# CONFIG_FDISK_SUPPORT_LARGE_DISKS is not set
++# CONFIG_FEATURE_FDISK_WRITABLE is not set
++# CONFIG_FEATURE_AIX_LABEL is not set
++# CONFIG_FEATURE_SGI_LABEL is not set
++# CONFIG_FEATURE_SUN_LABEL is not set
++# CONFIG_FEATURE_OSF_LABEL is not set
++# CONFIG_FEATURE_GPT_LABEL is not set
++# CONFIG_FEATURE_FDISK_ADVANCED is not set
++# CONFIG_FINDFS is not set
++CONFIG_FLOCK=y
++# CONFIG_FREERAMDISK is not set
++# CONFIG_FSCK_MINIX is not set
++# CONFIG_MKFS_EXT2 is not set
++# CONFIG_MKFS_MINIX is not set
++# CONFIG_FEATURE_MINIX2 is not set
++# CONFIG_MKFS_REISER is not set
++# CONFIG_MKFS_VFAT is not set
++# CONFIG_GETOPT is not set
++# CONFIG_FEATURE_GETOPT_LONG is not set
++CONFIG_HEXDUMP=y
++CONFIG_FEATURE_HEXDUMP_REVERSE=y
++# CONFIG_HD is not set
++# CONFIG_HWCLOCK is not set
++# CONFIG_FEATURE_HWCLOCK_LONG_OPTIONS is not set
++# CONFIG_FEATURE_HWCLOCK_ADJTIME_FHS is not set
++CONFIG_IPCRM=y
++CONFIG_IPCS=y
++# CONFIG_LOSETUP is not set
++# CONFIG_LSPCI is not set
++# CONFIG_LSUSB is not set
++# CONFIG_MKSWAP is not set
++# CONFIG_FEATURE_MKSWAP_UUID is not set
++CONFIG_MORE=y
++CONFIG_MOUNT=y
++# CONFIG_FEATURE_MOUNT_FAKE is not set
++# CONFIG_FEATURE_MOUNT_VERBOSE is not set
++# CONFIG_FEATURE_MOUNT_HELPERS is not set
++# CONFIG_FEATURE_MOUNT_LABEL is not set
++CONFIG_FEATURE_MOUNT_NFS=y
++# CONFIG_FEATURE_MOUNT_CIFS is not set
++CONFIG_FEATURE_MOUNT_FLAGS=y
++# CONFIG_FEATURE_MOUNT_FSTAB is not set
++# CONFIG_PIVOT_ROOT is not set
++# CONFIG_RDATE is not set
++# CONFIG_RDEV is not set
++# CONFIG_READPROFILE is not set
++# CONFIG_RTCWAKE is not set
++# CONFIG_SCRIPT is not set
++# CONFIG_SCRIPTREPLAY is not set
++# CONFIG_SETARCH is not set
++# CONFIG_SWAPONOFF is not set
++# CONFIG_FEATURE_SWAPON_PRI is not set
++# CONFIG_SWITCH_ROOT is not set
++CONFIG_UMOUNT=y
++# CONFIG_FEATURE_UMOUNT_ALL is not set
++
++#
++# Common options for mount/umount
++#
++CONFIG_FEATURE_MOUNT_LOOP=y
++# CONFIG_FEATURE_MOUNT_LOOP_CREATE is not set
++# CONFIG_FEATURE_MTAB_SUPPORT is not set
++# CONFIG_VOLUMEID is not set
++# CONFIG_FEATURE_VOLUMEID_EXT is not set
++# CONFIG_FEATURE_VOLUMEID_BTRFS is not set
++# CONFIG_FEATURE_VOLUMEID_REISERFS is not set
++# CONFIG_FEATURE_VOLUMEID_FAT is not set
++# CONFIG_FEATURE_VOLUMEID_EXFAT is not set
++# CONFIG_FEATURE_VOLUMEID_HFS is not set
++# CONFIG_FEATURE_VOLUMEID_JFS is not set
++# CONFIG_FEATURE_VOLUMEID_XFS is not set
++# CONFIG_FEATURE_VOLUMEID_NILFS is not set
++# CONFIG_FEATURE_VOLUMEID_NTFS is not set
++# CONFIG_FEATURE_VOLUMEID_ISO9660 is not set
++# CONFIG_FEATURE_VOLUMEID_UDF is not set
++# CONFIG_FEATURE_VOLUMEID_LUKS is not set
++# CONFIG_FEATURE_VOLUMEID_LINUXSWAP is not set
++# CONFIG_FEATURE_VOLUMEID_CRAMFS is not set
++# CONFIG_FEATURE_VOLUMEID_ROMFS is not set
++# CONFIG_FEATURE_VOLUMEID_SQUASHFS is not set
++# CONFIG_FEATURE_VOLUMEID_SYSV is not set
++# CONFIG_FEATURE_VOLUMEID_OCFS2 is not set
++# CONFIG_FEATURE_VOLUMEID_LINUXRAID is not set
++
++#
++# Miscellaneous Utilities
++#
++# CONFIG_CONSPY is not set
++# CONFIG_LESS is not set
++CONFIG_FEATURE_LESS_MAXLINES=0
++# CONFIG_FEATURE_LESS_BRACKETS is not set
++# CONFIG_FEATURE_LESS_FLAGS is not set
++# CONFIG_FEATURE_LESS_MARKS is not set
++# CONFIG_FEATURE_LESS_REGEXP is not set
++# CONFIG_FEATURE_LESS_WINCH is not set
++# CONFIG_FEATURE_LESS_ASK_TERMINAL is not set
++# CONFIG_FEATURE_LESS_DASHCMD is not set
++# CONFIG_FEATURE_LESS_LINENUMS is not set
++# CONFIG_NANDWRITE is not set
++# CONFIG_NANDDUMP is not set
++# CONFIG_SETSERIAL is not set
++# CONFIG_UBIATTACH is not set
++# CONFIG_UBIDETACH is not set
++# CONFIG_UBIMKVOL is not set
++# CONFIG_UBIRMVOL is not set
++# CONFIG_UBIRSVOL is not set
++# CONFIG_UBIUPDATEVOL is not set
++# CONFIG_ADJTIMEX is not set
++# CONFIG_BBCONFIG is not set
++# CONFIG_FEATURE_COMPRESS_BBCONFIG is not set
++# CONFIG_BEEP is not set
++CONFIG_FEATURE_BEEP_FREQ=0
++CONFIG_FEATURE_BEEP_LENGTH_MS=0
++# CONFIG_CHAT is not set
++# CONFIG_FEATURE_CHAT_NOFAIL is not set
++# CONFIG_FEATURE_CHAT_TTY_HIFI is not set
++# CONFIG_FEATURE_CHAT_IMPLICIT_CR is not set
++# CONFIG_FEATURE_CHAT_SWALLOW_OPTS is not set
++# CONFIG_FEATURE_CHAT_SEND_ESCAPES is not set
++# CONFIG_FEATURE_CHAT_VAR_ABORT_LEN is not set
++# CONFIG_FEATURE_CHAT_CLR_ABORT is not set
++# CONFIG_CHRT is not set
++CONFIG_CROND=y
++# CONFIG_FEATURE_CROND_D is not set
++# CONFIG_FEATURE_CROND_CALL_SENDMAIL is not set
++CONFIG_FEATURE_CROND_DIR="/etc/cron.d"
++# CONFIG_CRONTAB is not set
++# CONFIG_DC is not set
++# CONFIG_FEATURE_DC_LIBM is not set
++# CONFIG_DEVFSD is not set
++# CONFIG_DEVFSD_MODLOAD is not set
++# CONFIG_DEVFSD_FG_NP is not set
++# CONFIG_DEVFSD_VERBOSE is not set
++# CONFIG_FEATURE_DEVFS is not set
++# CONFIG_DEVMEM is not set
++# CONFIG_EJECT is not set
++# CONFIG_FEATURE_EJECT_SCSI is not set
++# CONFIG_FBSPLASH is not set
++# CONFIG_FLASHCP is not set
++# CONFIG_FLASH_LOCK is not set
++# CONFIG_FLASH_UNLOCK is not set
++# CONFIG_FLASH_ERASEALL is not set
++# CONFIG_IONICE is not set
++# CONFIG_INOTIFYD is not set
++# CONFIG_LAST is not set
++# CONFIG_FEATURE_LAST_SMALL is not set
++# CONFIG_FEATURE_LAST_FANCY is not set
++# CONFIG_HDPARM is not set
++# CONFIG_FEATURE_HDPARM_GET_IDENTITY is not set
++# CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF is not set
++# CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF is not set
++# CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET is not set
++# CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF is not set
++# CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA is not set
++CONFIG_LOCK=y
++# CONFIG_MAKEDEVS is not set
++# CONFIG_FEATURE_MAKEDEVS_LEAF is not set
++# CONFIG_FEATURE_MAKEDEVS_TABLE is not set
++# CONFIG_MAN is not set
++# CONFIG_MICROCOM is not set
++# CONFIG_MOUNTPOINT is not set
++# CONFIG_MT is not set
++# CONFIG_RAIDAUTORUN is not set
++# CONFIG_READAHEAD is not set
++# CONFIG_RFKILL is not set
++# CONFIG_RUNLEVEL is not set
++# CONFIG_RX is not set
++# CONFIG_SETSID is not set
++# CONFIG_STRINGS is not set
++# CONFIG_TASKSET is not set
++# CONFIG_FEATURE_TASKSET_FANCY is not set
++CONFIG_TIME=y
++# CONFIG_TIMEOUT is not set
++# CONFIG_TTYSIZE is not set
++# CONFIG_VOLNAME is not set
++# CONFIG_WALL is not set
++# CONFIG_WATCHDOG is not set
++
++#
++# Networking Utilities
++#
++# CONFIG_NAMEIF is not set
++# CONFIG_FEATURE_NAMEIF_EXTENDED is not set
++# CONFIG_NBDCLIENT is not set
++CONFIG_NC=y
++CONFIG_NC_SERVER=y
++# CONFIG_NC_EXTRA is not set
++# CONFIG_NC_110_COMPAT is not set
++CONFIG_PING=y
++CONFIG_PING6=y
++CONFIG_FEATURE_FANCY_PING=y
++# CONFIG_WHOIS is not set
++CONFIG_FEATURE_IPV6=y
++# CONFIG_FEATURE_UNIX_LOCAL is not set
++CONFIG_FEATURE_PREFER_IPV4_ADDRESS=y
++CONFIG_VERBOSE_RESOLUTION_ERRORS=y
++CONFIG_ARP=y
++CONFIG_ARPING=y
++# CONFIG_BRCTL is not set
++# CONFIG_FEATURE_BRCTL_FANCY is not set
++# CONFIG_FEATURE_BRCTL_SHOW is not set
++# CONFIG_DNSD is not set
++# CONFIG_ETHER_WAKE is not set
++# CONFIG_FAKEIDENTD is not set
++# CONFIG_FTPD is not set
++# CONFIG_FEATURE_FTP_WRITE is not set
++# CONFIG_FEATURE_FTPD_ACCEPT_BROKEN_LIST is not set
++# CONFIG_FTPGET is not set
++# CONFIG_FTPPUT is not set
++# CONFIG_FEATURE_FTPGETPUT_LONG_OPTIONS is not set
++CONFIG_HOSTNAME=y
++# CONFIG_HTTPD is not set
++# CONFIG_FEATURE_HTTPD_RANGES is not set
++# CONFIG_FEATURE_HTTPD_USE_SENDFILE is not set
++# CONFIG_FEATURE_HTTPD_SETUID is not set
++# CONFIG_FEATURE_HTTPD_BASIC_AUTH is not set
++# CONFIG_FEATURE_HTTPD_AUTH_MD5 is not set
++# CONFIG_FEATURE_HTTPD_CGI is not set
++# CONFIG_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR is not set
++# CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV is not set
++# CONFIG_FEATURE_HTTPD_ENCODE_URL_STR is not set
++# CONFIG_FEATURE_HTTPD_ERROR_PAGES is not set
++# CONFIG_FEATURE_HTTPD_PROXY is not set
++# CONFIG_FEATURE_HTTPD_GZIP is not set
++CONFIG_IFCONFIG=y
++CONFIG_FEATURE_IFCONFIG_STATUS=y
++# CONFIG_FEATURE_IFCONFIG_SLIP is not set
++# CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ is not set
++CONFIG_FEATURE_IFCONFIG_HW=y
++CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS=y
++# CONFIG_IFENSLAVE is not set
++# CONFIG_IFPLUGD is not set
++# CONFIG_IFUPDOWN is not set
++CONFIG_IFUPDOWN_IFSTATE_PATH=""
++# CONFIG_FEATURE_IFUPDOWN_IP is not set
++# CONFIG_FEATURE_IFUPDOWN_IP_BUILTIN is not set
++# CONFIG_FEATURE_IFUPDOWN_IFCONFIG_BUILTIN is not set
++# CONFIG_FEATURE_IFUPDOWN_IPV4 is not set
++# CONFIG_FEATURE_IFUPDOWN_IPV6 is not set
++# CONFIG_FEATURE_IFUPDOWN_MAPPING is not set
++# CONFIG_FEATURE_IFUPDOWN_EXTERNAL_DHCP is not set
++# CONFIG_INETD is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN is not set
++# CONFIG_FEATURE_INETD_RPC is not set
++# CONFIG_IP is not set
++# CONFIG_FEATURE_IP_ADDRESS is not set
++# CONFIG_FEATURE_IP_LINK is not set
++# CONFIG_FEATURE_IP_ROUTE is not set
++# CONFIG_FEATURE_IP_TUNNEL is not set
++# CONFIG_FEATURE_IP_RULE is not set
++# CONFIG_FEATURE_IP_SHORT_FORMS is not set
++# CONFIG_FEATURE_IP_RARE_PROTOCOLS is not set
++# CONFIG_IPADDR is not set
++# CONFIG_IPLINK is not set
++# CONFIG_IPROUTE is not set
++# CONFIG_IPTUNNEL is not set
++# CONFIG_IPRULE is not set
++# CONFIG_IPCALC is not set
++# CONFIG_FEATURE_IPCALC_FANCY is not set
++# CONFIG_FEATURE_IPCALC_LONG_OPTIONS is not set
++CONFIG_NETSTAT=y
++# CONFIG_FEATURE_NETSTAT_WIDE is not set
++CONFIG_FEATURE_NETSTAT_PRG=y
++CONFIG_NSLOOKUP=y
++CONFIG_NTPD=y
++CONFIG_FEATURE_NTPD_SERVER=y
++# CONFIG_PSCAN is not set
++# CONFIG_ROUTE is not set
++# CONFIG_SLATTACH is not set
++# CONFIG_TCPSVD is not set
++# CONFIG_TELNET is not set
++# CONFIG_FEATURE_TELNET_TTYPE is not set
++# CONFIG_FEATURE_TELNET_AUTOLOGIN is not set
++CONFIG_TELNETD=y
++CONFIG_FEATURE_TELNETD_STANDALONE=y
++# CONFIG_FEATURE_TELNETD_INETD_WAIT is not set
++CONFIG_TFTP=y
++# CONFIG_TFTPD is not set
++
++#
++# Common options for tftp/tftpd
++#
++CONFIG_FEATURE_TFTP_GET=y
++CONFIG_FEATURE_TFTP_PUT=y
++CONFIG_FEATURE_TFTP_BLOCKSIZE=y
++# CONFIG_FEATURE_TFTP_PROGRESS_BAR is not set
++# CONFIG_TFTP_DEBUG is not set
++CONFIG_TRACEROUTE=y
++CONFIG_TRACEROUTE6=y
++CONFIG_FEATURE_TRACEROUTE_VERBOSE=y
++# CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE is not set
++CONFIG_FEATURE_TRACEROUTE_USE_ICMP=y
++# CONFIG_TUNCTL is not set
++# CONFIG_FEATURE_TUNCTL_UG is not set
++# CONFIG_UDHCPC6 is not set
++# CONFIG_UDHCPD is not set
++# CONFIG_DHCPRELAY is not set
++# CONFIG_DUMPLEASES is not set
++# CONFIG_FEATURE_UDHCPD_WRITE_LEASES_EARLY is not set
++# CONFIG_FEATURE_UDHCPD_BASE_IP_ON_MAC is not set
++CONFIG_DHCPD_LEASES_FILE=""
++CONFIG_UDHCPC=y
++# CONFIG_FEATURE_UDHCPC_ARPING is not set
++# CONFIG_FEATURE_UDHCP_PORT is not set
++CONFIG_UDHCP_DEBUG=1
++CONFIG_FEATURE_UDHCP_RFC3397=y
++CONFIG_FEATURE_UDHCP_8021Q=y
++CONFIG_UDHCPC_DEFAULT_SCRIPT="/usr/share/udhcpc/default.script"
++CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS=80
++CONFIG_IFUPDOWN_UDHCPC_CMD_OPTIONS=""
++# CONFIG_UDPSVD is not set
++CONFIG_VCONFIG=y
++# CONFIG_WGET is not set
++# CONFIG_FEATURE_WGET_STATUSBAR is not set
++# CONFIG_FEATURE_WGET_AUTHENTICATION is not set
++# CONFIG_FEATURE_WGET_LONG_OPTIONS is not set
++# CONFIG_FEATURE_WGET_TIMEOUT is not set
++# CONFIG_ZCIP is not set
++
++#
++# Print Utilities
++#
++# CONFIG_LPD is not set
++CONFIG_LPR=y
++# CONFIG_LPQ is not set
++
++#
++# Mail Utilities
++#
++# CONFIG_MAKEMIME is not set
++CONFIG_FEATURE_MIME_CHARSET="us-ascii"
++# CONFIG_POPMAILDIR is not set
++# CONFIG_FEATURE_POPMAILDIR_DELIVERY is not set
++# CONFIG_REFORMIME is not set
++# CONFIG_FEATURE_REFORMIME_COMPAT is not set
++CONFIG_SENDMAIL=y
++
++#
++# Process Utilities
++#
++CONFIG_IOSTAT=y
++CONFIG_LSOF=y
++CONFIG_MPSTAT=y
++# CONFIG_NMETER is not set
++CONFIG_PMAP=y
++# CONFIG_POWERTOP is not set
++CONFIG_PSTREE=y
++# CONFIG_PWDX is not set
++# CONFIG_SMEMCAP is not set
++CONFIG_TOP=y
++CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE=y
++CONFIG_FEATURE_TOP_CPU_GLOBAL_PERCENTS=y
++# CONFIG_FEATURE_TOP_SMP_CPU is not set
++# CONFIG_FEATURE_TOP_DECIMALS is not set
++# CONFIG_FEATURE_TOP_SMP_PROCESS is not set
++CONFIG_FEATURE_TOPMEM=y
++CONFIG_UPTIME=y
++# CONFIG_FEATURE_UPTIME_UTMP_SUPPORT is not set
++CONFIG_FREE=y
++CONFIG_FUSER=y
++CONFIG_KILL=y
++CONFIG_KILLALL=y
++# CONFIG_KILLALL5 is not set
++CONFIG_PGREP=y
++CONFIG_PIDOF=y
++# CONFIG_FEATURE_PIDOF_SINGLE is not set
++# CONFIG_FEATURE_PIDOF_OMIT is not set
++# CONFIG_PKILL is not set
++CONFIG_PS=y
++CONFIG_FEATURE_PS_WIDE=y
++CONFIG_FEATURE_PS_LONG=y
++# CONFIG_FEATURE_PS_TIME is not set
++# CONFIG_FEATURE_PS_ADDITIONAL_COLUMNS is not set
++# CONFIG_FEATURE_PS_UNUSUAL_SYSTEMS is not set
++CONFIG_RENICE=y
++CONFIG_BB_SYSCTL=y
++CONFIG_FEATURE_SHOW_THREADS=y
++CONFIG_WATCH=y
++
++#
++# Runit Utilities
++#
++# CONFIG_RUNSV is not set
++# CONFIG_RUNSVDIR is not set
++# CONFIG_FEATURE_RUNSVDIR_LOG is not set
++# CONFIG_SV is not set
++CONFIG_SV_DEFAULT_SERVICE_DIR=""
++# CONFIG_SVLOGD is not set
++# CONFIG_CHPST is not set
++# CONFIG_SETUIDGID is not set
++# CONFIG_ENVUIDGID is not set
++# CONFIG_ENVDIR is not set
++# CONFIG_SOFTLIMIT is not set
++# CONFIG_CHCON is not set
++# CONFIG_FEATURE_CHCON_LONG_OPTIONS is not set
++# CONFIG_GETENFORCE is not set
++# CONFIG_GETSEBOOL is not set
++# CONFIG_LOAD_POLICY is not set
++# CONFIG_MATCHPATHCON is not set
++# CONFIG_RESTORECON is not set
++# CONFIG_RUNCON is not set
++# CONFIG_FEATURE_RUNCON_LONG_OPTIONS is not set
++# CONFIG_SELINUXENABLED is not set
++# CONFIG_SETENFORCE is not set
++# CONFIG_SETFILES is not set
++# CONFIG_FEATURE_SETFILES_CHECK_OPTION is not set
++# CONFIG_SETSEBOOL is not set
++# CONFIG_SESTATUS is not set
++
++#
++# Shells
++#
++CONFIG_ASH=y
++CONFIG_ASH_BASH_COMPAT=y
++# CONFIG_ASH_IDLE_TIMEOUT is not set
++CONFIG_ASH_JOB_CONTROL=y
++# CONFIG_ASH_ALIAS is not set
++CONFIG_ASH_GETOPTS=y
++CONFIG_ASH_BUILTIN_ECHO=y
++CONFIG_ASH_BUILTIN_PRINTF=y
++CONFIG_ASH_BUILTIN_TEST=y
++# CONFIG_ASH_CMDCMD is not set
++# CONFIG_ASH_MAIL is not set
++# CONFIG_ASH_OPTIMIZE_FOR_SIZE is not set
++# CONFIG_ASH_RANDOM_SUPPORT is not set
++# CONFIG_ASH_EXPAND_PRMT is not set
++# CONFIG_CTTYHACK is not set
++# CONFIG_HUSH is not set
++# CONFIG_HUSH_BASH_COMPAT is not set
++# CONFIG_HUSH_BRACE_EXPANSION is not set
++# CONFIG_HUSH_HELP is not set
++# CONFIG_HUSH_INTERACTIVE is not set
++# CONFIG_HUSH_SAVEHISTORY is not set
++# CONFIG_HUSH_JOB is not set
++# CONFIG_HUSH_TICK is not set
++# CONFIG_HUSH_IF is not set
++# CONFIG_HUSH_LOOPS is not set
++# CONFIG_HUSH_CASE is not set
++# CONFIG_HUSH_FUNCTIONS is not set
++# CONFIG_HUSH_LOCAL is not set
++# CONFIG_HUSH_RANDOM_SUPPORT is not set
++# CONFIG_HUSH_EXPORT_N is not set
++# CONFIG_HUSH_MODE_X is not set
++# CONFIG_MSH is not set
++CONFIG_FEATURE_SH_IS_ASH=y
++# CONFIG_FEATURE_SH_IS_HUSH is not set
++# CONFIG_FEATURE_SH_IS_NONE is not set
++CONFIG_FEATURE_BASH_IS_ASH=y
++# CONFIG_FEATURE_BASH_IS_HUSH is not set
++# CONFIG_FEATURE_BASH_IS_NONE is not set
++CONFIG_SH_MATH_SUPPORT=y
++# CONFIG_SH_MATH_SUPPORT_64 is not set
++# CONFIG_FEATURE_SH_EXTRA_QUIET is not set
++CONFIG_FEATURE_SH_STANDALONE=y
++CONFIG_FEATURE_SH_NOFORK=y
++# CONFIG_FEATURE_SH_HISTFILESIZE is not set
++
++#
++# System Logging Utilities
++#
++CONFIG_SYSLOGD=y
++CONFIG_FEATURE_ROTATE_LOGFILE=y
++CONFIG_FEATURE_REMOTE_LOG=y
++# CONFIG_FEATURE_SYSLOGD_DUP is not set
++# CONFIG_FEATURE_SYSLOGD_CFG is not set
++CONFIG_FEATURE_SYSLOGD_READ_BUFFER_SIZE=256
++# CONFIG_FEATURE_IPC_SYSLOG is not set
++CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE=0
++CONFIG_FEATURE_SAS_FLASH_LOG=y
++# CONFIG_LOGREAD is not set
++# CONFIG_FEATURE_LOGREAD_REDUCED_LOCKING is not set
++# CONFIG_FEATURE_KMSG_SYSLOG is not set
++CONFIG_KLOGD=y
++CONFIG_FEATURE_KLOGD_KLOGCTL=y
++CONFIG_LOGGER=y
+diff --git a/sphairon/config.host b/sphairon/config.host
+new file mode 100644
+index 0000000000000000000000000000000000000000..e3beb862cbdd3a8ca19dc0ca6834ab14fb22ed33
+--- /dev/null
++++ b/sphairon/config.host
+@@ -0,0 +1,1023 @@
++#
++# Automatically generated make config: don't edit
++# Busybox version: 1.21.1
++#
++CONFIG_HAVE_DOT_CONFIG=y
++
++#
++# Busybox Settings
++#
++
++#
++# General Configuration
++#
++# CONFIG_DESKTOP is not set
++# CONFIG_EXTRA_COMPAT is not set
++# CONFIG_INCLUDE_SUSv2 is not set
++# CONFIG_USE_PORTABLE_CODE is not set
++CONFIG_PLATFORM_LINUX=y
++CONFIG_FEATURE_BUFFERS_USE_MALLOC=y
++# CONFIG_FEATURE_BUFFERS_GO_ON_STACK is not set
++# CONFIG_FEATURE_BUFFERS_GO_IN_BSS is not set
++CONFIG_SHOW_USAGE=y
++CONFIG_FEATURE_VERBOSE_USAGE=y
++# CONFIG_FEATURE_COMPRESS_USAGE is not set
++CONFIG_FEATURE_INSTALLER=y
++CONFIG_INSTALL_NO_USR=y
++# CONFIG_LOCALE_SUPPORT is not set
++# CONFIG_UNICODE_SUPPORT is not set
++# CONFIG_UNICODE_USING_LOCALE is not set
++# CONFIG_FEATURE_CHECK_UNICODE_IN_ENV is not set
++CONFIG_SUBST_WCHAR=0
++CONFIG_LAST_SUPPORTED_WCHAR=0
++# CONFIG_UNICODE_COMBINING_WCHARS is not set
++# CONFIG_UNICODE_WIDE_WCHARS is not set
++# CONFIG_UNICODE_BIDI_SUPPORT is not set
++# CONFIG_UNICODE_NEUTRAL_TABLE is not set
++# CONFIG_UNICODE_PRESERVE_BROKEN is not set
++CONFIG_LONG_OPTS=y
++CONFIG_FEATURE_DEVPTS=y
++# CONFIG_FEATURE_CLEAN_UP is not set
++# CONFIG_FEATURE_UTMP is not set
++# CONFIG_FEATURE_WTMP is not set
++CONFIG_FEATURE_PIDFILE=y
++CONFIG_PID_FILE_PATH="/run"
++CONFIG_FEATURE_SUID=y
++# CONFIG_FEATURE_SUID_CONFIG is not set
++# CONFIG_FEATURE_SUID_CONFIG_QUIET is not set
++# CONFIG_SELINUX is not set
++CONFIG_FEATURE_PREFER_APPLETS=y
++CONFIG_BUSYBOX_EXEC_PATH="/bin/busybox"
++CONFIG_FEATURE_SYSLOG=y
++CONFIG_FEATURE_HAVE_RPC=y
++
++#
++# Build Options
++#
++# CONFIG_STATIC is not set
++# CONFIG_PIE is not set
++# CONFIG_NOMMU is not set
++# CONFIG_BUILD_LIBBUSYBOX is not set
++# CONFIG_FEATURE_INDIVIDUAL is not set
++# CONFIG_FEATURE_SHARED_BUSYBOX is not set
++CONFIG_LFS=y
++CONFIG_CROSS_COMPILER_PREFIX=""
++CONFIG_SYSROOT=""
++CONFIG_EXTRA_CFLAGS=""
++CONFIG_EXTRA_LDFLAGS=""
++CONFIG_EXTRA_LDLIBS=""
++
++#
++# Debugging Options
++#
++# CONFIG_DEBUG is not set
++# CONFIG_DEBUG_PESSIMIZE is not set
++# CONFIG_WERROR is not set
++CONFIG_NO_DEBUG_LIB=y
++# CONFIG_DMALLOC is not set
++# CONFIG_EFENCE is not set
++
++#
++# Installation Options ("make install" behavior)
++#
++CONFIG_INSTALL_APPLET_SYMLINKS=y
++# CONFIG_INSTALL_APPLET_HARDLINKS is not set
++# CONFIG_INSTALL_APPLET_SCRIPT_WRAPPERS is not set
++# CONFIG_INSTALL_APPLET_DONT is not set
++# CONFIG_INSTALL_SH_APPLET_SYMLINK is not set
++# CONFIG_INSTALL_SH_APPLET_HARDLINK is not set
++# CONFIG_INSTALL_SH_APPLET_SCRIPT_WRAPPER is not set
++CONFIG_PREFIX="${ROOTFS}"
++
++#
++# Busybox Library Tuning
++#
++# CONFIG_FEATURE_SYSTEMD is not set
++CONFIG_FEATURE_RTMINMAX=y
++CONFIG_PASSWORD_MINLEN=5
++CONFIG_MD5_SMALL=1
++CONFIG_SHA3_SMALL=1
++CONFIG_FEATURE_FAST_TOP=y
++# CONFIG_FEATURE_ETC_NETWORKS is not set
++CONFIG_FEATURE_USE_TERMIOS=y
++CONFIG_FEATURE_EDITING=y
++CONFIG_FEATURE_EDITING_MAX_LEN=1024
++# CONFIG_FEATURE_EDITING_VI is not set
++CONFIG_FEATURE_EDITING_HISTORY=50
++# CONFIG_FEATURE_EDITING_SAVEHISTORY is not set
++# CONFIG_FEATURE_EDITING_SAVE_ON_EXIT is not set
++# CONFIG_FEATURE_REVERSE_SEARCH is not set
++CONFIG_FEATURE_TAB_COMPLETION=y
++# CONFIG_FEATURE_USERNAME_COMPLETION is not set
++CONFIG_FEATURE_EDITING_FANCY_PROMPT=y
++CONFIG_FEATURE_EDITING_ASK_TERMINAL=y
++# CONFIG_FEATURE_NON_POSIX_CP is not set
++CONFIG_FEATURE_VERBOSE_CP_MESSAGE=y
++CONFIG_FEATURE_COPYBUF_KB=1
++CONFIG_FEATURE_SKIP_ROOTFS=y
++CONFIG_MONOTONIC_SYSCALL=y
++# CONFIG_IOCTL_HEX2STR_ERROR is not set
++# CONFIG_FEATURE_HWIB is not set
++
++#
++# Applets
++#
++
++#
++# Archival Utilities
++#
++# CONFIG_FEATURE_SEAMLESS_XZ is not set
++# CONFIG_FEATURE_SEAMLESS_LZMA is not set
++CONFIG_FEATURE_SEAMLESS_BZ2=y
++CONFIG_FEATURE_SEAMLESS_GZ=y
++# CONFIG_FEATURE_SEAMLESS_Z is not set
++# CONFIG_AR is not set
++# CONFIG_FEATURE_AR_LONG_FILENAMES is not set
++# CONFIG_FEATURE_AR_CREATE is not set
++# CONFIG_BUNZIP2 is not set
++CONFIG_BZIP2=y
++# CONFIG_CPIO is not set
++# CONFIG_FEATURE_CPIO_O is not set
++# CONFIG_FEATURE_CPIO_P is not set
++# CONFIG_DPKG is not set
++# CONFIG_DPKG_DEB is not set
++# CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY is not set
++# CONFIG_GUNZIP is not set
++CONFIG_GZIP=y
++# CONFIG_FEATURE_GZIP_LONG_OPTIONS is not set
++CONFIG_GZIP_FAST=0
++# CONFIG_LZOP is not set
++# CONFIG_LZOP_COMPR_HIGH is not set
++# CONFIG_RPM2CPIO is not set
++# CONFIG_RPM is not set
++CONFIG_TAR=y
++CONFIG_FEATURE_TAR_CREATE=y
++# CONFIG_FEATURE_TAR_AUTODETECT is not set
++# CONFIG_FEATURE_TAR_FROM is not set
++# CONFIG_FEATURE_TAR_OLDGNU_COMPATIBILITY is not set
++# CONFIG_FEATURE_TAR_OLDSUN_COMPATIBILITY is not set
++# CONFIG_FEATURE_TAR_GNU_EXTENSIONS is not set
++# CONFIG_FEATURE_TAR_LONG_OPTIONS is not set
++# CONFIG_FEATURE_TAR_TO_COMMAND is not set
++# CONFIG_FEATURE_TAR_UNAME_GNAME is not set
++# CONFIG_FEATURE_TAR_NOPRESERVE_TIME is not set
++# CONFIG_FEATURE_TAR_SELINUX is not set
++# CONFIG_UNCOMPRESS is not set
++# CONFIG_UNLZMA is not set
++# CONFIG_FEATURE_LZMA_FAST is not set
++# CONFIG_LZMA is not set
++# CONFIG_UNXZ is not set
++# CONFIG_XZ is not set
++# CONFIG_UNZIP is not set
++
++#
++# Coreutils
++#
++CONFIG_BASENAME=y
++CONFIG_CAT=y
++CONFIG_DATE=y
++CONFIG_FEATURE_DATE_ISOFMT=y
++# CONFIG_FEATURE_DATE_NANO is not set
++# CONFIG_FEATURE_DATE_COMPAT is not set
++# CONFIG_HOSTID is not set
++CONFIG_ID=y
++# CONFIG_GROUPS is not set
++CONFIG_TEST=y
++# CONFIG_FEATURE_TEST_64 is not set
++CONFIG_TOUCH=y
++# CONFIG_FEATURE_TOUCH_SUSV3 is not set
++CONFIG_TR=y
++# CONFIG_FEATURE_TR_CLASSES is not set
++# CONFIG_FEATURE_TR_EQUIV is not set
++# CONFIG_BASE64 is not set
++# CONFIG_WHO is not set
++# CONFIG_USERS is not set
++# CONFIG_CAL is not set
++# CONFIG_CATV is not set
++# CONFIG_CHGRP is not set
++CONFIG_CHMOD=y
++CONFIG_CHOWN=y
++# CONFIG_FEATURE_CHOWN_LONG_OPTIONS is not set
++# CONFIG_CHROOT is not set
++# CONFIG_CKSUM is not set
++# CONFIG_COMM is not set
++CONFIG_CP=y
++# CONFIG_FEATURE_CP_LONG_OPTIONS is not set
++CONFIG_CUT=y
++CONFIG_DD=y
++CONFIG_FEATURE_DD_SIGNAL_HANDLING=y
++CONFIG_FEATURE_DD_THIRD_STATUS_LINE=y
++CONFIG_FEATURE_DD_IBS_OBS=y
++CONFIG_DF=y
++# CONFIG_FEATURE_DF_FANCY is not set
++# CONFIG_DIRNAME is not set
++# CONFIG_DOS2UNIX is not set
++# CONFIG_UNIX2DOS is not set
++CONFIG_DU=y
++CONFIG_FEATURE_DU_DEFAULT_BLOCKSIZE_1K=y
++CONFIG_ECHO=y
++CONFIG_FEATURE_FANCY_ECHO=y
++CONFIG_ENV=y
++# CONFIG_FEATURE_ENV_LONG_OPTIONS is not set
++# CONFIG_EXPAND is not set
++# CONFIG_FEATURE_EXPAND_LONG_OPTIONS is not set
++CONFIG_EXPR=y
++CONFIG_EXPR_MATH_SUPPORT_64=y
++CONFIG_FALSE=y
++# CONFIG_FOLD is not set
++# CONFIG_FSYNC is not set
++# CONFIG_HEAD is not set
++# CONFIG_FEATURE_FANCY_HEAD is not set
++# CONFIG_INSTALL is not set
++# CONFIG_FEATURE_INSTALL_LONG_OPTIONS is not set
++CONFIG_LN=y
++# CONFIG_LOGNAME is not set
++CONFIG_LS=y
++CONFIG_FEATURE_LS_FILETYPES=y
++CONFIG_FEATURE_LS_FOLLOWLINKS=y
++# CONFIG_FEATURE_LS_RECURSIVE is not set
++CONFIG_FEATURE_LS_SORTFILES=y
++CONFIG_FEATURE_LS_TIMESTAMPS=y
++CONFIG_FEATURE_LS_USERNAME=y
++# CONFIG_FEATURE_LS_COLOR is not set
++# CONFIG_FEATURE_LS_COLOR_IS_DEFAULT is not set
++CONFIG_MD5SUM=y
++CONFIG_MKDIR=y
++# CONFIG_FEATURE_MKDIR_LONG_OPTIONS is not set
++CONFIG_MKFIFO=y
++CONFIG_MKNOD=y
++CONFIG_MV=y
++# CONFIG_FEATURE_MV_LONG_OPTIONS is not set
++CONFIG_NICE=y
++# CONFIG_NOHUP is not set
++CONFIG_OD=y
++# CONFIG_PRINTENV is not set
++# CONFIG_PRINTF is not set
++CONFIG_PWD=y
++# CONFIG_READLINK is not set
++# CONFIG_FEATURE_READLINK_FOLLOW is not set
++# CONFIG_REALPATH is not set
++CONFIG_RM=y
++CONFIG_RMDIR=y
++# CONFIG_FEATURE_RMDIR_LONG_OPTIONS is not set
++CONFIG_SEQ=y
++# CONFIG_SHA1SUM is not set
++# CONFIG_SHA256SUM is not set
++# CONFIG_SHA512SUM is not set
++# CONFIG_SHA3SUM is not set
++CONFIG_SLEEP=y
++# CONFIG_FEATURE_FANCY_SLEEP is not set
++# CONFIG_FEATURE_FLOAT_SLEEP is not set
++CONFIG_SORT=y
++CONFIG_FEATURE_SORT_BIG=y
++# CONFIG_SPLIT is not set
++# CONFIG_FEATURE_SPLIT_FANCY is not set
++# CONFIG_STAT is not set
++# CONFIG_FEATURE_STAT_FORMAT is not set
++CONFIG_STTY=y
++# CONFIG_SUM is not set
++CONFIG_SYNC=y
++# CONFIG_TAC is not set
++CONFIG_TAIL=y
++# CONFIG_FEATURE_FANCY_TAIL is not set
++CONFIG_TEE=y
++# CONFIG_FEATURE_TEE_USE_BLOCK_IO is not set
++CONFIG_TRUE=y
++CONFIG_TTY=y
++CONFIG_UNAME=y
++# CONFIG_UNEXPAND is not set
++# CONFIG_FEATURE_UNEXPAND_LONG_OPTIONS is not set
++CONFIG_UNIQ=y
++CONFIG_USLEEP=y
++# CONFIG_UUDECODE is not set
++# CONFIG_UUENCODE is not set
++# CONFIG_WC is not set
++# CONFIG_FEATURE_WC_LARGE is not set
++# CONFIG_WHOAMI is not set
++# CONFIG_YES is not set
++
++#
++# Common options for cp and mv
++#
++# CONFIG_FEATURE_PRESERVE_HARDLINKS is not set
++
++#
++# Common options for ls, more and telnet
++#
++CONFIG_FEATURE_AUTOWIDTH=y
++
++#
++# Common options for df, du, ls
++#
++CONFIG_FEATURE_HUMAN_READABLE=y
++
++#
++# Common options for md5sum, sha1sum, sha256sum, sha512sum, sha3sum
++#
++CONFIG_FEATURE_MD5_SHA1_SUM_CHECK=y
++
++#
++# Console Utilities
++#
++# CONFIG_CHVT is not set
++# CONFIG_FGCONSOLE is not set
++# CONFIG_CLEAR is not set
++# CONFIG_DEALLOCVT is not set
++# CONFIG_DUMPKMAP is not set
++# CONFIG_KBD_MODE is not set
++# CONFIG_LOADFONT is not set
++# CONFIG_LOADKMAP is not set
++# CONFIG_OPENVT is not set
++# CONFIG_RESET is not set
++# CONFIG_RESIZE is not set
++# CONFIG_FEATURE_RESIZE_PRINT is not set
++# CONFIG_SETCONSOLE is not set
++# CONFIG_FEATURE_SETCONSOLE_LONG_OPTIONS is not set
++# CONFIG_SETFONT is not set
++# CONFIG_FEATURE_SETFONT_TEXTUAL_MAP is not set
++CONFIG_DEFAULT_SETFONT_DIR=""
++# CONFIG_SETKEYCODES is not set
++# CONFIG_SETLOGCONS is not set
++# CONFIG_SHOWKEY is not set
++# CONFIG_FEATURE_LOADFONT_PSF2 is not set
++# CONFIG_FEATURE_LOADFONT_RAW is not set
++
++#
++# Debian Utilities
++#
++# CONFIG_MKTEMP is not set
++# CONFIG_PIPE_PROGRESS is not set
++# CONFIG_RUN_PARTS is not set
++# CONFIG_FEATURE_RUN_PARTS_LONG_OPTIONS is not set
++# CONFIG_FEATURE_RUN_PARTS_FANCY is not set
++CONFIG_START_STOP_DAEMON=y
++CONFIG_FEATURE_START_STOP_DAEMON_FANCY=y
++CONFIG_FEATURE_START_STOP_DAEMON_LONG_OPTIONS=y
++CONFIG_WHICH=y
++
++#
++# Editors
++#
++# CONFIG_PATCH is not set
++CONFIG_VI=y
++CONFIG_FEATURE_VI_MAX_LEN=4096
++CONFIG_FEATURE_VI_8BIT=y
++CONFIG_FEATURE_VI_COLON=y
++CONFIG_FEATURE_VI_YANKMARK=y
++CONFIG_FEATURE_VI_SEARCH=y
++# CONFIG_FEATURE_VI_REGEX_SEARCH is not set
++CONFIG_FEATURE_VI_USE_SIGNALS=y
++CONFIG_FEATURE_VI_DOT_CMD=y
++CONFIG_FEATURE_VI_READONLY=y
++CONFIG_FEATURE_VI_SETOPTS=y
++CONFIG_FEATURE_VI_SET=y
++CONFIG_FEATURE_VI_WIN_RESIZE=y
++CONFIG_FEATURE_VI_ASK_TERMINAL=y
++CONFIG_AWK=y
++# CONFIG_FEATURE_AWK_LIBM is not set
++CONFIG_CMP=y
++# CONFIG_DIFF is not set
++# CONFIG_FEATURE_DIFF_LONG_OPTIONS is not set
++# CONFIG_FEATURE_DIFF_DIR is not set
++# CONFIG_ED is not set
++CONFIG_SED=y
++# CONFIG_FEATURE_ALLOW_EXEC is not set
++
++#
++# Finding Utilities
++#
++# CONFIG_FIND is not set
++# CONFIG_FEATURE_FIND_PRINT0 is not set
++# CONFIG_FEATURE_FIND_MTIME is not set
++# CONFIG_FEATURE_FIND_MMIN is not set
++# CONFIG_FEATURE_FIND_PERM is not set
++# CONFIG_FEATURE_FIND_TYPE is not set
++# CONFIG_FEATURE_FIND_XDEV is not set
++# CONFIG_FEATURE_FIND_MAXDEPTH is not set
++# CONFIG_FEATURE_FIND_NEWER is not set
++# CONFIG_FEATURE_FIND_INUM is not set
++# CONFIG_FEATURE_FIND_EXEC is not set
++# CONFIG_FEATURE_FIND_USER is not set
++# CONFIG_FEATURE_FIND_GROUP is not set
++# CONFIG_FEATURE_FIND_NOT is not set
++# CONFIG_FEATURE_FIND_DEPTH is not set
++# CONFIG_FEATURE_FIND_PAREN is not set
++# CONFIG_FEATURE_FIND_SIZE is not set
++# CONFIG_FEATURE_FIND_PRUNE is not set
++# CONFIG_FEATURE_FIND_DELETE is not set
++# CONFIG_FEATURE_FIND_PATH is not set
++# CONFIG_FEATURE_FIND_REGEX is not set
++# CONFIG_FEATURE_FIND_CONTEXT is not set
++# CONFIG_FEATURE_FIND_LINKS is not set
++CONFIG_GREP=y
++CONFIG_FEATURE_GREP_EGREP_ALIAS=y
++CONFIG_FEATURE_GREP_FGREP_ALIAS=y
++# CONFIG_FEATURE_GREP_CONTEXT is not set
++# CONFIG_XARGS is not set
++# CONFIG_FEATURE_XARGS_SUPPORT_CONFIRMATION is not set
++# CONFIG_FEATURE_XARGS_SUPPORT_QUOTES is not set
++# CONFIG_FEATURE_XARGS_SUPPORT_TERMOPT is not set
++# CONFIG_FEATURE_XARGS_SUPPORT_ZERO_TERM is not set
++
++#
++# Init Utilities
++#
++# CONFIG_BOOTCHARTD is not set
++# CONFIG_FEATURE_BOOTCHARTD_BLOATED_HEADER is not set
++# CONFIG_FEATURE_BOOTCHARTD_CONFIG_FILE is not set
++CONFIG_HALT=y
++# CONFIG_FEATURE_CALL_TELINIT is not set
++CONFIG_TELINIT_PATH=""
++CONFIG_INIT=y
++CONFIG_FEATURE_USE_INITTAB=y
++# CONFIG_FEATURE_KILL_REMOVED is not set
++CONFIG_FEATURE_KILL_DELAY=0
++# CONFIG_FEATURE_INIT_SCTTY is not set
++CONFIG_FEATURE_INIT_SYSLOG=y
++# CONFIG_FEATURE_EXTRA_QUIET is not set
++# CONFIG_FEATURE_INIT_COREDUMPS is not set
++# CONFIG_FEATURE_INITRD is not set
++CONFIG_INIT_TERMINAL_TYPE="linux"
++# CONFIG_MESG is not set
++# CONFIG_FEATURE_MESG_ENABLE_ONLY_GROUP is not set
++
++#
++# Login/Password Management Utilities
++#
++# CONFIG_ADD_SHELL is not set
++# CONFIG_REMOVE_SHELL is not set
++# CONFIG_FEATURE_SHADOWPASSWDS is not set
++# CONFIG_USE_BB_PWD_GRP is not set
++# CONFIG_USE_BB_SHADOW is not set
++# CONFIG_USE_BB_CRYPT is not set
++# CONFIG_USE_BB_CRYPT_SHA is not set
++# CONFIG_ADDUSER is not set
++# CONFIG_FEATURE_ADDUSER_LONG_OPTIONS is not set
++# CONFIG_FEATURE_CHECK_NAMES is not set
++CONFIG_FIRST_SYSTEM_ID=0
++CONFIG_LAST_SYSTEM_ID=0
++# CONFIG_ADDGROUP is not set
++# CONFIG_FEATURE_ADDGROUP_LONG_OPTIONS is not set
++# CONFIG_FEATURE_ADDUSER_TO_GROUP is not set
++# CONFIG_DELUSER is not set
++# CONFIG_DELGROUP is not set
++# CONFIG_FEATURE_DEL_USER_FROM_GROUP is not set
++# CONFIG_GETTY is not set
++# CONFIG_LOGIN is not set
++# CONFIG_LOGIN_SESSION_AS_CHILD is not set
++# CONFIG_PAM is not set
++# CONFIG_LOGIN_SCRIPTS is not set
++# CONFIG_FEATURE_NOLOGIN is not set
++# CONFIG_FEATURE_SECURETTY is not set
++CONFIG_PASSWD=y
++# CONFIG_FEATURE_PASSWD_WEAK_CHECK is not set
++CONFIG_CRYPTPW=y
++# CONFIG_CHPASSWD is not set
++CONFIG_FEATURE_DEFAULT_PASSWD_ALGO="des"
++CONFIG_SU=y
++# CONFIG_FEATURE_SU_SYSLOG is not set
++# CONFIG_FEATURE_SU_CHECKS_SHELLS is not set
++# CONFIG_SULOGIN is not set
++# CONFIG_VLOCK is not set
++
++#
++# Linux Ext2 FS Progs
++#
++# CONFIG_CHATTR is not set
++# CONFIG_FSCK is not set
++# CONFIG_LSATTR is not set
++# CONFIG_TUNE2FS is not set
++
++#
++# Linux Module Utilities
++#
++CONFIG_MODINFO=y
++# CONFIG_MODPROBE_SMALL is not set
++# CONFIG_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE is not set
++# CONFIG_FEATURE_MODPROBE_SMALL_CHECK_ALREADY_LOADED is not set
++CONFIG_INSMOD=y
++CONFIG_RMMOD=y
++CONFIG_LSMOD=y
++CONFIG_FEATURE_LSMOD_PRETTY_2_6_OUTPUT=y
++CONFIG_MODPROBE=y
++# CONFIG_FEATURE_MODPROBE_BLACKLIST is not set
++CONFIG_DEPMOD=y
++
++#
++# Options common to multiple modutils
++#
++# CONFIG_FEATURE_2_4_MODULES is not set
++# CONFIG_FEATURE_INSMOD_TRY_MMAP is not set
++# CONFIG_FEATURE_INSMOD_VERSION_CHECKING is not set
++# CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS is not set
++# CONFIG_FEATURE_INSMOD_LOADINKMEM is not set
++# CONFIG_FEATURE_INSMOD_LOAD_MAP is not set
++# CONFIG_FEATURE_INSMOD_LOAD_MAP_FULL is not set
++CONFIG_FEATURE_CHECK_TAINTED_MODULE=y
++CONFIG_FEATURE_MODUTILS_ALIAS=y
++CONFIG_FEATURE_MODUTILS_SYMBOLS=y
++CONFIG_DEFAULT_MODULES_DIR="/lib/modules"
++CONFIG_DEFAULT_DEPMOD_FILE="modules.dep"
++
++#
++# Linux System Utilities
++#
++CONFIG_BLOCKDEV=y
++# CONFIG_MDEV is not set
++# CONFIG_FEATURE_MDEV_CONF is not set
++# CONFIG_FEATURE_MDEV_RENAME is not set
++# CONFIG_FEATURE_MDEV_RENAME_REGEXP is not set
++# CONFIG_FEATURE_MDEV_EXEC is not set
++# CONFIG_FEATURE_MDEV_LOAD_FIRMWARE is not set
++# CONFIG_REV is not set
++# CONFIG_ACPID is not set
++# CONFIG_FEATURE_ACPID_COMPAT is not set
++# CONFIG_BLKID is not set
++# CONFIG_FEATURE_BLKID_TYPE is not set
++CONFIG_DMESG=y
++# CONFIG_FEATURE_DMESG_PRETTY is not set
++# CONFIG_FBSET is not set
++# CONFIG_FEATURE_FBSET_FANCY is not set
++# CONFIG_FEATURE_FBSET_READMODE is not set
++# CONFIG_FDFLUSH is not set
++# CONFIG_FDFORMAT is not set
++# CONFIG_FDISK is not set
++# CONFIG_FDISK_SUPPORT_LARGE_DISKS is not set
++# CONFIG_FEATURE_FDISK_WRITABLE is not set
++# CONFIG_FEATURE_AIX_LABEL is not set
++# CONFIG_FEATURE_SGI_LABEL is not set
++# CONFIG_FEATURE_SUN_LABEL is not set
++# CONFIG_FEATURE_OSF_LABEL is not set
++# CONFIG_FEATURE_GPT_LABEL is not set
++# CONFIG_FEATURE_FDISK_ADVANCED is not set
++# CONFIG_FINDFS is not set
++CONFIG_FLOCK=y
++# CONFIG_FREERAMDISK is not set
++# CONFIG_FSCK_MINIX is not set
++# CONFIG_MKFS_EXT2 is not set
++# CONFIG_MKFS_MINIX is not set
++# CONFIG_FEATURE_MINIX2 is not set
++# CONFIG_MKFS_REISER is not set
++# CONFIG_MKFS_VFAT is not set
++# CONFIG_GETOPT is not set
++# CONFIG_FEATURE_GETOPT_LONG is not set
++CONFIG_HEXDUMP=y
++CONFIG_FEATURE_HEXDUMP_REVERSE=y
++# CONFIG_HD is not set
++# CONFIG_HWCLOCK is not set
++# CONFIG_FEATURE_HWCLOCK_LONG_OPTIONS is not set
++# CONFIG_FEATURE_HWCLOCK_ADJTIME_FHS is not set
++CONFIG_IPCRM=y
++CONFIG_IPCS=y
++# CONFIG_LOSETUP is not set
++# CONFIG_LSPCI is not set
++# CONFIG_LSUSB is not set
++# CONFIG_MKSWAP is not set
++# CONFIG_FEATURE_MKSWAP_UUID is not set
++CONFIG_MORE=y
++CONFIG_MOUNT=y
++# CONFIG_FEATURE_MOUNT_FAKE is not set
++# CONFIG_FEATURE_MOUNT_VERBOSE is not set
++# CONFIG_FEATURE_MOUNT_HELPERS is not set
++# CONFIG_FEATURE_MOUNT_LABEL is not set
++CONFIG_FEATURE_MOUNT_NFS=y
++# CONFIG_FEATURE_MOUNT_CIFS is not set
++CONFIG_FEATURE_MOUNT_FLAGS=y
++# CONFIG_FEATURE_MOUNT_FSTAB is not set
++# CONFIG_PIVOT_ROOT is not set
++# CONFIG_RDATE is not set
++# CONFIG_RDEV is not set
++# CONFIG_READPROFILE is not set
++# CONFIG_RTCWAKE is not set
++# CONFIG_SCRIPT is not set
++# CONFIG_SCRIPTREPLAY is not set
++# CONFIG_SETARCH is not set
++# CONFIG_SWAPONOFF is not set
++# CONFIG_FEATURE_SWAPON_PRI is not set
++# CONFIG_SWITCH_ROOT is not set
++CONFIG_UMOUNT=y
++# CONFIG_FEATURE_UMOUNT_ALL is not set
++
++#
++# Common options for mount/umount
++#
++CONFIG_FEATURE_MOUNT_LOOP=y
++# CONFIG_FEATURE_MOUNT_LOOP_CREATE is not set
++# CONFIG_FEATURE_MTAB_SUPPORT is not set
++# CONFIG_VOLUMEID is not set
++# CONFIG_FEATURE_VOLUMEID_EXT is not set
++# CONFIG_FEATURE_VOLUMEID_BTRFS is not set
++# CONFIG_FEATURE_VOLUMEID_REISERFS is not set
++# CONFIG_FEATURE_VOLUMEID_FAT is not set
++# CONFIG_FEATURE_VOLUMEID_EXFAT is not set
++# CONFIG_FEATURE_VOLUMEID_HFS is not set
++# CONFIG_FEATURE_VOLUMEID_JFS is not set
++# CONFIG_FEATURE_VOLUMEID_XFS is not set
++# CONFIG_FEATURE_VOLUMEID_NILFS is not set
++# CONFIG_FEATURE_VOLUMEID_NTFS is not set
++# CONFIG_FEATURE_VOLUMEID_ISO9660 is not set
++# CONFIG_FEATURE_VOLUMEID_UDF is not set
++# CONFIG_FEATURE_VOLUMEID_LUKS is not set
++# CONFIG_FEATURE_VOLUMEID_LINUXSWAP is not set
++# CONFIG_FEATURE_VOLUMEID_CRAMFS is not set
++# CONFIG_FEATURE_VOLUMEID_ROMFS is not set
++# CONFIG_FEATURE_VOLUMEID_SQUASHFS is not set
++# CONFIG_FEATURE_VOLUMEID_SYSV is not set
++# CONFIG_FEATURE_VOLUMEID_OCFS2 is not set
++# CONFIG_FEATURE_VOLUMEID_LINUXRAID is not set
++
++#
++# Miscellaneous Utilities
++#
++# CONFIG_CONSPY is not set
++# CONFIG_LESS is not set
++CONFIG_FEATURE_LESS_MAXLINES=0
++# CONFIG_FEATURE_LESS_BRACKETS is not set
++# CONFIG_FEATURE_LESS_FLAGS is not set
++# CONFIG_FEATURE_LESS_MARKS is not set
++# CONFIG_FEATURE_LESS_REGEXP is not set
++# CONFIG_FEATURE_LESS_WINCH is not set
++# CONFIG_FEATURE_LESS_ASK_TERMINAL is not set
++# CONFIG_FEATURE_LESS_DASHCMD is not set
++# CONFIG_FEATURE_LESS_LINENUMS is not set
++# CONFIG_NANDWRITE is not set
++# CONFIG_NANDDUMP is not set
++# CONFIG_SETSERIAL is not set
++# CONFIG_UBIATTACH is not set
++# CONFIG_UBIDETACH is not set
++# CONFIG_UBIMKVOL is not set
++# CONFIG_UBIRMVOL is not set
++# CONFIG_UBIRSVOL is not set
++# CONFIG_UBIUPDATEVOL is not set
++# CONFIG_ADJTIMEX is not set
++# CONFIG_BBCONFIG is not set
++# CONFIG_FEATURE_COMPRESS_BBCONFIG is not set
++# CONFIG_BEEP is not set
++CONFIG_FEATURE_BEEP_FREQ=0
++CONFIG_FEATURE_BEEP_LENGTH_MS=0
++# CONFIG_CHAT is not set
++# CONFIG_FEATURE_CHAT_NOFAIL is not set
++# CONFIG_FEATURE_CHAT_TTY_HIFI is not set
++# CONFIG_FEATURE_CHAT_IMPLICIT_CR is not set
++# CONFIG_FEATURE_CHAT_SWALLOW_OPTS is not set
++# CONFIG_FEATURE_CHAT_SEND_ESCAPES is not set
++# CONFIG_FEATURE_CHAT_VAR_ABORT_LEN is not set
++# CONFIG_FEATURE_CHAT_CLR_ABORT is not set
++# CONFIG_CHRT is not set
++CONFIG_CROND=y
++# CONFIG_FEATURE_CROND_D is not set
++# CONFIG_FEATURE_CROND_CALL_SENDMAIL is not set
++CONFIG_FEATURE_CROND_DIR="/etc/cron.d"
++# CONFIG_CRONTAB is not set
++# CONFIG_DC is not set
++# CONFIG_FEATURE_DC_LIBM is not set
++# CONFIG_DEVFSD is not set
++# CONFIG_DEVFSD_MODLOAD is not set
++# CONFIG_DEVFSD_FG_NP is not set
++# CONFIG_DEVFSD_VERBOSE is not set
++# CONFIG_FEATURE_DEVFS is not set
++# CONFIG_DEVMEM is not set
++CONFIG_EJECT=y
++CONFIG_FEATURE_EJECT_SCSI=y
++# CONFIG_FBSPLASH is not set
++# CONFIG_FLASHCP is not set
++# CONFIG_FLASH_LOCK is not set
++# CONFIG_FLASH_UNLOCK is not set
++# CONFIG_FLASH_ERASEALL is not set
++# CONFIG_IONICE is not set
++# CONFIG_INOTIFYD is not set
++# CONFIG_LAST is not set
++# CONFIG_FEATURE_LAST_SMALL is not set
++# CONFIG_FEATURE_LAST_FANCY is not set
++# CONFIG_HDPARM is not set
++# CONFIG_FEATURE_HDPARM_GET_IDENTITY is not set
++# CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF is not set
++# CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF is not set
++# CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET is not set
++# CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF is not set
++# CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA is not set
++CONFIG_LOCK=y
++# CONFIG_MAKEDEVS is not set
++# CONFIG_FEATURE_MAKEDEVS_LEAF is not set
++# CONFIG_FEATURE_MAKEDEVS_TABLE is not set
++# CONFIG_MAN is not set
++# CONFIG_MICROCOM is not set
++# CONFIG_MOUNTPOINT is not set
++# CONFIG_MT is not set
++# CONFIG_RAIDAUTORUN is not set
++# CONFIG_READAHEAD is not set
++# CONFIG_RFKILL is not set
++# CONFIG_RUNLEVEL is not set
++# CONFIG_RX is not set
++# CONFIG_SETSID is not set
++# CONFIG_STRINGS is not set
++# CONFIG_TASKSET is not set
++# CONFIG_FEATURE_TASKSET_FANCY is not set
++CONFIG_TIME=y
++# CONFIG_TIMEOUT is not set
++# CONFIG_TTYSIZE is not set
++# CONFIG_VOLNAME is not set
++# CONFIG_WALL is not set
++CONFIG_WATCHDOG=y
++
++#
++# Networking Utilities
++#
++# CONFIG_NAMEIF is not set
++# CONFIG_FEATURE_NAMEIF_EXTENDED is not set
++# CONFIG_NBDCLIENT is not set
++CONFIG_NC=y
++CONFIG_NC_SERVER=y
++# CONFIG_NC_EXTRA is not set
++# CONFIG_NC_110_COMPAT is not set
++CONFIG_PING=y
++CONFIG_PING6=y
++CONFIG_FEATURE_FANCY_PING=y
++# CONFIG_WHOIS is not set
++CONFIG_FEATURE_IPV6=y
++# CONFIG_FEATURE_UNIX_LOCAL is not set
++CONFIG_FEATURE_PREFER_IPV4_ADDRESS=y
++CONFIG_VERBOSE_RESOLUTION_ERRORS=y
++CONFIG_ARP=y
++CONFIG_ARPING=y
++# CONFIG_BRCTL is not set
++# CONFIG_FEATURE_BRCTL_FANCY is not set
++# CONFIG_FEATURE_BRCTL_SHOW is not set
++# CONFIG_DNSD is not set
++# CONFIG_ETHER_WAKE is not set
++# CONFIG_FAKEIDENTD is not set
++# CONFIG_FTPD is not set
++# CONFIG_FEATURE_FTP_WRITE is not set
++# CONFIG_FEATURE_FTPD_ACCEPT_BROKEN_LIST is not set
++# CONFIG_FTPGET is not set
++# CONFIG_FTPPUT is not set
++# CONFIG_FEATURE_FTPGETPUT_LONG_OPTIONS is not set
++CONFIG_HOSTNAME=y
++# CONFIG_HTTPD is not set
++# CONFIG_FEATURE_HTTPD_RANGES is not set
++# CONFIG_FEATURE_HTTPD_USE_SENDFILE is not set
++# CONFIG_FEATURE_HTTPD_SETUID is not set
++# CONFIG_FEATURE_HTTPD_BASIC_AUTH is not set
++# CONFIG_FEATURE_HTTPD_AUTH_MD5 is not set
++# CONFIG_FEATURE_HTTPD_CGI is not set
++# CONFIG_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR is not set
++# CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV is not set
++# CONFIG_FEATURE_HTTPD_ENCODE_URL_STR is not set
++# CONFIG_FEATURE_HTTPD_ERROR_PAGES is not set
++# CONFIG_FEATURE_HTTPD_PROXY is not set
++# CONFIG_FEATURE_HTTPD_GZIP is not set
++CONFIG_IFCONFIG=y
++CONFIG_FEATURE_IFCONFIG_STATUS=y
++# CONFIG_FEATURE_IFCONFIG_SLIP is not set
++# CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ is not set
++CONFIG_FEATURE_IFCONFIG_HW=y
++CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS=y
++# CONFIG_IFENSLAVE is not set
++# CONFIG_IFPLUGD is not set
++# CONFIG_IFUPDOWN is not set
++CONFIG_IFUPDOWN_IFSTATE_PATH=""
++# CONFIG_FEATURE_IFUPDOWN_IP is not set
++# CONFIG_FEATURE_IFUPDOWN_IP_BUILTIN is not set
++# CONFIG_FEATURE_IFUPDOWN_IFCONFIG_BUILTIN is not set
++# CONFIG_FEATURE_IFUPDOWN_IPV4 is not set
++# CONFIG_FEATURE_IFUPDOWN_IPV6 is not set
++# CONFIG_FEATURE_IFUPDOWN_MAPPING is not set
++# CONFIG_FEATURE_IFUPDOWN_EXTERNAL_DHCP is not set
++# CONFIG_INETD is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN is not set
++# CONFIG_FEATURE_INETD_RPC is not set
++# CONFIG_IP is not set
++# CONFIG_FEATURE_IP_ADDRESS is not set
++# CONFIG_FEATURE_IP_LINK is not set
++# CONFIG_FEATURE_IP_ROUTE is not set
++# CONFIG_FEATURE_IP_TUNNEL is not set
++# CONFIG_FEATURE_IP_RULE is not set
++# CONFIG_FEATURE_IP_SHORT_FORMS is not set
++# CONFIG_FEATURE_IP_RARE_PROTOCOLS is not set
++# CONFIG_IPADDR is not set
++# CONFIG_IPLINK is not set
++# CONFIG_IPROUTE is not set
++# CONFIG_IPTUNNEL is not set
++# CONFIG_IPRULE is not set
++# CONFIG_IPCALC is not set
++# CONFIG_FEATURE_IPCALC_FANCY is not set
++# CONFIG_FEATURE_IPCALC_LONG_OPTIONS is not set
++CONFIG_NETSTAT=y
++# CONFIG_FEATURE_NETSTAT_WIDE is not set
++CONFIG_FEATURE_NETSTAT_PRG=y
++CONFIG_NSLOOKUP=y
++CONFIG_NTPD=y
++CONFIG_FEATURE_NTPD_SERVER=y
++# CONFIG_PSCAN is not set
++# CONFIG_ROUTE is not set
++# CONFIG_SLATTACH is not set
++# CONFIG_TCPSVD is not set
++# CONFIG_TELNET is not set
++# CONFIG_FEATURE_TELNET_TTYPE is not set
++# CONFIG_FEATURE_TELNET_AUTOLOGIN is not set
++CONFIG_TELNETD=y
++CONFIG_FEATURE_TELNETD_STANDALONE=y
++# CONFIG_FEATURE_TELNETD_INETD_WAIT is not set
++CONFIG_TFTP=y
++# CONFIG_TFTPD is not set
++
++#
++# Common options for tftp/tftpd
++#
++CONFIG_FEATURE_TFTP_GET=y
++CONFIG_FEATURE_TFTP_PUT=y
++CONFIG_FEATURE_TFTP_BLOCKSIZE=y
++# CONFIG_FEATURE_TFTP_PROGRESS_BAR is not set
++# CONFIG_TFTP_DEBUG is not set
++CONFIG_TRACEROUTE=y
++CONFIG_TRACEROUTE6=y
++CONFIG_FEATURE_TRACEROUTE_VERBOSE=y
++# CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE is not set
++CONFIG_FEATURE_TRACEROUTE_USE_ICMP=y
++# CONFIG_TUNCTL is not set
++# CONFIG_FEATURE_TUNCTL_UG is not set
++# CONFIG_UDHCPC6 is not set
++# CONFIG_UDHCPD is not set
++# CONFIG_DHCPRELAY is not set
++# CONFIG_DUMPLEASES is not set
++# CONFIG_FEATURE_UDHCPD_WRITE_LEASES_EARLY is not set
++# CONFIG_FEATURE_UDHCPD_BASE_IP_ON_MAC is not set
++CONFIG_DHCPD_LEASES_FILE=""
++CONFIG_UDHCPC=y
++# CONFIG_FEATURE_UDHCPC_ARPING is not set
++# CONFIG_FEATURE_UDHCP_PORT is not set
++CONFIG_UDHCP_DEBUG=1
++CONFIG_FEATURE_UDHCP_RFC3397=y
++CONFIG_FEATURE_UDHCP_8021Q=y
++CONFIG_UDHCPC_DEFAULT_SCRIPT="/usr/share/udhcpc/default.script"
++CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS=80
++CONFIG_IFUPDOWN_UDHCPC_CMD_OPTIONS=""
++# CONFIG_UDPSVD is not set
++CONFIG_VCONFIG=y
++# CONFIG_WGET is not set
++# CONFIG_FEATURE_WGET_STATUSBAR is not set
++# CONFIG_FEATURE_WGET_AUTHENTICATION is not set
++# CONFIG_FEATURE_WGET_LONG_OPTIONS is not set
++# CONFIG_FEATURE_WGET_TIMEOUT is not set
++# CONFIG_ZCIP is not set
++
++#
++# Print Utilities
++#
++# CONFIG_LPD is not set
++CONFIG_LPR=y
++# CONFIG_LPQ is not set
++
++#
++# Mail Utilities
++#
++# CONFIG_MAKEMIME is not set
++CONFIG_FEATURE_MIME_CHARSET="us-ascii"
++# CONFIG_POPMAILDIR is not set
++# CONFIG_FEATURE_POPMAILDIR_DELIVERY is not set
++# CONFIG_REFORMIME is not set
++# CONFIG_FEATURE_REFORMIME_COMPAT is not set
++CONFIG_SENDMAIL=y
++
++#
++# Process Utilities
++#
++CONFIG_IOSTAT=y
++CONFIG_LSOF=y
++CONFIG_MPSTAT=y
++# CONFIG_NMETER is not set
++CONFIG_PMAP=y
++# CONFIG_POWERTOP is not set
++CONFIG_PSTREE=y
++# CONFIG_PWDX is not set
++# CONFIG_SMEMCAP is not set
++CONFIG_TOP=y
++CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE=y
++CONFIG_FEATURE_TOP_CPU_GLOBAL_PERCENTS=y
++# CONFIG_FEATURE_TOP_SMP_CPU is not set
++# CONFIG_FEATURE_TOP_DECIMALS is not set
++# CONFIG_FEATURE_TOP_SMP_PROCESS is not set
++CONFIG_FEATURE_TOPMEM=y
++CONFIG_UPTIME=y
++# CONFIG_FEATURE_UPTIME_UTMP_SUPPORT is not set
++CONFIG_FREE=y
++CONFIG_FUSER=y
++CONFIG_KILL=y
++CONFIG_KILLALL=y
++# CONFIG_KILLALL5 is not set
++CONFIG_PGREP=y
++CONFIG_PIDOF=y
++# CONFIG_FEATURE_PIDOF_SINGLE is not set
++# CONFIG_FEATURE_PIDOF_OMIT is not set
++# CONFIG_PKILL is not set
++CONFIG_PS=y
++CONFIG_FEATURE_PS_WIDE=y
++CONFIG_FEATURE_PS_LONG=y
++# CONFIG_FEATURE_PS_TIME is not set
++# CONFIG_FEATURE_PS_ADDITIONAL_COLUMNS is not set
++# CONFIG_FEATURE_PS_UNUSUAL_SYSTEMS is not set
++CONFIG_RENICE=y
++CONFIG_BB_SYSCTL=y
++CONFIG_FEATURE_SHOW_THREADS=y
++CONFIG_WATCH=y
++
++#
++# Runit Utilities
++#
++# CONFIG_RUNSV is not set
++# CONFIG_RUNSVDIR is not set
++# CONFIG_FEATURE_RUNSVDIR_LOG is not set
++# CONFIG_SV is not set
++CONFIG_SV_DEFAULT_SERVICE_DIR=""
++# CONFIG_SVLOGD is not set
++# CONFIG_CHPST is not set
++# CONFIG_SETUIDGID is not set
++# CONFIG_ENVUIDGID is not set
++# CONFIG_ENVDIR is not set
++# CONFIG_SOFTLIMIT is not set
++# CONFIG_CHCON is not set
++# CONFIG_FEATURE_CHCON_LONG_OPTIONS is not set
++# CONFIG_GETENFORCE is not set
++# CONFIG_GETSEBOOL is not set
++# CONFIG_LOAD_POLICY is not set
++# CONFIG_MATCHPATHCON is not set
++# CONFIG_RESTORECON is not set
++# CONFIG_RUNCON is not set
++# CONFIG_FEATURE_RUNCON_LONG_OPTIONS is not set
++# CONFIG_SELINUXENABLED is not set
++# CONFIG_SETENFORCE is not set
++# CONFIG_SETFILES is not set
++# CONFIG_FEATURE_SETFILES_CHECK_OPTION is not set
++# CONFIG_SETSEBOOL is not set
++# CONFIG_SESTATUS is not set
++
++#
++# Shells
++#
++CONFIG_ASH=y
++CONFIG_ASH_BASH_COMPAT=y
++# CONFIG_ASH_IDLE_TIMEOUT is not set
++CONFIG_ASH_JOB_CONTROL=y
++# CONFIG_ASH_ALIAS is not set
++CONFIG_ASH_GETOPTS=y
++CONFIG_ASH_BUILTIN_ECHO=y
++# CONFIG_ASH_BUILTIN_PRINTF is not set
++CONFIG_ASH_BUILTIN_TEST=y
++# CONFIG_ASH_CMDCMD is not set
++# CONFIG_ASH_MAIL is not set
++# CONFIG_ASH_OPTIMIZE_FOR_SIZE is not set
++# CONFIG_ASH_RANDOM_SUPPORT is not set
++# CONFIG_ASH_EXPAND_PRMT is not set
++# CONFIG_CTTYHACK is not set
++# CONFIG_HUSH is not set
++# CONFIG_HUSH_BASH_COMPAT is not set
++# CONFIG_HUSH_BRACE_EXPANSION is not set
++# CONFIG_HUSH_HELP is not set
++# CONFIG_HUSH_INTERACTIVE is not set
++# CONFIG_HUSH_SAVEHISTORY is not set
++# CONFIG_HUSH_JOB is not set
++# CONFIG_HUSH_TICK is not set
++# CONFIG_HUSH_IF is not set
++# CONFIG_HUSH_LOOPS is not set
++# CONFIG_HUSH_CASE is not set
++# CONFIG_HUSH_FUNCTIONS is not set
++# CONFIG_HUSH_LOCAL is not set
++# CONFIG_HUSH_RANDOM_SUPPORT is not set
++# CONFIG_HUSH_EXPORT_N is not set
++# CONFIG_HUSH_MODE_X is not set
++# CONFIG_MSH is not set
++CONFIG_FEATURE_SH_IS_ASH=y
++# CONFIG_FEATURE_SH_IS_HUSH is not set
++# CONFIG_FEATURE_SH_IS_NONE is not set
++# CONFIG_FEATURE_BASH_IS_ASH is not set
++# CONFIG_FEATURE_BASH_IS_HUSH is not set
++CONFIG_FEATURE_BASH_IS_NONE=y
++CONFIG_SH_MATH_SUPPORT=y
++CONFIG_SH_MATH_SUPPORT_64=y
++# CONFIG_FEATURE_SH_EXTRA_QUIET is not set
++CONFIG_FEATURE_SH_STANDALONE=y
++CONFIG_FEATURE_SH_NOFORK=y
++# CONFIG_FEATURE_SH_HISTFILESIZE is not set
++
++#
++# System Logging Utilities
++#
++CONFIG_SYSLOGD=y
++CONFIG_FEATURE_ROTATE_LOGFILE=y
++CONFIG_FEATURE_REMOTE_LOG=y
++# CONFIG_FEATURE_SYSLOGD_DUP is not set
++# CONFIG_FEATURE_SYSLOGD_CFG is not set
++CONFIG_FEATURE_SYSLOGD_READ_BUFFER_SIZE=256
++# CONFIG_FEATURE_IPC_SYSLOG is not set
++CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE=0
++CONFIG_FEATURE_SAS_FLASH_LOG=y
++# CONFIG_LOGREAD is not set
++# CONFIG_FEATURE_LOGREAD_REDUCED_LOCKING is not set
++# CONFIG_FEATURE_KMSG_SYSLOG is not set
++CONFIG_KLOGD=y
++CONFIG_FEATURE_KLOGD_KLOGCTL=y
++CONFIG_LOGGER=y
+diff --git a/sphairon/config.initramfs b/sphairon/config.initramfs
+new file mode 100644
+index 0000000000000000000000000000000000000000..200e77f432b4268f58370093052a78be8b04b530
+--- /dev/null
++++ b/sphairon/config.initramfs
+@@ -0,0 +1,1007 @@
++#
++# Automatically generated make config: don't edit
++# Busybox version: 1.21.1
++#
++CONFIG_HAVE_DOT_CONFIG=y
++
++#
++# Busybox Settings
++#
++
++#
++# General Configuration
++#
++# CONFIG_DESKTOP is not set
++# CONFIG_EXTRA_COMPAT is not set
++# CONFIG_INCLUDE_SUSv2 is not set
++# CONFIG_USE_PORTABLE_CODE is not set
++CONFIG_PLATFORM_LINUX=y
++CONFIG_FEATURE_BUFFERS_USE_MALLOC=y
++# CONFIG_FEATURE_BUFFERS_GO_ON_STACK is not set
++# CONFIG_FEATURE_BUFFERS_GO_IN_BSS is not set
++# CONFIG_SHOW_USAGE is not set
++# CONFIG_FEATURE_VERBOSE_USAGE is not set
++# CONFIG_FEATURE_COMPRESS_USAGE is not set
++CONFIG_FEATURE_INSTALLER=y
++CONFIG_INSTALL_NO_USR=y
++# CONFIG_LOCALE_SUPPORT is not set
++# CONFIG_UNICODE_SUPPORT is not set
++# CONFIG_UNICODE_USING_LOCALE is not set
++# CONFIG_FEATURE_CHECK_UNICODE_IN_ENV is not set
++CONFIG_SUBST_WCHAR=0
++CONFIG_LAST_SUPPORTED_WCHAR=0
++# CONFIG_UNICODE_COMBINING_WCHARS is not set
++# CONFIG_UNICODE_WIDE_WCHARS is not set
++# CONFIG_UNICODE_BIDI_SUPPORT is not set
++# CONFIG_UNICODE_NEUTRAL_TABLE is not set
++# CONFIG_UNICODE_PRESERVE_BROKEN is not set
++# CONFIG_LONG_OPTS is not set
++# CONFIG_FEATURE_DEVPTS is not set
++# CONFIG_FEATURE_CLEAN_UP is not set
++# CONFIG_FEATURE_UTMP is not set
++# CONFIG_FEATURE_WTMP is not set
++# CONFIG_FEATURE_PIDFILE is not set
++CONFIG_PID_FILE_PATH=""
++# CONFIG_FEATURE_SUID is not set
++# CONFIG_FEATURE_SUID_CONFIG is not set
++# CONFIG_FEATURE_SUID_CONFIG_QUIET is not set
++# CONFIG_SELINUX is not set
++CONFIG_FEATURE_PREFER_APPLETS=y
++CONFIG_BUSYBOX_EXEC_PATH="/bin/busybox"
++CONFIG_FEATURE_SYSLOG=y
++CONFIG_FEATURE_HAVE_RPC=y
++
++#
++# Build Options
++#
++CONFIG_STATIC=y
++# CONFIG_PIE is not set
++# CONFIG_NOMMU is not set
++# CONFIG_BUILD_LIBBUSYBOX is not set
++# CONFIG_FEATURE_INDIVIDUAL is not set
++# CONFIG_FEATURE_SHARED_BUSYBOX is not set
++# CONFIG_LFS is not set
++CONFIG_CROSS_COMPILER_PREFIX=""
++CONFIG_SYSROOT=""
++CONFIG_EXTRA_CFLAGS=""
++CONFIG_EXTRA_LDFLAGS=""
++CONFIG_EXTRA_LDLIBS=""
++
++#
++# Debugging Options
++#
++# CONFIG_DEBUG is not set
++# CONFIG_DEBUG_PESSIMIZE is not set
++# CONFIG_WERROR is not set
++CONFIG_NO_DEBUG_LIB=y
++# CONFIG_DMALLOC is not set
++# CONFIG_EFENCE is not set
++
++#
++# Installation Options ("make install" behavior)
++#
++CONFIG_INSTALL_APPLET_SYMLINKS=y
++# CONFIG_INSTALL_APPLET_HARDLINKS is not set
++# CONFIG_INSTALL_APPLET_SCRIPT_WRAPPERS is not set
++# CONFIG_INSTALL_APPLET_DONT is not set
++# CONFIG_INSTALL_SH_APPLET_SYMLINK is not set
++# CONFIG_INSTALL_SH_APPLET_HARDLINK is not set
++# CONFIG_INSTALL_SH_APPLET_SCRIPT_WRAPPER is not set
++CONFIG_PREFIX="${ROOTFS}"
++
++#
++# Busybox Library Tuning
++#
++# CONFIG_FEATURE_SYSTEMD is not set
++# CONFIG_FEATURE_RTMINMAX is not set
++CONFIG_PASSWORD_MINLEN=5
++CONFIG_MD5_SMALL=1
++CONFIG_SHA3_SMALL=1
++# CONFIG_FEATURE_FAST_TOP is not set
++# CONFIG_FEATURE_ETC_NETWORKS is not set
++# CONFIG_FEATURE_USE_TERMIOS is not set
++# CONFIG_FEATURE_EDITING is not set
++CONFIG_FEATURE_EDITING_MAX_LEN=0
++# CONFIG_FEATURE_EDITING_VI is not set
++CONFIG_FEATURE_EDITING_HISTORY=0
++# CONFIG_FEATURE_EDITING_SAVEHISTORY is not set
++# CONFIG_FEATURE_EDITING_SAVE_ON_EXIT is not set
++# CONFIG_FEATURE_REVERSE_SEARCH is not set
++# CONFIG_FEATURE_TAB_COMPLETION is not set
++# CONFIG_FEATURE_USERNAME_COMPLETION is not set
++# CONFIG_FEATURE_EDITING_FANCY_PROMPT is not set
++# CONFIG_FEATURE_EDITING_ASK_TERMINAL is not set
++# CONFIG_FEATURE_NON_POSIX_CP is not set
++# CONFIG_FEATURE_VERBOSE_CP_MESSAGE is not set
++CONFIG_FEATURE_COPYBUF_KB=1
++CONFIG_FEATURE_SKIP_ROOTFS=y
++CONFIG_MONOTONIC_SYSCALL=y
++# CONFIG_IOCTL_HEX2STR_ERROR is not set
++# CONFIG_FEATURE_HWIB is not set
++
++#
++# Applets
++#
++
++#
++# Archival Utilities
++#
++# CONFIG_FEATURE_SEAMLESS_XZ is not set
++# CONFIG_FEATURE_SEAMLESS_LZMA is not set
++# CONFIG_FEATURE_SEAMLESS_BZ2 is not set
++# CONFIG_FEATURE_SEAMLESS_GZ is not set
++# CONFIG_FEATURE_SEAMLESS_Z is not set
++# CONFIG_AR is not set
++# CONFIG_FEATURE_AR_LONG_FILENAMES is not set
++# CONFIG_FEATURE_AR_CREATE is not set
++# CONFIG_BUNZIP2 is not set
++# CONFIG_BZIP2 is not set
++# CONFIG_CPIO is not set
++# CONFIG_FEATURE_CPIO_O is not set
++# CONFIG_FEATURE_CPIO_P is not set
++# CONFIG_DPKG is not set
++# CONFIG_DPKG_DEB is not set
++# CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY is not set
++# CONFIG_GUNZIP is not set
++# CONFIG_GZIP is not set
++# CONFIG_FEATURE_GZIP_LONG_OPTIONS is not set
++CONFIG_GZIP_FAST=0
++# CONFIG_LZOP is not set
++# CONFIG_LZOP_COMPR_HIGH is not set
++# CONFIG_RPM2CPIO is not set
++# CONFIG_RPM is not set
++# CONFIG_TAR is not set
++# CONFIG_FEATURE_TAR_CREATE is not set
++# CONFIG_FEATURE_TAR_AUTODETECT is not set
++# CONFIG_FEATURE_TAR_FROM is not set
++# CONFIG_FEATURE_TAR_OLDGNU_COMPATIBILITY is not set
++# CONFIG_FEATURE_TAR_OLDSUN_COMPATIBILITY is not set
++# CONFIG_FEATURE_TAR_GNU_EXTENSIONS is not set
++# CONFIG_FEATURE_TAR_LONG_OPTIONS is not set
++# CONFIG_FEATURE_TAR_TO_COMMAND is not set
++# CONFIG_FEATURE_TAR_UNAME_GNAME is not set
++# CONFIG_FEATURE_TAR_NOPRESERVE_TIME is not set
++# CONFIG_FEATURE_TAR_SELINUX is not set
++# CONFIG_UNCOMPRESS is not set
++# CONFIG_UNLZMA is not set
++# CONFIG_FEATURE_LZMA_FAST is not set
++# CONFIG_LZMA is not set
++# CONFIG_UNXZ is not set
++# CONFIG_XZ is not set
++# CONFIG_UNZIP is not set
++
++#
++# Coreutils
++#
++# CONFIG_BASENAME is not set
++CONFIG_CAT=y
++# CONFIG_DATE is not set
++# CONFIG_FEATURE_DATE_ISOFMT is not set
++# CONFIG_FEATURE_DATE_NANO is not set
++# CONFIG_FEATURE_DATE_COMPAT is not set
++# CONFIG_HOSTID is not set
++# CONFIG_ID is not set
++# CONFIG_GROUPS is not set
++# CONFIG_TEST is not set
++# CONFIG_FEATURE_TEST_64 is not set
++# CONFIG_TOUCH is not set
++# CONFIG_FEATURE_TOUCH_SUSV3 is not set
++# CONFIG_TR is not set
++# CONFIG_FEATURE_TR_CLASSES is not set
++# CONFIG_FEATURE_TR_EQUIV is not set
++# CONFIG_BASE64 is not set
++# CONFIG_WHO is not set
++# CONFIG_USERS is not set
++# CONFIG_CAL is not set
++# CONFIG_CATV is not set
++# CONFIG_CHGRP is not set
++# CONFIG_CHMOD is not set
++# CONFIG_CHOWN is not set
++# CONFIG_FEATURE_CHOWN_LONG_OPTIONS is not set
++# CONFIG_CHROOT is not set
++# CONFIG_CKSUM is not set
++# CONFIG_COMM is not set
++# CONFIG_CP is not set
++# CONFIG_FEATURE_CP_LONG_OPTIONS is not set
++CONFIG_CUT=y
++CONFIG_DD=y
++# CONFIG_FEATURE_DD_SIGNAL_HANDLING is not set
++# CONFIG_FEATURE_DD_THIRD_STATUS_LINE is not set
++CONFIG_FEATURE_DD_IBS_OBS=y
++# CONFIG_DF is not set
++# CONFIG_FEATURE_DF_FANCY is not set
++# CONFIG_DIRNAME is not set
++# CONFIG_DOS2UNIX is not set
++# CONFIG_UNIX2DOS is not set
++# CONFIG_DU is not set
++# CONFIG_FEATURE_DU_DEFAULT_BLOCKSIZE_1K is not set
++CONFIG_ECHO=y
++# CONFIG_FEATURE_FANCY_ECHO is not set
++# CONFIG_ENV is not set
++# CONFIG_FEATURE_ENV_LONG_OPTIONS is not set
++# CONFIG_EXPAND is not set
++# CONFIG_FEATURE_EXPAND_LONG_OPTIONS is not set
++# CONFIG_EXPR is not set
++# CONFIG_EXPR_MATH_SUPPORT_64 is not set
++# CONFIG_FALSE is not set
++# CONFIG_FOLD is not set
++# CONFIG_FSYNC is not set
++# CONFIG_HEAD is not set
++# CONFIG_FEATURE_FANCY_HEAD is not set
++# CONFIG_INSTALL is not set
++# CONFIG_FEATURE_INSTALL_LONG_OPTIONS is not set
++# CONFIG_LN is not set
++# CONFIG_LOGNAME is not set
++# CONFIG_LS is not set
++# CONFIG_FEATURE_LS_FILETYPES is not set
++# CONFIG_FEATURE_LS_FOLLOWLINKS is not set
++# CONFIG_FEATURE_LS_RECURSIVE is not set
++# CONFIG_FEATURE_LS_SORTFILES is not set
++# CONFIG_FEATURE_LS_TIMESTAMPS is not set
++# CONFIG_FEATURE_LS_USERNAME is not set
++# CONFIG_FEATURE_LS_COLOR is not set
++# CONFIG_FEATURE_LS_COLOR_IS_DEFAULT is not set
++# CONFIG_MD5SUM is not set
++CONFIG_MKDIR=y
++# CONFIG_FEATURE_MKDIR_LONG_OPTIONS is not set
++# CONFIG_MKFIFO is not set
++# CONFIG_MKNOD is not set
++# CONFIG_MV is not set
++# CONFIG_FEATURE_MV_LONG_OPTIONS is not set
++# CONFIG_NICE is not set
++# CONFIG_NOHUP is not set
++# CONFIG_OD is not set
++# CONFIG_PRINTENV is not set
++# CONFIG_PRINTF is not set
++# CONFIG_PWD is not set
++# CONFIG_READLINK is not set
++# CONFIG_FEATURE_READLINK_FOLLOW is not set
++# CONFIG_REALPATH is not set
++CONFIG_RM=y
++# CONFIG_RMDIR is not set
++# CONFIG_FEATURE_RMDIR_LONG_OPTIONS is not set
++# CONFIG_SEQ is not set
++# CONFIG_SHA1SUM is not set
++# CONFIG_SHA256SUM is not set
++# CONFIG_SHA512SUM is not set
++# CONFIG_SHA3SUM is not set
++CONFIG_SLEEP=y
++# CONFIG_FEATURE_FANCY_SLEEP is not set
++# CONFIG_FEATURE_FLOAT_SLEEP is not set
++# CONFIG_SORT is not set
++# CONFIG_FEATURE_SORT_BIG is not set
++# CONFIG_SPLIT is not set
++# CONFIG_FEATURE_SPLIT_FANCY is not set
++# CONFIG_STAT is not set
++# CONFIG_FEATURE_STAT_FORMAT is not set
++# CONFIG_STTY is not set
++# CONFIG_SUM is not set
++# CONFIG_SYNC is not set
++# CONFIG_TAC is not set
++# CONFIG_TAIL is not set
++# CONFIG_FEATURE_FANCY_TAIL is not set
++# CONFIG_TEE is not set
++# CONFIG_FEATURE_TEE_USE_BLOCK_IO is not set
++# CONFIG_TRUE is not set
++# CONFIG_TTY is not set
++# CONFIG_UNAME is not set
++# CONFIG_UNEXPAND is not set
++# CONFIG_FEATURE_UNEXPAND_LONG_OPTIONS is not set
++# CONFIG_UNIQ is not set
++# CONFIG_USLEEP is not set
++# CONFIG_UUDECODE is not set
++# CONFIG_UUENCODE is not set
++# CONFIG_WC is not set
++# CONFIG_FEATURE_WC_LARGE is not set
++# CONFIG_WHOAMI is not set
++# CONFIG_YES is not set
++# CONFIG_FEATURE_PRESERVE_HARDLINKS is not set
++# CONFIG_FEATURE_AUTOWIDTH is not set
++# CONFIG_FEATURE_HUMAN_READABLE is not set
++# CONFIG_FEATURE_MD5_SHA1_SUM_CHECK is not set
++
++#
++# Console Utilities
++#
++# CONFIG_CHVT is not set
++# CONFIG_FGCONSOLE is not set
++# CONFIG_CLEAR is not set
++# CONFIG_DEALLOCVT is not set
++# CONFIG_DUMPKMAP is not set
++# CONFIG_KBD_MODE is not set
++# CONFIG_LOADFONT is not set
++# CONFIG_LOADKMAP is not set
++# CONFIG_OPENVT is not set
++# CONFIG_RESET is not set
++# CONFIG_RESIZE is not set
++# CONFIG_FEATURE_RESIZE_PRINT is not set
++# CONFIG_SETCONSOLE is not set
++# CONFIG_FEATURE_SETCONSOLE_LONG_OPTIONS is not set
++# CONFIG_SETFONT is not set
++# CONFIG_FEATURE_SETFONT_TEXTUAL_MAP is not set
++CONFIG_DEFAULT_SETFONT_DIR=""
++# CONFIG_SETKEYCODES is not set
++# CONFIG_SETLOGCONS is not set
++# CONFIG_SHOWKEY is not set
++# CONFIG_FEATURE_LOADFONT_PSF2 is not set
++# CONFIG_FEATURE_LOADFONT_RAW is not set
++
++#
++# Debian Utilities
++#
++# CONFIG_MKTEMP is not set
++# CONFIG_PIPE_PROGRESS is not set
++# CONFIG_RUN_PARTS is not set
++# CONFIG_FEATURE_RUN_PARTS_LONG_OPTIONS is not set
++# CONFIG_FEATURE_RUN_PARTS_FANCY is not set
++# CONFIG_START_STOP_DAEMON is not set
++# CONFIG_FEATURE_START_STOP_DAEMON_FANCY is not set
++# CONFIG_FEATURE_START_STOP_DAEMON_LONG_OPTIONS is not set
++# CONFIG_WHICH is not set
++
++#
++# Editors
++#
++# CONFIG_PATCH is not set
++# CONFIG_VI is not set
++CONFIG_FEATURE_VI_MAX_LEN=0
++# CONFIG_FEATURE_VI_8BIT is not set
++# CONFIG_FEATURE_VI_COLON is not set
++# CONFIG_FEATURE_VI_YANKMARK is not set
++# CONFIG_FEATURE_VI_SEARCH is not set
++# CONFIG_FEATURE_VI_REGEX_SEARCH is not set
++# CONFIG_FEATURE_VI_USE_SIGNALS is not set
++# CONFIG_FEATURE_VI_DOT_CMD is not set
++# CONFIG_FEATURE_VI_READONLY is not set
++# CONFIG_FEATURE_VI_SETOPTS is not set
++# CONFIG_FEATURE_VI_SET is not set
++# CONFIG_FEATURE_VI_WIN_RESIZE is not set
++# CONFIG_FEATURE_VI_ASK_TERMINAL is not set
++# CONFIG_AWK is not set
++# CONFIG_FEATURE_AWK_LIBM is not set
++# CONFIG_CMP is not set
++# CONFIG_DIFF is not set
++# CONFIG_FEATURE_DIFF_LONG_OPTIONS is not set
++# CONFIG_FEATURE_DIFF_DIR is not set
++# CONFIG_ED is not set
++# CONFIG_SED is not set
++# CONFIG_FEATURE_ALLOW_EXEC is not set
++
++#
++# Finding Utilities
++#
++# CONFIG_FIND is not set
++# CONFIG_FEATURE_FIND_PRINT0 is not set
++# CONFIG_FEATURE_FIND_MTIME is not set
++# CONFIG_FEATURE_FIND_MMIN is not set
++# CONFIG_FEATURE_FIND_PERM is not set
++# CONFIG_FEATURE_FIND_TYPE is not set
++# CONFIG_FEATURE_FIND_XDEV is not set
++# CONFIG_FEATURE_FIND_MAXDEPTH is not set
++# CONFIG_FEATURE_FIND_NEWER is not set
++# CONFIG_FEATURE_FIND_INUM is not set
++# CONFIG_FEATURE_FIND_EXEC is not set
++# CONFIG_FEATURE_FIND_USER is not set
++# CONFIG_FEATURE_FIND_GROUP is not set
++# CONFIG_FEATURE_FIND_NOT is not set
++# CONFIG_FEATURE_FIND_DEPTH is not set
++# CONFIG_FEATURE_FIND_PAREN is not set
++# CONFIG_FEATURE_FIND_SIZE is not set
++# CONFIG_FEATURE_FIND_PRUNE is not set
++# CONFIG_FEATURE_FIND_DELETE is not set
++# CONFIG_FEATURE_FIND_PATH is not set
++# CONFIG_FEATURE_FIND_REGEX is not set
++# CONFIG_FEATURE_FIND_CONTEXT is not set
++# CONFIG_FEATURE_FIND_LINKS is not set
++CONFIG_GREP=y
++# CONFIG_FEATURE_GREP_EGREP_ALIAS is not set
++# CONFIG_FEATURE_GREP_FGREP_ALIAS is not set
++# CONFIG_FEATURE_GREP_CONTEXT is not set
++# CONFIG_XARGS is not set
++# CONFIG_FEATURE_XARGS_SUPPORT_CONFIRMATION is not set
++# CONFIG_FEATURE_XARGS_SUPPORT_QUOTES is not set
++# CONFIG_FEATURE_XARGS_SUPPORT_TERMOPT is not set
++# CONFIG_FEATURE_XARGS_SUPPORT_ZERO_TERM is not set
++
++#
++# Init Utilities
++#
++# CONFIG_BOOTCHARTD is not set
++# CONFIG_FEATURE_BOOTCHARTD_BLOATED_HEADER is not set
++# CONFIG_FEATURE_BOOTCHARTD_CONFIG_FILE is not set
++CONFIG_HALT=y
++# CONFIG_FEATURE_CALL_TELINIT is not set
++CONFIG_TELINIT_PATH=""
++# CONFIG_INIT is not set
++# CONFIG_FEATURE_USE_INITTAB is not set
++# CONFIG_FEATURE_KILL_REMOVED is not set
++CONFIG_FEATURE_KILL_DELAY=0
++# CONFIG_FEATURE_INIT_SCTTY is not set
++# CONFIG_FEATURE_INIT_SYSLOG is not set
++# CONFIG_FEATURE_EXTRA_QUIET is not set
++# CONFIG_FEATURE_INIT_COREDUMPS is not set
++# CONFIG_FEATURE_INITRD is not set
++CONFIG_INIT_TERMINAL_TYPE=""
++# CONFIG_MESG is not set
++# CONFIG_FEATURE_MESG_ENABLE_ONLY_GROUP is not set
++
++#
++# Login/Password Management Utilities
++#
++# CONFIG_ADD_SHELL is not set
++# CONFIG_REMOVE_SHELL is not set
++# CONFIG_FEATURE_SHADOWPASSWDS is not set
++# CONFIG_USE_BB_PWD_GRP is not set
++# CONFIG_USE_BB_SHADOW is not set
++# CONFIG_USE_BB_CRYPT is not set
++# CONFIG_USE_BB_CRYPT_SHA is not set
++# CONFIG_ADDUSER is not set
++# CONFIG_FEATURE_ADDUSER_LONG_OPTIONS is not set
++# CONFIG_FEATURE_CHECK_NAMES is not set
++CONFIG_FIRST_SYSTEM_ID=0
++CONFIG_LAST_SYSTEM_ID=0
++# CONFIG_ADDGROUP is not set
++# CONFIG_FEATURE_ADDGROUP_LONG_OPTIONS is not set
++# CONFIG_FEATURE_ADDUSER_TO_GROUP is not set
++# CONFIG_DELUSER is not set
++# CONFIG_DELGROUP is not set
++# CONFIG_FEATURE_DEL_USER_FROM_GROUP is not set
++# CONFIG_GETTY is not set
++# CONFIG_LOGIN is not set
++# CONFIG_LOGIN_SESSION_AS_CHILD is not set
++# CONFIG_PAM is not set
++# CONFIG_LOGIN_SCRIPTS is not set
++# CONFIG_FEATURE_NOLOGIN is not set
++# CONFIG_FEATURE_SECURETTY is not set
++# CONFIG_PASSWD is not set
++# CONFIG_FEATURE_PASSWD_WEAK_CHECK is not set
++# CONFIG_CRYPTPW is not set
++# CONFIG_CHPASSWD is not set
++CONFIG_FEATURE_DEFAULT_PASSWD_ALGO=""
++# CONFIG_SU is not set
++# CONFIG_FEATURE_SU_SYSLOG is not set
++# CONFIG_FEATURE_SU_CHECKS_SHELLS is not set
++# CONFIG_SULOGIN is not set
++# CONFIG_VLOCK is not set
++
++#
++# Linux Ext2 FS Progs
++#
++# CONFIG_CHATTR is not set
++# CONFIG_FSCK is not set
++# CONFIG_LSATTR is not set
++# CONFIG_TUNE2FS is not set
++
++#
++# Linux Module Utilities
++#
++# CONFIG_MODINFO is not set
++# CONFIG_MODPROBE_SMALL is not set
++# CONFIG_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE is not set
++# CONFIG_FEATURE_MODPROBE_SMALL_CHECK_ALREADY_LOADED is not set
++CONFIG_INSMOD=y
++CONFIG_RMMOD=y
++# CONFIG_LSMOD is not set
++# CONFIG_FEATURE_LSMOD_PRETTY_2_6_OUTPUT is not set
++# CONFIG_MODPROBE is not set
++# CONFIG_FEATURE_MODPROBE_BLACKLIST is not set
++# CONFIG_DEPMOD is not set
++
++#
++# Options common to multiple modutils
++#
++# CONFIG_FEATURE_2_4_MODULES is not set
++# CONFIG_FEATURE_INSMOD_TRY_MMAP is not set
++# CONFIG_FEATURE_INSMOD_VERSION_CHECKING is not set
++# CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS is not set
++# CONFIG_FEATURE_INSMOD_LOADINKMEM is not set
++# CONFIG_FEATURE_INSMOD_LOAD_MAP is not set
++# CONFIG_FEATURE_INSMOD_LOAD_MAP_FULL is not set
++# CONFIG_FEATURE_CHECK_TAINTED_MODULE is not set
++# CONFIG_FEATURE_MODUTILS_ALIAS is not set
++# CONFIG_FEATURE_MODUTILS_SYMBOLS is not set
++CONFIG_DEFAULT_MODULES_DIR=""
++CONFIG_DEFAULT_DEPMOD_FILE=""
++
++#
++# Linux System Utilities
++#
++# CONFIG_BLOCKDEV is not set
++# CONFIG_MDEV is not set
++# CONFIG_FEATURE_MDEV_CONF is not set
++# CONFIG_FEATURE_MDEV_RENAME is not set
++# CONFIG_FEATURE_MDEV_RENAME_REGEXP is not set
++# CONFIG_FEATURE_MDEV_EXEC is not set
++# CONFIG_FEATURE_MDEV_LOAD_FIRMWARE is not set
++# CONFIG_REV is not set
++# CONFIG_ACPID is not set
++# CONFIG_FEATURE_ACPID_COMPAT is not set
++# CONFIG_BLKID is not set
++# CONFIG_FEATURE_BLKID_TYPE is not set
++# CONFIG_DMESG is not set
++# CONFIG_FEATURE_DMESG_PRETTY is not set
++# CONFIG_FBSET is not set
++# CONFIG_FEATURE_FBSET_FANCY is not set
++# CONFIG_FEATURE_FBSET_READMODE is not set
++# CONFIG_FDFLUSH is not set
++# CONFIG_FDFORMAT is not set
++# CONFIG_FDISK is not set
++# CONFIG_FDISK_SUPPORT_LARGE_DISKS is not set
++# CONFIG_FEATURE_FDISK_WRITABLE is not set
++# CONFIG_FEATURE_AIX_LABEL is not set
++# CONFIG_FEATURE_SGI_LABEL is not set
++# CONFIG_FEATURE_SUN_LABEL is not set
++# CONFIG_FEATURE_OSF_LABEL is not set
++# CONFIG_FEATURE_GPT_LABEL is not set
++# CONFIG_FEATURE_FDISK_ADVANCED is not set
++# CONFIG_FINDFS is not set
++# CONFIG_FLOCK is not set
++# CONFIG_FREERAMDISK is not set
++# CONFIG_FSCK_MINIX is not set
++# CONFIG_MKFS_EXT2 is not set
++# CONFIG_MKFS_MINIX is not set
++# CONFIG_FEATURE_MINIX2 is not set
++# CONFIG_MKFS_REISER is not set
++# CONFIG_MKFS_VFAT is not set
++# CONFIG_GETOPT is not set
++# CONFIG_FEATURE_GETOPT_LONG is not set
++# CONFIG_HEXDUMP is not set
++# CONFIG_FEATURE_HEXDUMP_REVERSE is not set
++# CONFIG_HD is not set
++# CONFIG_HWCLOCK is not set
++# CONFIG_FEATURE_HWCLOCK_LONG_OPTIONS is not set
++# CONFIG_FEATURE_HWCLOCK_ADJTIME_FHS is not set
++# CONFIG_IPCRM is not set
++# CONFIG_IPCS is not set
++# CONFIG_LOSETUP is not set
++# CONFIG_LSPCI is not set
++# CONFIG_LSUSB is not set
++# CONFIG_MKSWAP is not set
++# CONFIG_FEATURE_MKSWAP_UUID is not set
++# CONFIG_MORE is not set
++CONFIG_MOUNT=y
++# CONFIG_FEATURE_MOUNT_FAKE is not set
++# CONFIG_FEATURE_MOUNT_VERBOSE is not set
++# CONFIG_FEATURE_MOUNT_HELPERS is not set
++# CONFIG_FEATURE_MOUNT_LABEL is not set
++CONFIG_FEATURE_MOUNT_NFS=y
++# CONFIG_FEATURE_MOUNT_CIFS is not set
++CONFIG_FEATURE_MOUNT_FLAGS=y
++# CONFIG_FEATURE_MOUNT_FSTAB is not set
++# CONFIG_PIVOT_ROOT is not set
++# CONFIG_RDATE is not set
++# CONFIG_RDEV is not set
++# CONFIG_READPROFILE is not set
++# CONFIG_RTCWAKE is not set
++# CONFIG_SCRIPT is not set
++# CONFIG_SCRIPTREPLAY is not set
++# CONFIG_SETARCH is not set
++# CONFIG_SWAPONOFF is not set
++# CONFIG_FEATURE_SWAPON_PRI is not set
++CONFIG_SWITCH_ROOT=y
++CONFIG_UMOUNT=y
++# CONFIG_FEATURE_UMOUNT_ALL is not set
++
++#
++# Common options for mount/umount
++#
++CONFIG_FEATURE_MOUNT_LOOP=y
++# CONFIG_FEATURE_MOUNT_LOOP_CREATE is not set
++# CONFIG_FEATURE_MTAB_SUPPORT is not set
++# CONFIG_VOLUMEID is not set
++# CONFIG_FEATURE_VOLUMEID_EXT is not set
++# CONFIG_FEATURE_VOLUMEID_BTRFS is not set
++# CONFIG_FEATURE_VOLUMEID_REISERFS is not set
++# CONFIG_FEATURE_VOLUMEID_FAT is not set
++# CONFIG_FEATURE_VOLUMEID_EXFAT is not set
++# CONFIG_FEATURE_VOLUMEID_HFS is not set
++# CONFIG_FEATURE_VOLUMEID_JFS is not set
++# CONFIG_FEATURE_VOLUMEID_XFS is not set
++# CONFIG_FEATURE_VOLUMEID_NILFS is not set
++# CONFIG_FEATURE_VOLUMEID_NTFS is not set
++# CONFIG_FEATURE_VOLUMEID_ISO9660 is not set
++# CONFIG_FEATURE_VOLUMEID_UDF is not set
++# CONFIG_FEATURE_VOLUMEID_LUKS is not set
++# CONFIG_FEATURE_VOLUMEID_LINUXSWAP is not set
++# CONFIG_FEATURE_VOLUMEID_CRAMFS is not set
++# CONFIG_FEATURE_VOLUMEID_ROMFS is not set
++# CONFIG_FEATURE_VOLUMEID_SQUASHFS is not set
++# CONFIG_FEATURE_VOLUMEID_SYSV is not set
++# CONFIG_FEATURE_VOLUMEID_OCFS2 is not set
++# CONFIG_FEATURE_VOLUMEID_LINUXRAID is not set
++
++#
++# Miscellaneous Utilities
++#
++# CONFIG_CONSPY is not set
++# CONFIG_LESS is not set
++CONFIG_FEATURE_LESS_MAXLINES=0
++# CONFIG_FEATURE_LESS_BRACKETS is not set
++# CONFIG_FEATURE_LESS_FLAGS is not set
++# CONFIG_FEATURE_LESS_MARKS is not set
++# CONFIG_FEATURE_LESS_REGEXP is not set
++# CONFIG_FEATURE_LESS_WINCH is not set
++# CONFIG_FEATURE_LESS_ASK_TERMINAL is not set
++# CONFIG_FEATURE_LESS_DASHCMD is not set
++# CONFIG_FEATURE_LESS_LINENUMS is not set
++# CONFIG_NANDWRITE is not set
++# CONFIG_NANDDUMP is not set
++# CONFIG_SETSERIAL is not set
++# CONFIG_UBIATTACH is not set
++# CONFIG_UBIDETACH is not set
++# CONFIG_UBIMKVOL is not set
++# CONFIG_UBIRMVOL is not set
++# CONFIG_UBIRSVOL is not set
++# CONFIG_UBIUPDATEVOL is not set
++# CONFIG_ADJTIMEX is not set
++# CONFIG_BBCONFIG is not set
++# CONFIG_FEATURE_COMPRESS_BBCONFIG is not set
++# CONFIG_BEEP is not set
++CONFIG_FEATURE_BEEP_FREQ=0
++CONFIG_FEATURE_BEEP_LENGTH_MS=0
++# CONFIG_CHAT is not set
++# CONFIG_FEATURE_CHAT_NOFAIL is not set
++# CONFIG_FEATURE_CHAT_TTY_HIFI is not set
++# CONFIG_FEATURE_CHAT_IMPLICIT_CR is not set
++# CONFIG_FEATURE_CHAT_SWALLOW_OPTS is not set
++# CONFIG_FEATURE_CHAT_SEND_ESCAPES is not set
++# CONFIG_FEATURE_CHAT_VAR_ABORT_LEN is not set
++# CONFIG_FEATURE_CHAT_CLR_ABORT is not set
++# CONFIG_CHRT is not set
++# CONFIG_CROND is not set
++# CONFIG_FEATURE_CROND_D is not set
++# CONFIG_FEATURE_CROND_CALL_SENDMAIL is not set
++CONFIG_FEATURE_CROND_DIR=""
++# CONFIG_CRONTAB is not set
++# CONFIG_DC is not set
++# CONFIG_FEATURE_DC_LIBM is not set
++# CONFIG_DEVFSD is not set
++# CONFIG_DEVFSD_MODLOAD is not set
++# CONFIG_DEVFSD_FG_NP is not set
++# CONFIG_DEVFSD_VERBOSE is not set
++# CONFIG_FEATURE_DEVFS is not set
++# CONFIG_DEVMEM is not set
++# CONFIG_EJECT is not set
++# CONFIG_FEATURE_EJECT_SCSI is not set
++# CONFIG_FBSPLASH is not set
++# CONFIG_FLASHCP is not set
++# CONFIG_FLASH_LOCK is not set
++# CONFIG_FLASH_UNLOCK is not set
++# CONFIG_FLASH_ERASEALL is not set
++# CONFIG_IONICE is not set
++# CONFIG_INOTIFYD is not set
++# CONFIG_LAST is not set
++# CONFIG_FEATURE_LAST_SMALL is not set
++# CONFIG_FEATURE_LAST_FANCY is not set
++# CONFIG_HDPARM is not set
++# CONFIG_FEATURE_HDPARM_GET_IDENTITY is not set
++# CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF is not set
++# CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF is not set
++# CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET is not set
++# CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF is not set
++# CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA is not set
++CONFIG_LOCK=y
++# CONFIG_MAKEDEVS is not set
++# CONFIG_FEATURE_MAKEDEVS_LEAF is not set
++# CONFIG_FEATURE_MAKEDEVS_TABLE is not set
++# CONFIG_MAN is not set
++# CONFIG_MICROCOM is not set
++# CONFIG_MOUNTPOINT is not set
++# CONFIG_MT is not set
++# CONFIG_RAIDAUTORUN is not set
++# CONFIG_READAHEAD is not set
++# CONFIG_RFKILL is not set
++# CONFIG_RUNLEVEL is not set
++# CONFIG_RX is not set
++# CONFIG_SETSID is not set
++# CONFIG_STRINGS is not set
++# CONFIG_TASKSET is not set
++# CONFIG_FEATURE_TASKSET_FANCY is not set
++# CONFIG_TIME is not set
++# CONFIG_TIMEOUT is not set
++# CONFIG_TTYSIZE is not set
++# CONFIG_VOLNAME is not set
++# CONFIG_WALL is not set
++# CONFIG_WATCHDOG is not set
++
++#
++# Networking Utilities
++#
++# CONFIG_NAMEIF is not set
++# CONFIG_FEATURE_NAMEIF_EXTENDED is not set
++# CONFIG_NBDCLIENT is not set
++# CONFIG_NC is not set
++# CONFIG_NC_SERVER is not set
++# CONFIG_NC_EXTRA is not set
++# CONFIG_NC_110_COMPAT is not set
++# CONFIG_PING is not set
++# CONFIG_PING6 is not set
++# CONFIG_FEATURE_FANCY_PING is not set
++# CONFIG_WHOIS is not set
++CONFIG_FEATURE_IPV6=y
++# CONFIG_FEATURE_UNIX_LOCAL is not set
++CONFIG_FEATURE_PREFER_IPV4_ADDRESS=y
++# CONFIG_VERBOSE_RESOLUTION_ERRORS is not set
++# CONFIG_ARP is not set
++# CONFIG_ARPING is not set
++# CONFIG_BRCTL is not set
++# CONFIG_FEATURE_BRCTL_FANCY is not set
++# CONFIG_FEATURE_BRCTL_SHOW is not set
++# CONFIG_DNSD is not set
++# CONFIG_ETHER_WAKE is not set
++# CONFIG_FAKEIDENTD is not set
++# CONFIG_FTPD is not set
++# CONFIG_FEATURE_FTP_WRITE is not set
++# CONFIG_FEATURE_FTPD_ACCEPT_BROKEN_LIST is not set
++# CONFIG_FTPGET is not set
++# CONFIG_FTPPUT is not set
++# CONFIG_FEATURE_FTPGETPUT_LONG_OPTIONS is not set
++# CONFIG_HOSTNAME is not set
++# CONFIG_HTTPD is not set
++# CONFIG_FEATURE_HTTPD_RANGES is not set
++# CONFIG_FEATURE_HTTPD_USE_SENDFILE is not set
++# CONFIG_FEATURE_HTTPD_SETUID is not set
++# CONFIG_FEATURE_HTTPD_BASIC_AUTH is not set
++# CONFIG_FEATURE_HTTPD_AUTH_MD5 is not set
++# CONFIG_FEATURE_HTTPD_CGI is not set
++# CONFIG_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR is not set
++# CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV is not set
++# CONFIG_FEATURE_HTTPD_ENCODE_URL_STR is not set
++# CONFIG_FEATURE_HTTPD_ERROR_PAGES is not set
++# CONFIG_FEATURE_HTTPD_PROXY is not set
++# CONFIG_FEATURE_HTTPD_GZIP is not set
++# CONFIG_IFCONFIG is not set
++# CONFIG_FEATURE_IFCONFIG_STATUS is not set
++# CONFIG_FEATURE_IFCONFIG_SLIP is not set
++# CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ is not set
++# CONFIG_FEATURE_IFCONFIG_HW is not set
++# CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS is not set
++# CONFIG_IFENSLAVE is not set
++# CONFIG_IFPLUGD is not set
++# CONFIG_IFUPDOWN is not set
++CONFIG_IFUPDOWN_IFSTATE_PATH=""
++# CONFIG_FEATURE_IFUPDOWN_IP is not set
++# CONFIG_FEATURE_IFUPDOWN_IP_BUILTIN is not set
++# CONFIG_FEATURE_IFUPDOWN_IFCONFIG_BUILTIN is not set
++# CONFIG_FEATURE_IFUPDOWN_IPV4 is not set
++# CONFIG_FEATURE_IFUPDOWN_IPV6 is not set
++# CONFIG_FEATURE_IFUPDOWN_MAPPING is not set
++# CONFIG_FEATURE_IFUPDOWN_EXTERNAL_DHCP is not set
++# CONFIG_INETD is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN is not set
++# CONFIG_FEATURE_INETD_RPC is not set
++CONFIG_IP=y
++CONFIG_FEATURE_IP_ADDRESS=y
++CONFIG_FEATURE_IP_LINK=y
++# CONFIG_FEATURE_IP_ROUTE is not set
++# CONFIG_FEATURE_IP_TUNNEL is not set
++# CONFIG_FEATURE_IP_RULE is not set
++# CONFIG_FEATURE_IP_SHORT_FORMS is not set
++# CONFIG_FEATURE_IP_RARE_PROTOCOLS is not set
++# CONFIG_IPADDR is not set
++# CONFIG_IPLINK is not set
++# CONFIG_IPROUTE is not set
++# CONFIG_IPTUNNEL is not set
++# CONFIG_IPRULE is not set
++# CONFIG_IPCALC is not set
++# CONFIG_FEATURE_IPCALC_FANCY is not set
++# CONFIG_FEATURE_IPCALC_LONG_OPTIONS is not set
++# CONFIG_NETSTAT is not set
++# CONFIG_FEATURE_NETSTAT_WIDE is not set
++# CONFIG_FEATURE_NETSTAT_PRG is not set
++# CONFIG_NSLOOKUP is not set
++# CONFIG_NTPD is not set
++# CONFIG_FEATURE_NTPD_SERVER is not set
++# CONFIG_PSCAN is not set
++# CONFIG_ROUTE is not set
++# CONFIG_SLATTACH is not set
++# CONFIG_TCPSVD is not set
++# CONFIG_TELNET is not set
++# CONFIG_FEATURE_TELNET_TTYPE is not set
++# CONFIG_FEATURE_TELNET_AUTOLOGIN is not set
++# CONFIG_TELNETD is not set
++# CONFIG_FEATURE_TELNETD_STANDALONE is not set
++# CONFIG_FEATURE_TELNETD_INETD_WAIT is not set
++CONFIG_TFTP=y
++# CONFIG_TFTPD is not set
++
++#
++# Common options for tftp/tftpd
++#
++CONFIG_FEATURE_TFTP_GET=y
++# CONFIG_FEATURE_TFTP_PUT is not set
++CONFIG_FEATURE_TFTP_BLOCKSIZE=y
++# CONFIG_FEATURE_TFTP_PROGRESS_BAR is not set
++# CONFIG_TFTP_DEBUG is not set
++# CONFIG_TRACEROUTE is not set
++# CONFIG_TRACEROUTE6 is not set
++# CONFIG_FEATURE_TRACEROUTE_VERBOSE is not set
++# CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE is not set
++# CONFIG_FEATURE_TRACEROUTE_USE_ICMP is not set
++# CONFIG_TUNCTL is not set
++# CONFIG_FEATURE_TUNCTL_UG is not set
++# CONFIG_UDHCPC6 is not set
++# CONFIG_UDHCPD is not set
++# CONFIG_DHCPRELAY is not set
++# CONFIG_DUMPLEASES is not set
++# CONFIG_FEATURE_UDHCPD_WRITE_LEASES_EARLY is not set
++# CONFIG_FEATURE_UDHCPD_BASE_IP_ON_MAC is not set
++CONFIG_DHCPD_LEASES_FILE=""
++# CONFIG_UDHCPC is not set
++# CONFIG_FEATURE_UDHCPC_ARPING is not set
++# CONFIG_FEATURE_UDHCP_PORT is not set
++CONFIG_UDHCP_DEBUG=0
++# CONFIG_FEATURE_UDHCP_RFC3397 is not set
++# CONFIG_FEATURE_UDHCP_8021Q is not set
++CONFIG_UDHCPC_DEFAULT_SCRIPT=""
++CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS=0
++CONFIG_IFUPDOWN_UDHCPC_CMD_OPTIONS=""
++# CONFIG_UDPSVD is not set
++# CONFIG_VCONFIG is not set
++# CONFIG_WGET is not set
++# CONFIG_FEATURE_WGET_STATUSBAR is not set
++# CONFIG_FEATURE_WGET_AUTHENTICATION is not set
++# CONFIG_FEATURE_WGET_LONG_OPTIONS is not set
++# CONFIG_FEATURE_WGET_TIMEOUT is not set
++# CONFIG_ZCIP is not set
++
++#
++# Print Utilities
++#
++# CONFIG_LPD is not set
++# CONFIG_LPR is not set
++# CONFIG_LPQ is not set
++
++#
++# Mail Utilities
++#
++# CONFIG_MAKEMIME is not set
++CONFIG_FEATURE_MIME_CHARSET=""
++# CONFIG_POPMAILDIR is not set
++# CONFIG_FEATURE_POPMAILDIR_DELIVERY is not set
++# CONFIG_REFORMIME is not set
++# CONFIG_FEATURE_REFORMIME_COMPAT is not set
++# CONFIG_SENDMAIL is not set
++
++#
++# Process Utilities
++#
++# CONFIG_IOSTAT is not set
++CONFIG_LSOF=y
++# CONFIG_MPSTAT is not set
++# CONFIG_NMETER is not set
++# CONFIG_PMAP is not set
++# CONFIG_POWERTOP is not set
++# CONFIG_PSTREE is not set
++# CONFIG_PWDX is not set
++# CONFIG_SMEMCAP is not set
++# CONFIG_TOP is not set
++# CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE is not set
++# CONFIG_FEATURE_TOP_CPU_GLOBAL_PERCENTS is not set
++# CONFIG_FEATURE_TOP_SMP_CPU is not set
++# CONFIG_FEATURE_TOP_DECIMALS is not set
++# CONFIG_FEATURE_TOP_SMP_PROCESS is not set
++# CONFIG_FEATURE_TOPMEM is not set
++# CONFIG_UPTIME is not set
++# CONFIG_FEATURE_UPTIME_UTMP_SUPPORT is not set
++# CONFIG_FREE is not set
++# CONFIG_FUSER is not set
++# CONFIG_KILL is not set
++# CONFIG_KILLALL is not set
++# CONFIG_KILLALL5 is not set
++# CONFIG_PGREP is not set
++# CONFIG_PIDOF is not set
++# CONFIG_FEATURE_PIDOF_SINGLE is not set
++# CONFIG_FEATURE_PIDOF_OMIT is not set
++# CONFIG_PKILL is not set
++# CONFIG_PS is not set
++# CONFIG_FEATURE_PS_WIDE is not set
++# CONFIG_FEATURE_PS_LONG is not set
++# CONFIG_FEATURE_PS_TIME is not set
++# CONFIG_FEATURE_PS_ADDITIONAL_COLUMNS is not set
++# CONFIG_FEATURE_PS_UNUSUAL_SYSTEMS is not set
++# CONFIG_RENICE is not set
++CONFIG_BB_SYSCTL=y
++# CONFIG_FEATURE_SHOW_THREADS is not set
++# CONFIG_WATCH is not set
++
++#
++# Runit Utilities
++#
++# CONFIG_RUNSV is not set
++# CONFIG_RUNSVDIR is not set
++# CONFIG_FEATURE_RUNSVDIR_LOG is not set
++# CONFIG_SV is not set
++CONFIG_SV_DEFAULT_SERVICE_DIR=""
++# CONFIG_SVLOGD is not set
++# CONFIG_CHPST is not set
++# CONFIG_SETUIDGID is not set
++# CONFIG_ENVUIDGID is not set
++# CONFIG_ENVDIR is not set
++# CONFIG_SOFTLIMIT is not set
++# CONFIG_CHCON is not set
++# CONFIG_FEATURE_CHCON_LONG_OPTIONS is not set
++# CONFIG_GETENFORCE is not set
++# CONFIG_GETSEBOOL is not set
++# CONFIG_LOAD_POLICY is not set
++# CONFIG_MATCHPATHCON is not set
++# CONFIG_RESTORECON is not set
++# CONFIG_RUNCON is not set
++# CONFIG_FEATURE_RUNCON_LONG_OPTIONS is not set
++# CONFIG_SELINUXENABLED is not set
++# CONFIG_SETENFORCE is not set
++# CONFIG_SETFILES is not set
++# CONFIG_FEATURE_SETFILES_CHECK_OPTION is not set
++# CONFIG_SETSEBOOL is not set
++# CONFIG_SESTATUS is not set
++
++#
++# Shells
++#
++CONFIG_ASH=y
++CONFIG_ASH_BASH_COMPAT=y
++# CONFIG_ASH_IDLE_TIMEOUT is not set
++# CONFIG_ASH_JOB_CONTROL is not set
++# CONFIG_ASH_ALIAS is not set
++CONFIG_ASH_GETOPTS=y
++CONFIG_ASH_BUILTIN_ECHO=y
++# CONFIG_ASH_BUILTIN_PRINTF is not set
++CONFIG_ASH_BUILTIN_TEST=y
++# CONFIG_ASH_CMDCMD is not set
++# CONFIG_ASH_MAIL is not set
++CONFIG_ASH_OPTIMIZE_FOR_SIZE=y
++# CONFIG_ASH_RANDOM_SUPPORT is not set
++# CONFIG_ASH_EXPAND_PRMT is not set
++# CONFIG_CTTYHACK is not set
++# CONFIG_HUSH is not set
++# CONFIG_HUSH_BASH_COMPAT is not set
++# CONFIG_HUSH_BRACE_EXPANSION is not set
++# CONFIG_HUSH_HELP is not set
++# CONFIG_HUSH_INTERACTIVE is not set
++# CONFIG_HUSH_SAVEHISTORY is not set
++# CONFIG_HUSH_JOB is not set
++# CONFIG_HUSH_TICK is not set
++# CONFIG_HUSH_IF is not set
++# CONFIG_HUSH_LOOPS is not set
++# CONFIG_HUSH_CASE is not set
++# CONFIG_HUSH_FUNCTIONS is not set
++# CONFIG_HUSH_LOCAL is not set
++# CONFIG_HUSH_RANDOM_SUPPORT is not set
++# CONFIG_HUSH_EXPORT_N is not set
++# CONFIG_HUSH_MODE_X is not set
++# CONFIG_MSH is not set
++CONFIG_FEATURE_SH_IS_ASH=y
++# CONFIG_FEATURE_SH_IS_HUSH is not set
++# CONFIG_FEATURE_SH_IS_NONE is not set
++# CONFIG_FEATURE_BASH_IS_ASH is not set
++# CONFIG_FEATURE_BASH_IS_HUSH is not set
++CONFIG_FEATURE_BASH_IS_NONE=y
++# CONFIG_SH_MATH_SUPPORT is not set
++# CONFIG_SH_MATH_SUPPORT_64 is not set
++CONFIG_FEATURE_SH_EXTRA_QUIET=y
++CONFIG_FEATURE_SH_STANDALONE=y
++CONFIG_FEATURE_SH_NOFORK=y
++# CONFIG_FEATURE_SH_HISTFILESIZE is not set
++
++#
++# System Logging Utilities
++#
++# CONFIG_SYSLOGD is not set
++# CONFIG_FEATURE_ROTATE_LOGFILE is not set
++# CONFIG_FEATURE_REMOTE_LOG is not set
++# CONFIG_FEATURE_SYSLOGD_DUP is not set
++# CONFIG_FEATURE_SYSLOGD_CFG is not set
++CONFIG_FEATURE_SYSLOGD_READ_BUFFER_SIZE=0
++# CONFIG_FEATURE_IPC_SYSLOG is not set
++CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE=0
++# CONFIG_FEATURE_SAS_FLASH_LOG is not set
++# CONFIG_LOGREAD is not set
++# CONFIG_FEATURE_LOGREAD_REDUCED_LOCKING is not set
++# CONFIG_FEATURE_KMSG_SYSLOG is not set
++# CONFIG_KLOGD is not set
++# CONFIG_FEATURE_KLOGD_KLOGCTL is not set
++# CONFIG_LOGGER is not set
+diff --git a/sphairon/config.initramfs_debug b/sphairon/config.initramfs_debug
+new file mode 100644
+index 0000000000000000000000000000000000000000..eab5f1003ca53a3e8db4891b82009e1e82351385
+--- /dev/null
++++ b/sphairon/config.initramfs_debug
+@@ -0,0 +1,1019 @@
++#
++# Automatically generated make config: don't edit
++# Busybox version: 1.21.1
++#
++CONFIG_HAVE_DOT_CONFIG=y
++
++#
++# Busybox Settings
++#
++
++#
++# General Configuration
++#
++# CONFIG_DESKTOP is not set
++# CONFIG_EXTRA_COMPAT is not set
++# CONFIG_INCLUDE_SUSv2 is not set
++# CONFIG_USE_PORTABLE_CODE is not set
++CONFIG_PLATFORM_LINUX=y
++CONFIG_FEATURE_BUFFERS_USE_MALLOC=y
++# CONFIG_FEATURE_BUFFERS_GO_ON_STACK is not set
++# CONFIG_FEATURE_BUFFERS_GO_IN_BSS is not set
++# CONFIG_SHOW_USAGE is not set
++# CONFIG_FEATURE_VERBOSE_USAGE is not set
++# CONFIG_FEATURE_COMPRESS_USAGE is not set
++CONFIG_FEATURE_INSTALLER=y
++CONFIG_INSTALL_NO_USR=y
++# CONFIG_LOCALE_SUPPORT is not set
++# CONFIG_UNICODE_SUPPORT is not set
++# CONFIG_UNICODE_USING_LOCALE is not set
++# CONFIG_FEATURE_CHECK_UNICODE_IN_ENV is not set
++CONFIG_SUBST_WCHAR=0
++CONFIG_LAST_SUPPORTED_WCHAR=0
++# CONFIG_UNICODE_COMBINING_WCHARS is not set
++# CONFIG_UNICODE_WIDE_WCHARS is not set
++# CONFIG_UNICODE_BIDI_SUPPORT is not set
++# CONFIG_UNICODE_NEUTRAL_TABLE is not set
++# CONFIG_UNICODE_PRESERVE_BROKEN is not set
++# CONFIG_LONG_OPTS is not set
++# CONFIG_FEATURE_DEVPTS is not set
++# CONFIG_FEATURE_CLEAN_UP is not set
++# CONFIG_FEATURE_UTMP is not set
++# CONFIG_FEATURE_WTMP is not set
++# CONFIG_FEATURE_PIDFILE is not set
++CONFIG_PID_FILE_PATH=""
++# CONFIG_FEATURE_SUID is not set
++# CONFIG_FEATURE_SUID_CONFIG is not set
++# CONFIG_FEATURE_SUID_CONFIG_QUIET is not set
++# CONFIG_SELINUX is not set
++CONFIG_FEATURE_PREFER_APPLETS=y
++CONFIG_BUSYBOX_EXEC_PATH="/bin/busybox"
++CONFIG_FEATURE_SYSLOG=y
++CONFIG_FEATURE_HAVE_RPC=y
++
++#
++# Build Options
++#
++CONFIG_STATIC=y
++# CONFIG_PIE is not set
++# CONFIG_NOMMU is not set
++# CONFIG_BUILD_LIBBUSYBOX is not set
++# CONFIG_FEATURE_INDIVIDUAL is not set
++# CONFIG_FEATURE_SHARED_BUSYBOX is not set
++# CONFIG_LFS is not set
++CONFIG_CROSS_COMPILER_PREFIX=""
++CONFIG_SYSROOT=""
++CONFIG_EXTRA_CFLAGS=""
++CONFIG_EXTRA_LDFLAGS=""
++CONFIG_EXTRA_LDLIBS=""
++
++#
++# Debugging Options
++#
++# CONFIG_DEBUG is not set
++# CONFIG_DEBUG_PESSIMIZE is not set
++# CONFIG_WERROR is not set
++CONFIG_NO_DEBUG_LIB=y
++# CONFIG_DMALLOC is not set
++# CONFIG_EFENCE is not set
++
++#
++# Installation Options ("make install" behavior)
++#
++CONFIG_INSTALL_APPLET_SYMLINKS=y
++# CONFIG_INSTALL_APPLET_HARDLINKS is not set
++# CONFIG_INSTALL_APPLET_SCRIPT_WRAPPERS is not set
++# CONFIG_INSTALL_APPLET_DONT is not set
++# CONFIG_INSTALL_SH_APPLET_SYMLINK is not set
++# CONFIG_INSTALL_SH_APPLET_HARDLINK is not set
++# CONFIG_INSTALL_SH_APPLET_SCRIPT_WRAPPER is not set
++CONFIG_PREFIX="${ROOTFS}"
++
++#
++# Busybox Library Tuning
++#
++# CONFIG_FEATURE_SYSTEMD is not set
++# CONFIG_FEATURE_RTMINMAX is not set
++CONFIG_PASSWORD_MINLEN=5
++CONFIG_MD5_SMALL=1
++CONFIG_SHA3_SMALL=1
++CONFIG_FEATURE_FAST_TOP=y
++# CONFIG_FEATURE_ETC_NETWORKS is not set
++CONFIG_FEATURE_USE_TERMIOS=y
++CONFIG_FEATURE_EDITING=y
++CONFIG_FEATURE_EDITING_MAX_LEN=1024
++# CONFIG_FEATURE_EDITING_VI is not set
++CONFIG_FEATURE_EDITING_HISTORY=255
++CONFIG_FEATURE_EDITING_SAVEHISTORY=y
++# CONFIG_FEATURE_EDITING_SAVE_ON_EXIT is not set
++# CONFIG_FEATURE_REVERSE_SEARCH is not set
++CONFIG_FEATURE_TAB_COMPLETION=y
++# CONFIG_FEATURE_USERNAME_COMPLETION is not set
++CONFIG_FEATURE_EDITING_FANCY_PROMPT=y
++CONFIG_FEATURE_EDITING_ASK_TERMINAL=y
++# CONFIG_FEATURE_NON_POSIX_CP is not set
++CONFIG_FEATURE_VERBOSE_CP_MESSAGE=y
++CONFIG_FEATURE_COPYBUF_KB=1
++CONFIG_FEATURE_SKIP_ROOTFS=y
++CONFIG_MONOTONIC_SYSCALL=y
++CONFIG_IOCTL_HEX2STR_ERROR=y
++# CONFIG_FEATURE_HWIB is not set
++
++#
++# Applets
++#
++
++#
++# Archival Utilities
++#
++# CONFIG_FEATURE_SEAMLESS_XZ is not set
++# CONFIG_FEATURE_SEAMLESS_LZMA is not set
++# CONFIG_FEATURE_SEAMLESS_BZ2 is not set
++# CONFIG_FEATURE_SEAMLESS_GZ is not set
++# CONFIG_FEATURE_SEAMLESS_Z is not set
++# CONFIG_AR is not set
++# CONFIG_FEATURE_AR_LONG_FILENAMES is not set
++# CONFIG_FEATURE_AR_CREATE is not set
++# CONFIG_BUNZIP2 is not set
++# CONFIG_BZIP2 is not set
++# CONFIG_CPIO is not set
++# CONFIG_FEATURE_CPIO_O is not set
++# CONFIG_FEATURE_CPIO_P is not set
++# CONFIG_DPKG is not set
++# CONFIG_DPKG_DEB is not set
++# CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY is not set
++# CONFIG_GUNZIP is not set
++# CONFIG_GZIP is not set
++# CONFIG_FEATURE_GZIP_LONG_OPTIONS is not set
++CONFIG_GZIP_FAST=0
++# CONFIG_LZOP is not set
++# CONFIG_LZOP_COMPR_HIGH is not set
++# CONFIG_RPM2CPIO is not set
++# CONFIG_RPM is not set
++# CONFIG_TAR is not set
++# CONFIG_FEATURE_TAR_CREATE is not set
++# CONFIG_FEATURE_TAR_AUTODETECT is not set
++# CONFIG_FEATURE_TAR_FROM is not set
++# CONFIG_FEATURE_TAR_OLDGNU_COMPATIBILITY is not set
++# CONFIG_FEATURE_TAR_OLDSUN_COMPATIBILITY is not set
++# CONFIG_FEATURE_TAR_GNU_EXTENSIONS is not set
++# CONFIG_FEATURE_TAR_LONG_OPTIONS is not set
++# CONFIG_FEATURE_TAR_TO_COMMAND is not set
++# CONFIG_FEATURE_TAR_UNAME_GNAME is not set
++# CONFIG_FEATURE_TAR_NOPRESERVE_TIME is not set
++# CONFIG_FEATURE_TAR_SELINUX is not set
++# CONFIG_UNCOMPRESS is not set
++# CONFIG_UNLZMA is not set
++# CONFIG_FEATURE_LZMA_FAST is not set
++# CONFIG_LZMA is not set
++# CONFIG_UNXZ is not set
++# CONFIG_XZ is not set
++# CONFIG_UNZIP is not set
++
++#
++# Coreutils
++#
++# CONFIG_BASENAME is not set
++CONFIG_CAT=y
++# CONFIG_DATE is not set
++# CONFIG_FEATURE_DATE_ISOFMT is not set
++# CONFIG_FEATURE_DATE_NANO is not set
++# CONFIG_FEATURE_DATE_COMPAT is not set
++# CONFIG_HOSTID is not set
++# CONFIG_ID is not set
++# CONFIG_GROUPS is not set
++CONFIG_TEST=y
++# CONFIG_FEATURE_TEST_64 is not set
++CONFIG_TOUCH=y
++# CONFIG_FEATURE_TOUCH_SUSV3 is not set
++# CONFIG_TR is not set
++# CONFIG_FEATURE_TR_CLASSES is not set
++# CONFIG_FEATURE_TR_EQUIV is not set
++# CONFIG_BASE64 is not set
++# CONFIG_WHO is not set
++# CONFIG_USERS is not set
++# CONFIG_CAL is not set
++# CONFIG_CATV is not set
++# CONFIG_CHGRP is not set
++# CONFIG_CHMOD is not set
++# CONFIG_CHOWN is not set
++# CONFIG_FEATURE_CHOWN_LONG_OPTIONS is not set
++# CONFIG_CHROOT is not set
++# CONFIG_CKSUM is not set
++# CONFIG_COMM is not set
++CONFIG_CP=y
++# CONFIG_FEATURE_CP_LONG_OPTIONS is not set
++CONFIG_CUT=y
++CONFIG_DD=y
++CONFIG_FEATURE_DD_SIGNAL_HANDLING=y
++CONFIG_FEATURE_DD_THIRD_STATUS_LINE=y
++CONFIG_FEATURE_DD_IBS_OBS=y
++# CONFIG_DF is not set
++# CONFIG_FEATURE_DF_FANCY is not set
++# CONFIG_DIRNAME is not set
++# CONFIG_DOS2UNIX is not set
++# CONFIG_UNIX2DOS is not set
++CONFIG_DU=y
++CONFIG_FEATURE_DU_DEFAULT_BLOCKSIZE_1K=y
++CONFIG_ECHO=y
++CONFIG_FEATURE_FANCY_ECHO=y
++CONFIG_ENV=y
++# CONFIG_FEATURE_ENV_LONG_OPTIONS is not set
++# CONFIG_EXPAND is not set
++# CONFIG_FEATURE_EXPAND_LONG_OPTIONS is not set
++# CONFIG_EXPR is not set
++# CONFIG_EXPR_MATH_SUPPORT_64 is not set
++# CONFIG_FALSE is not set
++# CONFIG_FOLD is not set
++# CONFIG_FSYNC is not set
++# CONFIG_HEAD is not set
++# CONFIG_FEATURE_FANCY_HEAD is not set
++# CONFIG_INSTALL is not set
++# CONFIG_FEATURE_INSTALL_LONG_OPTIONS is not set
++# CONFIG_LN is not set
++# CONFIG_LOGNAME is not set
++CONFIG_LS=y
++CONFIG_FEATURE_LS_FILETYPES=y
++CONFIG_FEATURE_LS_FOLLOWLINKS=y
++CONFIG_FEATURE_LS_RECURSIVE=y
++CONFIG_FEATURE_LS_SORTFILES=y
++CONFIG_FEATURE_LS_TIMESTAMPS=y
++CONFIG_FEATURE_LS_USERNAME=y
++# CONFIG_FEATURE_LS_COLOR is not set
++# CONFIG_FEATURE_LS_COLOR_IS_DEFAULT is not set
++# CONFIG_MD5SUM is not set
++CONFIG_MKDIR=y
++# CONFIG_FEATURE_MKDIR_LONG_OPTIONS is not set
++# CONFIG_MKFIFO is not set
++# CONFIG_MKNOD is not set
++CONFIG_MV=y
++# CONFIG_FEATURE_MV_LONG_OPTIONS is not set
++# CONFIG_NICE is not set
++# CONFIG_NOHUP is not set
++# CONFIG_OD is not set
++# CONFIG_PRINTENV is not set
++# CONFIG_PRINTF is not set
++CONFIG_PWD=y
++# CONFIG_READLINK is not set
++# CONFIG_FEATURE_READLINK_FOLLOW is not set
++# CONFIG_REALPATH is not set
++CONFIG_RM=y
++# CONFIG_RMDIR is not set
++# CONFIG_FEATURE_RMDIR_LONG_OPTIONS is not set
++CONFIG_SEQ=y
++# CONFIG_SHA1SUM is not set
++# CONFIG_SHA256SUM is not set
++# CONFIG_SHA512SUM is not set
++# CONFIG_SHA3SUM is not set
++CONFIG_SLEEP=y
++CONFIG_FEATURE_FANCY_SLEEP=y
++CONFIG_FEATURE_FLOAT_SLEEP=y
++# CONFIG_SORT is not set
++# CONFIG_FEATURE_SORT_BIG is not set
++# CONFIG_SPLIT is not set
++# CONFIG_FEATURE_SPLIT_FANCY is not set
++# CONFIG_STAT is not set
++# CONFIG_FEATURE_STAT_FORMAT is not set
++CONFIG_STTY=y
++# CONFIG_SUM is not set
++# CONFIG_SYNC is not set
++# CONFIG_TAC is not set
++CONFIG_TAIL=y
++CONFIG_FEATURE_FANCY_TAIL=y
++# CONFIG_TEE is not set
++# CONFIG_FEATURE_TEE_USE_BLOCK_IO is not set
++# CONFIG_TRUE is not set
++# CONFIG_TTY is not set
++CONFIG_UNAME=y
++# CONFIG_UNEXPAND is not set
++# CONFIG_FEATURE_UNEXPAND_LONG_OPTIONS is not set
++# CONFIG_UNIQ is not set
++# CONFIG_USLEEP is not set
++# CONFIG_UUDECODE is not set
++# CONFIG_UUENCODE is not set
++# CONFIG_WC is not set
++# CONFIG_FEATURE_WC_LARGE is not set
++# CONFIG_WHOAMI is not set
++# CONFIG_YES is not set
++
++#
++# Common options for cp and mv
++#
++CONFIG_FEATURE_PRESERVE_HARDLINKS=y
++
++#
++# Common options for ls, more and telnet
++#
++CONFIG_FEATURE_AUTOWIDTH=y
++
++#
++# Common options for df, du, ls
++#
++CONFIG_FEATURE_HUMAN_READABLE=y
++# CONFIG_FEATURE_MD5_SHA1_SUM_CHECK is not set
++
++#
++# Console Utilities
++#
++# CONFIG_CHVT is not set
++# CONFIG_FGCONSOLE is not set
++# CONFIG_CLEAR is not set
++# CONFIG_DEALLOCVT is not set
++# CONFIG_DUMPKMAP is not set
++# CONFIG_KBD_MODE is not set
++# CONFIG_LOADFONT is not set
++# CONFIG_LOADKMAP is not set
++# CONFIG_OPENVT is not set
++# CONFIG_RESET is not set
++# CONFIG_RESIZE is not set
++# CONFIG_FEATURE_RESIZE_PRINT is not set
++# CONFIG_SETCONSOLE is not set
++# CONFIG_FEATURE_SETCONSOLE_LONG_OPTIONS is not set
++# CONFIG_SETFONT is not set
++# CONFIG_FEATURE_SETFONT_TEXTUAL_MAP is not set
++CONFIG_DEFAULT_SETFONT_DIR=""
++# CONFIG_SETKEYCODES is not set
++# CONFIG_SETLOGCONS is not set
++# CONFIG_SHOWKEY is not set
++# CONFIG_FEATURE_LOADFONT_PSF2 is not set
++# CONFIG_FEATURE_LOADFONT_RAW is not set
++
++#
++# Debian Utilities
++#
++# CONFIG_MKTEMP is not set
++# CONFIG_PIPE_PROGRESS is not set
++# CONFIG_RUN_PARTS is not set
++# CONFIG_FEATURE_RUN_PARTS_LONG_OPTIONS is not set
++# CONFIG_FEATURE_RUN_PARTS_FANCY is not set
++# CONFIG_START_STOP_DAEMON is not set
++# CONFIG_FEATURE_START_STOP_DAEMON_FANCY is not set
++# CONFIG_FEATURE_START_STOP_DAEMON_LONG_OPTIONS is not set
++# CONFIG_WHICH is not set
++
++#
++# Editors
++#
++# CONFIG_PATCH is not set
++CONFIG_VI=y
++CONFIG_FEATURE_VI_MAX_LEN=4096
++# CONFIG_FEATURE_VI_8BIT is not set
++CONFIG_FEATURE_VI_COLON=y
++CONFIG_FEATURE_VI_YANKMARK=y
++CONFIG_FEATURE_VI_SEARCH=y
++# CONFIG_FEATURE_VI_REGEX_SEARCH is not set
++CONFIG_FEATURE_VI_USE_SIGNALS=y
++CONFIG_FEATURE_VI_DOT_CMD=y
++CONFIG_FEATURE_VI_READONLY=y
++CONFIG_FEATURE_VI_SETOPTS=y
++CONFIG_FEATURE_VI_SET=y
++CONFIG_FEATURE_VI_WIN_RESIZE=y
++CONFIG_FEATURE_VI_ASK_TERMINAL=y
++# CONFIG_AWK is not set
++# CONFIG_FEATURE_AWK_LIBM is not set
++# CONFIG_CMP is not set
++# CONFIG_DIFF is not set
++# CONFIG_FEATURE_DIFF_LONG_OPTIONS is not set
++# CONFIG_FEATURE_DIFF_DIR is not set
++# CONFIG_ED is not set
++CONFIG_SED=y
++CONFIG_FEATURE_ALLOW_EXEC=y
++
++#
++# Finding Utilities
++#
++# CONFIG_FIND is not set
++# CONFIG_FEATURE_FIND_PRINT0 is not set
++# CONFIG_FEATURE_FIND_MTIME is not set
++# CONFIG_FEATURE_FIND_MMIN is not set
++# CONFIG_FEATURE_FIND_PERM is not set
++# CONFIG_FEATURE_FIND_TYPE is not set
++# CONFIG_FEATURE_FIND_XDEV is not set
++# CONFIG_FEATURE_FIND_MAXDEPTH is not set
++# CONFIG_FEATURE_FIND_NEWER is not set
++# CONFIG_FEATURE_FIND_INUM is not set
++# CONFIG_FEATURE_FIND_EXEC is not set
++# CONFIG_FEATURE_FIND_USER is not set
++# CONFIG_FEATURE_FIND_GROUP is not set
++# CONFIG_FEATURE_FIND_NOT is not set
++# CONFIG_FEATURE_FIND_DEPTH is not set
++# CONFIG_FEATURE_FIND_PAREN is not set
++# CONFIG_FEATURE_FIND_SIZE is not set
++# CONFIG_FEATURE_FIND_PRUNE is not set
++# CONFIG_FEATURE_FIND_DELETE is not set
++# CONFIG_FEATURE_FIND_PATH is not set
++# CONFIG_FEATURE_FIND_REGEX is not set
++# CONFIG_FEATURE_FIND_CONTEXT is not set
++# CONFIG_FEATURE_FIND_LINKS is not set
++CONFIG_GREP=y
++# CONFIG_FEATURE_GREP_EGREP_ALIAS is not set
++# CONFIG_FEATURE_GREP_FGREP_ALIAS is not set
++# CONFIG_FEATURE_GREP_CONTEXT is not set
++# CONFIG_XARGS is not set
++# CONFIG_FEATURE_XARGS_SUPPORT_CONFIRMATION is not set
++# CONFIG_FEATURE_XARGS_SUPPORT_QUOTES is not set
++# CONFIG_FEATURE_XARGS_SUPPORT_TERMOPT is not set
++# CONFIG_FEATURE_XARGS_SUPPORT_ZERO_TERM is not set
++
++#
++# Init Utilities
++#
++# CONFIG_BOOTCHARTD is not set
++# CONFIG_FEATURE_BOOTCHARTD_BLOATED_HEADER is not set
++# CONFIG_FEATURE_BOOTCHARTD_CONFIG_FILE is not set
++CONFIG_HALT=y
++# CONFIG_FEATURE_CALL_TELINIT is not set
++CONFIG_TELINIT_PATH=""
++# CONFIG_INIT is not set
++# CONFIG_FEATURE_USE_INITTAB is not set
++# CONFIG_FEATURE_KILL_REMOVED is not set
++CONFIG_FEATURE_KILL_DELAY=0
++# CONFIG_FEATURE_INIT_SCTTY is not set
++# CONFIG_FEATURE_INIT_SYSLOG is not set
++# CONFIG_FEATURE_EXTRA_QUIET is not set
++# CONFIG_FEATURE_INIT_COREDUMPS is not set
++# CONFIG_FEATURE_INITRD is not set
++CONFIG_INIT_TERMINAL_TYPE=""
++# CONFIG_MESG is not set
++# CONFIG_FEATURE_MESG_ENABLE_ONLY_GROUP is not set
++
++#
++# Login/Password Management Utilities
++#
++# CONFIG_ADD_SHELL is not set
++# CONFIG_REMOVE_SHELL is not set
++# CONFIG_FEATURE_SHADOWPASSWDS is not set
++# CONFIG_USE_BB_PWD_GRP is not set
++# CONFIG_USE_BB_SHADOW is not set
++# CONFIG_USE_BB_CRYPT is not set
++# CONFIG_USE_BB_CRYPT_SHA is not set
++# CONFIG_ADDUSER is not set
++# CONFIG_FEATURE_ADDUSER_LONG_OPTIONS is not set
++# CONFIG_FEATURE_CHECK_NAMES is not set
++CONFIG_FIRST_SYSTEM_ID=0
++CONFIG_LAST_SYSTEM_ID=0
++# CONFIG_ADDGROUP is not set
++# CONFIG_FEATURE_ADDGROUP_LONG_OPTIONS is not set
++# CONFIG_FEATURE_ADDUSER_TO_GROUP is not set
++# CONFIG_DELUSER is not set
++# CONFIG_DELGROUP is not set
++# CONFIG_FEATURE_DEL_USER_FROM_GROUP is not set
++# CONFIG_GETTY is not set
++# CONFIG_LOGIN is not set
++# CONFIG_LOGIN_SESSION_AS_CHILD is not set
++# CONFIG_PAM is not set
++# CONFIG_LOGIN_SCRIPTS is not set
++# CONFIG_FEATURE_NOLOGIN is not set
++# CONFIG_FEATURE_SECURETTY is not set
++# CONFIG_PASSWD is not set
++# CONFIG_FEATURE_PASSWD_WEAK_CHECK is not set
++# CONFIG_CRYPTPW is not set
++# CONFIG_CHPASSWD is not set
++CONFIG_FEATURE_DEFAULT_PASSWD_ALGO=""
++# CONFIG_SU is not set
++# CONFIG_FEATURE_SU_SYSLOG is not set
++# CONFIG_FEATURE_SU_CHECKS_SHELLS is not set
++# CONFIG_SULOGIN is not set
++# CONFIG_VLOCK is not set
++
++#
++# Linux Ext2 FS Progs
++#
++# CONFIG_CHATTR is not set
++# CONFIG_FSCK is not set
++# CONFIG_LSATTR is not set
++# CONFIG_TUNE2FS is not set
++
++#
++# Linux Module Utilities
++#
++CONFIG_MODINFO=y
++# CONFIG_MODPROBE_SMALL is not set
++# CONFIG_FEATURE_MODPROBE_SMALL_OPTIONS_ON_CMDLINE is not set
++# CONFIG_FEATURE_MODPROBE_SMALL_CHECK_ALREADY_LOADED is not set
++CONFIG_INSMOD=y
++CONFIG_RMMOD=y
++CONFIG_LSMOD=y
++CONFIG_FEATURE_LSMOD_PRETTY_2_6_OUTPUT=y
++CONFIG_MODPROBE=y
++# CONFIG_FEATURE_MODPROBE_BLACKLIST is not set
++# CONFIG_DEPMOD is not set
++
++#
++# Options common to multiple modutils
++#
++# CONFIG_FEATURE_2_4_MODULES is not set
++# CONFIG_FEATURE_INSMOD_TRY_MMAP is not set
++# CONFIG_FEATURE_INSMOD_VERSION_CHECKING is not set
++# CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS is not set
++# CONFIG_FEATURE_INSMOD_LOADINKMEM is not set
++# CONFIG_FEATURE_INSMOD_LOAD_MAP is not set
++# CONFIG_FEATURE_INSMOD_LOAD_MAP_FULL is not set
++CONFIG_FEATURE_CHECK_TAINTED_MODULE=y
++CONFIG_FEATURE_MODUTILS_ALIAS=y
++CONFIG_FEATURE_MODUTILS_SYMBOLS=y
++CONFIG_DEFAULT_MODULES_DIR="/lib/modules"
++CONFIG_DEFAULT_DEPMOD_FILE="modules.dep"
++
++#
++# Linux System Utilities
++#
++# CONFIG_BLOCKDEV is not set
++# CONFIG_MDEV is not set
++# CONFIG_FEATURE_MDEV_CONF is not set
++# CONFIG_FEATURE_MDEV_RENAME is not set
++# CONFIG_FEATURE_MDEV_RENAME_REGEXP is not set
++# CONFIG_FEATURE_MDEV_EXEC is not set
++# CONFIG_FEATURE_MDEV_LOAD_FIRMWARE is not set
++# CONFIG_REV is not set
++# CONFIG_ACPID is not set
++# CONFIG_FEATURE_ACPID_COMPAT is not set
++# CONFIG_BLKID is not set
++# CONFIG_FEATURE_BLKID_TYPE is not set
++CONFIG_DMESG=y
++CONFIG_FEATURE_DMESG_PRETTY=y
++# CONFIG_FBSET is not set
++# CONFIG_FEATURE_FBSET_FANCY is not set
++# CONFIG_FEATURE_FBSET_READMODE is not set
++# CONFIG_FDFLUSH is not set
++# CONFIG_FDFORMAT is not set
++# CONFIG_FDISK is not set
++# CONFIG_FDISK_SUPPORT_LARGE_DISKS is not set
++# CONFIG_FEATURE_FDISK_WRITABLE is not set
++# CONFIG_FEATURE_AIX_LABEL is not set
++# CONFIG_FEATURE_SGI_LABEL is not set
++# CONFIG_FEATURE_SUN_LABEL is not set
++# CONFIG_FEATURE_OSF_LABEL is not set
++# CONFIG_FEATURE_GPT_LABEL is not set
++# CONFIG_FEATURE_FDISK_ADVANCED is not set
++# CONFIG_FINDFS is not set
++# CONFIG_FLOCK is not set
++# CONFIG_FREERAMDISK is not set
++# CONFIG_FSCK_MINIX is not set
++# CONFIG_MKFS_EXT2 is not set
++# CONFIG_MKFS_MINIX is not set
++# CONFIG_FEATURE_MINIX2 is not set
++# CONFIG_MKFS_REISER is not set
++# CONFIG_MKFS_VFAT is not set
++# CONFIG_GETOPT is not set
++# CONFIG_FEATURE_GETOPT_LONG is not set
++# CONFIG_HEXDUMP is not set
++# CONFIG_FEATURE_HEXDUMP_REVERSE is not set
++# CONFIG_HD is not set
++# CONFIG_HWCLOCK is not set
++# CONFIG_FEATURE_HWCLOCK_LONG_OPTIONS is not set
++# CONFIG_FEATURE_HWCLOCK_ADJTIME_FHS is not set
++# CONFIG_IPCRM is not set
++# CONFIG_IPCS is not set
++# CONFIG_LOSETUP is not set
++# CONFIG_LSPCI is not set
++# CONFIG_LSUSB is not set
++# CONFIG_MKSWAP is not set
++# CONFIG_FEATURE_MKSWAP_UUID is not set
++# CONFIG_MORE is not set
++CONFIG_MOUNT=y
++# CONFIG_FEATURE_MOUNT_FAKE is not set
++# CONFIG_FEATURE_MOUNT_VERBOSE is not set
++# CONFIG_FEATURE_MOUNT_HELPERS is not set
++# CONFIG_FEATURE_MOUNT_LABEL is not set
++CONFIG_FEATURE_MOUNT_NFS=y
++# CONFIG_FEATURE_MOUNT_CIFS is not set
++CONFIG_FEATURE_MOUNT_FLAGS=y
++# CONFIG_FEATURE_MOUNT_FSTAB is not set
++# CONFIG_PIVOT_ROOT is not set
++# CONFIG_RDATE is not set
++# CONFIG_RDEV is not set
++# CONFIG_READPROFILE is not set
++# CONFIG_RTCWAKE is not set
++# CONFIG_SCRIPT is not set
++# CONFIG_SCRIPTREPLAY is not set
++# CONFIG_SETARCH is not set
++# CONFIG_SWAPONOFF is not set
++# CONFIG_FEATURE_SWAPON_PRI is not set
++CONFIG_SWITCH_ROOT=y
++CONFIG_UMOUNT=y
++# CONFIG_FEATURE_UMOUNT_ALL is not set
++
++#
++# Common options for mount/umount
++#
++CONFIG_FEATURE_MOUNT_LOOP=y
++CONFIG_FEATURE_MOUNT_LOOP_CREATE=y
++# CONFIG_FEATURE_MTAB_SUPPORT is not set
++# CONFIG_VOLUMEID is not set
++# CONFIG_FEATURE_VOLUMEID_EXT is not set
++# CONFIG_FEATURE_VOLUMEID_BTRFS is not set
++# CONFIG_FEATURE_VOLUMEID_REISERFS is not set
++# CONFIG_FEATURE_VOLUMEID_FAT is not set
++# CONFIG_FEATURE_VOLUMEID_EXFAT is not set
++# CONFIG_FEATURE_VOLUMEID_HFS is not set
++# CONFIG_FEATURE_VOLUMEID_JFS is not set
++# CONFIG_FEATURE_VOLUMEID_XFS is not set
++# CONFIG_FEATURE_VOLUMEID_NILFS is not set
++# CONFIG_FEATURE_VOLUMEID_NTFS is not set
++# CONFIG_FEATURE_VOLUMEID_ISO9660 is not set
++# CONFIG_FEATURE_VOLUMEID_UDF is not set
++# CONFIG_FEATURE_VOLUMEID_LUKS is not set
++# CONFIG_FEATURE_VOLUMEID_LINUXSWAP is not set
++# CONFIG_FEATURE_VOLUMEID_CRAMFS is not set
++# CONFIG_FEATURE_VOLUMEID_ROMFS is not set
++# CONFIG_FEATURE_VOLUMEID_SQUASHFS is not set
++# CONFIG_FEATURE_VOLUMEID_SYSV is not set
++# CONFIG_FEATURE_VOLUMEID_OCFS2 is not set
++# CONFIG_FEATURE_VOLUMEID_LINUXRAID is not set
++
++#
++# Miscellaneous Utilities
++#
++# CONFIG_CONSPY is not set
++# CONFIG_LESS is not set
++CONFIG_FEATURE_LESS_MAXLINES=0
++# CONFIG_FEATURE_LESS_BRACKETS is not set
++# CONFIG_FEATURE_LESS_FLAGS is not set
++# CONFIG_FEATURE_LESS_MARKS is not set
++# CONFIG_FEATURE_LESS_REGEXP is not set
++# CONFIG_FEATURE_LESS_WINCH is not set
++# CONFIG_FEATURE_LESS_ASK_TERMINAL is not set
++# CONFIG_FEATURE_LESS_DASHCMD is not set
++# CONFIG_FEATURE_LESS_LINENUMS is not set
++# CONFIG_NANDWRITE is not set
++# CONFIG_NANDDUMP is not set
++# CONFIG_SETSERIAL is not set
++# CONFIG_UBIATTACH is not set
++# CONFIG_UBIDETACH is not set
++# CONFIG_UBIMKVOL is not set
++# CONFIG_UBIRMVOL is not set
++# CONFIG_UBIRSVOL is not set
++# CONFIG_UBIUPDATEVOL is not set
++# CONFIG_ADJTIMEX is not set
++# CONFIG_BBCONFIG is not set
++# CONFIG_FEATURE_COMPRESS_BBCONFIG is not set
++# CONFIG_BEEP is not set
++CONFIG_FEATURE_BEEP_FREQ=0
++CONFIG_FEATURE_BEEP_LENGTH_MS=0
++# CONFIG_CHAT is not set
++# CONFIG_FEATURE_CHAT_NOFAIL is not set
++# CONFIG_FEATURE_CHAT_TTY_HIFI is not set
++# CONFIG_FEATURE_CHAT_IMPLICIT_CR is not set
++# CONFIG_FEATURE_CHAT_SWALLOW_OPTS is not set
++# CONFIG_FEATURE_CHAT_SEND_ESCAPES is not set
++# CONFIG_FEATURE_CHAT_VAR_ABORT_LEN is not set
++# CONFIG_FEATURE_CHAT_CLR_ABORT is not set
++# CONFIG_CHRT is not set
++# CONFIG_CROND is not set
++# CONFIG_FEATURE_CROND_D is not set
++# CONFIG_FEATURE_CROND_CALL_SENDMAIL is not set
++CONFIG_FEATURE_CROND_DIR=""
++# CONFIG_CRONTAB is not set
++# CONFIG_DC is not set
++# CONFIG_FEATURE_DC_LIBM is not set
++# CONFIG_DEVFSD is not set
++# CONFIG_DEVFSD_MODLOAD is not set
++# CONFIG_DEVFSD_FG_NP is not set
++# CONFIG_DEVFSD_VERBOSE is not set
++# CONFIG_FEATURE_DEVFS is not set
++# CONFIG_DEVMEM is not set
++# CONFIG_EJECT is not set
++# CONFIG_FEATURE_EJECT_SCSI is not set
++# CONFIG_FBSPLASH is not set
++# CONFIG_FLASHCP is not set
++# CONFIG_FLASH_LOCK is not set
++# CONFIG_FLASH_UNLOCK is not set
++# CONFIG_FLASH_ERASEALL is not set
++# CONFIG_IONICE is not set
++# CONFIG_INOTIFYD is not set
++# CONFIG_LAST is not set
++# CONFIG_FEATURE_LAST_SMALL is not set
++# CONFIG_FEATURE_LAST_FANCY is not set
++# CONFIG_HDPARM is not set
++# CONFIG_FEATURE_HDPARM_GET_IDENTITY is not set
++# CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF is not set
++# CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF is not set
++# CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET is not set
++# CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF is not set
++# CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA is not set
++# CONFIG_LOCK is not set
++# CONFIG_MAKEDEVS is not set
++# CONFIG_FEATURE_MAKEDEVS_LEAF is not set
++# CONFIG_FEATURE_MAKEDEVS_TABLE is not set
++# CONFIG_MAN is not set
++# CONFIG_MICROCOM is not set
++# CONFIG_MOUNTPOINT is not set
++# CONFIG_MT is not set
++# CONFIG_RAIDAUTORUN is not set
++# CONFIG_READAHEAD is not set
++# CONFIG_RFKILL is not set
++# CONFIG_RUNLEVEL is not set
++# CONFIG_RX is not set
++# CONFIG_SETSID is not set
++# CONFIG_STRINGS is not set
++# CONFIG_TASKSET is not set
++# CONFIG_FEATURE_TASKSET_FANCY is not set
++# CONFIG_TIME is not set
++# CONFIG_TIMEOUT is not set
++# CONFIG_TTYSIZE is not set
++# CONFIG_VOLNAME is not set
++# CONFIG_WALL is not set
++# CONFIG_WATCHDOG is not set
++
++#
++# Networking Utilities
++#
++# CONFIG_NAMEIF is not set
++# CONFIG_FEATURE_NAMEIF_EXTENDED is not set
++# CONFIG_NBDCLIENT is not set
++# CONFIG_NC is not set
++# CONFIG_NC_SERVER is not set
++# CONFIG_NC_EXTRA is not set
++# CONFIG_NC_110_COMPAT is not set
++CONFIG_PING=y
++CONFIG_PING6=y
++CONFIG_FEATURE_FANCY_PING=y
++# CONFIG_WHOIS is not set
++CONFIG_FEATURE_IPV6=y
++# CONFIG_FEATURE_UNIX_LOCAL is not set
++CONFIG_FEATURE_PREFER_IPV4_ADDRESS=y
++CONFIG_VERBOSE_RESOLUTION_ERRORS=y
++# CONFIG_ARP is not set
++# CONFIG_ARPING is not set
++# CONFIG_BRCTL is not set
++# CONFIG_FEATURE_BRCTL_FANCY is not set
++# CONFIG_FEATURE_BRCTL_SHOW is not set
++# CONFIG_DNSD is not set
++# CONFIG_ETHER_WAKE is not set
++# CONFIG_FAKEIDENTD is not set
++# CONFIG_FTPD is not set
++# CONFIG_FEATURE_FTP_WRITE is not set
++# CONFIG_FEATURE_FTPD_ACCEPT_BROKEN_LIST is not set
++# CONFIG_FTPGET is not set
++# CONFIG_FTPPUT is not set
++# CONFIG_FEATURE_FTPGETPUT_LONG_OPTIONS is not set
++# CONFIG_HOSTNAME is not set
++# CONFIG_HTTPD is not set
++# CONFIG_FEATURE_HTTPD_RANGES is not set
++# CONFIG_FEATURE_HTTPD_USE_SENDFILE is not set
++# CONFIG_FEATURE_HTTPD_SETUID is not set
++# CONFIG_FEATURE_HTTPD_BASIC_AUTH is not set
++# CONFIG_FEATURE_HTTPD_AUTH_MD5 is not set
++# CONFIG_FEATURE_HTTPD_CGI is not set
++# CONFIG_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR is not set
++# CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV is not set
++# CONFIG_FEATURE_HTTPD_ENCODE_URL_STR is not set
++# CONFIG_FEATURE_HTTPD_ERROR_PAGES is not set
++# CONFIG_FEATURE_HTTPD_PROXY is not set
++# CONFIG_FEATURE_HTTPD_GZIP is not set
++# CONFIG_IFCONFIG is not set
++# CONFIG_FEATURE_IFCONFIG_STATUS is not set
++# CONFIG_FEATURE_IFCONFIG_SLIP is not set
++# CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ is not set
++# CONFIG_FEATURE_IFCONFIG_HW is not set
++# CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS is not set
++# CONFIG_IFENSLAVE is not set
++# CONFIG_IFPLUGD is not set
++# CONFIG_IFUPDOWN is not set
++CONFIG_IFUPDOWN_IFSTATE_PATH=""
++# CONFIG_FEATURE_IFUPDOWN_IP is not set
++# CONFIG_FEATURE_IFUPDOWN_IP_BUILTIN is not set
++# CONFIG_FEATURE_IFUPDOWN_IFCONFIG_BUILTIN is not set
++# CONFIG_FEATURE_IFUPDOWN_IPV4 is not set
++# CONFIG_FEATURE_IFUPDOWN_IPV6 is not set
++# CONFIG_FEATURE_IFUPDOWN_MAPPING is not set
++# CONFIG_FEATURE_IFUPDOWN_EXTERNAL_DHCP is not set
++# CONFIG_INETD is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME is not set
++# CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN is not set
++# CONFIG_FEATURE_INETD_RPC is not set
++CONFIG_IP=y
++CONFIG_FEATURE_IP_ADDRESS=y
++CONFIG_FEATURE_IP_LINK=y
++CONFIG_FEATURE_IP_ROUTE=y
++# CONFIG_FEATURE_IP_TUNNEL is not set
++# CONFIG_FEATURE_IP_RULE is not set
++# CONFIG_FEATURE_IP_SHORT_FORMS is not set
++# CONFIG_FEATURE_IP_RARE_PROTOCOLS is not set
++# CONFIG_IPADDR is not set
++# CONFIG_IPLINK is not set
++# CONFIG_IPROUTE is not set
++# CONFIG_IPTUNNEL is not set
++# CONFIG_IPRULE is not set
++# CONFIG_IPCALC is not set
++# CONFIG_FEATURE_IPCALC_FANCY is not set
++# CONFIG_FEATURE_IPCALC_LONG_OPTIONS is not set
++# CONFIG_NETSTAT is not set
++# CONFIG_FEATURE_NETSTAT_WIDE is not set
++# CONFIG_FEATURE_NETSTAT_PRG is not set
++# CONFIG_NSLOOKUP is not set
++# CONFIG_NTPD is not set
++# CONFIG_FEATURE_NTPD_SERVER is not set
++# CONFIG_PSCAN is not set
++# CONFIG_ROUTE is not set
++# CONFIG_SLATTACH is not set
++# CONFIG_TCPSVD is not set
++# CONFIG_TELNET is not set
++# CONFIG_FEATURE_TELNET_TTYPE is not set
++# CONFIG_FEATURE_TELNET_AUTOLOGIN is not set
++# CONFIG_TELNETD is not set
++# CONFIG_FEATURE_TELNETD_STANDALONE is not set
++# CONFIG_FEATURE_TELNETD_INETD_WAIT is not set
++CONFIG_TFTP=y
++# CONFIG_TFTPD is not set
++
++#
++# Common options for tftp/tftpd
++#
++CONFIG_FEATURE_TFTP_GET=y
++# CONFIG_FEATURE_TFTP_PUT is not set
++CONFIG_FEATURE_TFTP_BLOCKSIZE=y
++# CONFIG_FEATURE_TFTP_PROGRESS_BAR is not set
++# CONFIG_TFTP_DEBUG is not set
++# CONFIG_TRACEROUTE is not set
++# CONFIG_TRACEROUTE6 is not set
++# CONFIG_FEATURE_TRACEROUTE_VERBOSE is not set
++# CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE is not set
++# CONFIG_FEATURE_TRACEROUTE_USE_ICMP is not set
++# CONFIG_TUNCTL is not set
++# CONFIG_FEATURE_TUNCTL_UG is not set
++# CONFIG_UDHCPC6 is not set
++# CONFIG_UDHCPD is not set
++# CONFIG_DHCPRELAY is not set
++# CONFIG_DUMPLEASES is not set
++# CONFIG_FEATURE_UDHCPD_WRITE_LEASES_EARLY is not set
++# CONFIG_FEATURE_UDHCPD_BASE_IP_ON_MAC is not set
++CONFIG_DHCPD_LEASES_FILE=""
++# CONFIG_UDHCPC is not set
++# CONFIG_FEATURE_UDHCPC_ARPING is not set
++# CONFIG_FEATURE_UDHCP_PORT is not set
++CONFIG_UDHCP_DEBUG=0
++# CONFIG_FEATURE_UDHCP_RFC3397 is not set
++# CONFIG_FEATURE_UDHCP_8021Q is not set
++CONFIG_UDHCPC_DEFAULT_SCRIPT=""
++CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS=0
++CONFIG_IFUPDOWN_UDHCPC_CMD_OPTIONS=""
++# CONFIG_UDPSVD is not set
++# CONFIG_VCONFIG is not set
++# CONFIG_WGET is not set
++# CONFIG_FEATURE_WGET_STATUSBAR is not set
++# CONFIG_FEATURE_WGET_AUTHENTICATION is not set
++# CONFIG_FEATURE_WGET_LONG_OPTIONS is not set
++# CONFIG_FEATURE_WGET_TIMEOUT is not set
++# CONFIG_ZCIP is not set
++
++#
++# Print Utilities
++#
++# CONFIG_LPD is not set
++# CONFIG_LPR is not set
++# CONFIG_LPQ is not set
++
++#
++# Mail Utilities
++#
++# CONFIG_MAKEMIME is not set
++CONFIG_FEATURE_MIME_CHARSET=""
++# CONFIG_POPMAILDIR is not set
++# CONFIG_FEATURE_POPMAILDIR_DELIVERY is not set
++# CONFIG_REFORMIME is not set
++# CONFIG_FEATURE_REFORMIME_COMPAT is not set
++# CONFIG_SENDMAIL is not set
++
++#
++# Process Utilities
++#
++# CONFIG_IOSTAT is not set
++CONFIG_LSOF=y
++# CONFIG_MPSTAT is not set
++CONFIG_NMETER=y
++# CONFIG_PMAP is not set
++# CONFIG_POWERTOP is not set
++# CONFIG_PSTREE is not set
++# CONFIG_PWDX is not set
++# CONFIG_SMEMCAP is not set
++CONFIG_TOP=y
++CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE=y
++CONFIG_FEATURE_TOP_CPU_GLOBAL_PERCENTS=y
++CONFIG_FEATURE_TOP_SMP_CPU=y
++CONFIG_FEATURE_TOP_DECIMALS=y
++CONFIG_FEATURE_TOP_SMP_PROCESS=y
++CONFIG_FEATURE_TOPMEM=y
++# CONFIG_UPTIME is not set
++# CONFIG_FEATURE_UPTIME_UTMP_SUPPORT is not set
++CONFIG_FREE=y
++# CONFIG_FUSER is not set
++CONFIG_KILL=y
++CONFIG_KILLALL=y
++CONFIG_KILLALL5=y
++# CONFIG_PGREP is not set
++CONFIG_PIDOF=y
++CONFIG_FEATURE_PIDOF_SINGLE=y
++CONFIG_FEATURE_PIDOF_OMIT=y
++# CONFIG_PKILL is not set
++CONFIG_PS=y
++CONFIG_FEATURE_PS_WIDE=y
++CONFIG_FEATURE_PS_LONG=y
++# CONFIG_FEATURE_PS_TIME is not set
++# CONFIG_FEATURE_PS_ADDITIONAL_COLUMNS is not set
++# CONFIG_FEATURE_PS_UNUSUAL_SYSTEMS is not set
++# CONFIG_RENICE is not set
++CONFIG_BB_SYSCTL=y
++CONFIG_FEATURE_SHOW_THREADS=y
++CONFIG_WATCH=y
++
++#
++# Runit Utilities
++#
++# CONFIG_RUNSV is not set
++# CONFIG_RUNSVDIR is not set
++# CONFIG_FEATURE_RUNSVDIR_LOG is not set
++# CONFIG_SV is not set
++CONFIG_SV_DEFAULT_SERVICE_DIR=""
++# CONFIG_SVLOGD is not set
++# CONFIG_CHPST is not set
++# CONFIG_SETUIDGID is not set
++# CONFIG_ENVUIDGID is not set
++# CONFIG_ENVDIR is not set
++# CONFIG_SOFTLIMIT is not set
++# CONFIG_CHCON is not set
++# CONFIG_FEATURE_CHCON_LONG_OPTIONS is not set
++# CONFIG_GETENFORCE is not set
++# CONFIG_GETSEBOOL is not set
++# CONFIG_LOAD_POLICY is not set
++# CONFIG_MATCHPATHCON is not set
++# CONFIG_RESTORECON is not set
++# CONFIG_RUNCON is not set
++# CONFIG_FEATURE_RUNCON_LONG_OPTIONS is not set
++# CONFIG_SELINUXENABLED is not set
++# CONFIG_SETENFORCE is not set
++# CONFIG_SETFILES is not set
++# CONFIG_FEATURE_SETFILES_CHECK_OPTION is not set
++# CONFIG_SETSEBOOL is not set
++# CONFIG_SESTATUS is not set
++
++#
++# Shells
++#
++CONFIG_ASH=y
++CONFIG_ASH_BASH_COMPAT=y
++# CONFIG_ASH_IDLE_TIMEOUT is not set
++# CONFIG_ASH_JOB_CONTROL is not set
++# CONFIG_ASH_ALIAS is not set
++# CONFIG_ASH_GETOPTS is not set
++CONFIG_ASH_BUILTIN_ECHO=y
++# CONFIG_ASH_BUILTIN_PRINTF is not set
++CONFIG_ASH_BUILTIN_TEST=y
++# CONFIG_ASH_CMDCMD is not set
++# CONFIG_ASH_MAIL is not set
++CONFIG_ASH_OPTIMIZE_FOR_SIZE=y
++# CONFIG_ASH_RANDOM_SUPPORT is not set
++# CONFIG_ASH_EXPAND_PRMT is not set
++# CONFIG_CTTYHACK is not set
++# CONFIG_HUSH is not set
++# CONFIG_HUSH_BASH_COMPAT is not set
++# CONFIG_HUSH_BRACE_EXPANSION is not set
++# CONFIG_HUSH_HELP is not set
++# CONFIG_HUSH_INTERACTIVE is not set
++# CONFIG_HUSH_SAVEHISTORY is not set
++# CONFIG_HUSH_JOB is not set
++# CONFIG_HUSH_TICK is not set
++# CONFIG_HUSH_IF is not set
++# CONFIG_HUSH_LOOPS is not set
++# CONFIG_HUSH_CASE is not set
++# CONFIG_HUSH_FUNCTIONS is not set
++# CONFIG_HUSH_LOCAL is not set
++# CONFIG_HUSH_RANDOM_SUPPORT is not set
++# CONFIG_HUSH_EXPORT_N is not set
++# CONFIG_HUSH_MODE_X is not set
++# CONFIG_MSH is not set
++CONFIG_FEATURE_SH_IS_ASH=y
++# CONFIG_FEATURE_SH_IS_HUSH is not set
++# CONFIG_FEATURE_SH_IS_NONE is not set
++# CONFIG_FEATURE_BASH_IS_ASH is not set
++# CONFIG_FEATURE_BASH_IS_HUSH is not set
++CONFIG_FEATURE_BASH_IS_NONE=y
++# CONFIG_SH_MATH_SUPPORT is not set
++# CONFIG_SH_MATH_SUPPORT_64 is not set
++# CONFIG_FEATURE_SH_EXTRA_QUIET is not set
++CONFIG_FEATURE_SH_STANDALONE=y
++CONFIG_FEATURE_SH_NOFORK=y
++# CONFIG_FEATURE_SH_HISTFILESIZE is not set
++
++#
++# System Logging Utilities
++#
++# CONFIG_SYSLOGD is not set
++# CONFIG_FEATURE_ROTATE_LOGFILE is not set
++# CONFIG_FEATURE_REMOTE_LOG is not set
++# CONFIG_FEATURE_SYSLOGD_DUP is not set
++# CONFIG_FEATURE_SYSLOGD_CFG is not set
++CONFIG_FEATURE_SYSLOGD_READ_BUFFER_SIZE=0
++# CONFIG_FEATURE_IPC_SYSLOG is not set
++CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE=0
++# CONFIG_FEATURE_SAS_FLASH_LOG is not set
++# CONFIG_LOGREAD is not set
++# CONFIG_FEATURE_LOGREAD_REDUCED_LOCKING is not set
++# CONFIG_FEATURE_KMSG_SYSLOG is not set
++# CONFIG_KLOGD is not set
++# CONFIG_FEATURE_KLOGD_KLOGCTL is not set
++# CONFIG_LOGGER is not set
+diff --git a/sysklogd/Config.src b/sysklogd/Config.src
+index fcf993054f5661555ddb133a99485cb6b61fccea..3cbbb5a5a1631dcfe85cab098d5945798541be5d 100644
+--- a/sysklogd/Config.src
++++ b/sysklogd/Config.src
+@@ -92,6 +92,14 @@ config FEATURE_IPC_SYSLOG_BUFFER_SIZE
+ 	  This option sets the size of the circular buffer
+ 	  used to record system log messages.
+ 
++config FEATURE_SAS_FLASH_LOG
++	bool "Enable SAS flash log feature"
++	default n
++	depends on SYSLOGD
++	help
++	  This option enables the SAS flash log feature to
++	  write special facilities/priorities to a special messages file.
++
+ config LOGREAD
+ 	bool "logread"
+ 	default y
+diff --git a/sysklogd/klogd.c b/sysklogd/klogd.c
+index 432ded1530be3054bf1f3ee9130d025a803833ee..3fcae33481fd09f20846216a889b9f6f1dc93793 100644
+--- a/sysklogd/klogd.c
++++ b/sysklogd/klogd.c
+@@ -217,6 +217,7 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
+ 		/* Process each newline-terminated line in the buffer */
+ 		start = log_buffer;
+ 		while (1) {
++			int is_fwlog = 0;
+ 			char *newline = strchrnul(start, '\n');
+ 
+ 			if (*newline == '\0') {
+@@ -244,10 +245,26 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
+ 					priority = strtoul(start, &start, 10);
+ 				if (*start == '>')
+ 					start++;
++
++				/*
++				 * If this message comes from firewall (netfilter) we set
++				 * facility to LOG_LOCAL0 so the message is written to the
++				 * special status file specified for syslog with parameter -f.
++				 */
++				char *p = strstr(start, "firewall-nf");
++				if (p) {
++					is_fwlog = 1;
++					priority |= LOG_LOCAL0;
++					start = p + 12; /* skip firewall-nf prefix */
++				}
+ 			}
+ 			/* Log (only non-empty lines) */
+-			if (*start)
+-				syslog(priority, "%s", start);
++			if (*start) {
++				if (is_fwlog)
++					syslog(priority, "%s%s", "Firewall violation detected", start);
++				else
++					syslog(priority, "%s", start);
++			}
+ 
+ 			if (!newline)
+ 				break;
+diff --git a/sysklogd/syslogd.c b/sysklogd/syslogd.c
+index 3fe3f5348bd9418ac70c198352b2118ee3d19ab6..dbcc5edb51a934d56ecac16c55862ee296c7dde5 100644
+--- a/sysklogd/syslogd.c
++++ b/sysklogd/syslogd.c
+@@ -147,6 +147,16 @@ IF_FEATURE_SYSLOGD_CFG( \
+ IF_FEATURE_KMSG_SYSLOG( \
+ 	int kmsgfd; \
+ 	int primask; \
++) \
++IF_FEATURE_SAS_FLASH_LOG( \
++	const char *flashlogFilePath;           \
++	int flashlogFD;                         \
++	int flashlogLevel;                      \
++	int flashlogLines;                      \
++	int flashlogBackupLines;                \
++	int flashlogFacility;                   \
++	unsigned flashlogFileSize;              \
++	unsigned curFlashlogFileSize;           \
+ )
+ 
+ struct init_globals {
+@@ -197,6 +207,15 @@ static const struct init_globals init_data = {
+ 	.SMwup = { {1, -1, IPC_NOWAIT} },
+ 	.SMwdn = { {0, 0}, {1, 0}, {1, +1} },
+ #endif
++#if ENABLE_FEATURE_SAS_FLASH_LOG
++	.flashlogFilePath = "",
++	.flashlogFD = -1,
++	.flashlogLevel = 8,
++	.flashlogLines = 0,
++	.flashlogBackupLines = 10000000,
++	.flashlogFacility = ~0 & LOG_FACMASK, // enable all facilities
++	.flashlogFileSize = 20 * 1024,
++#endif
+ };
+ 
+ #define G (*ptr_to_globals)
+@@ -221,6 +240,11 @@ enum {
+ 	IF_FEATURE_SYSLOGD_CFG(   OPTBIT_cfg        ,)	// -f
+ 	IF_FEATURE_KMSG_SYSLOG(   OPTBIT_kmsg       ,)	// -K
+ 
++	IF_FEATURE_SAS_FLASH_LOG( OPTBIT_flashoutfile       ,) // -f
++	IF_FEATURE_SAS_FLASH_LOG( OPTBIT_flashloglevel      ,) // -x
++	IF_FEATURE_SAS_FLASH_LOG( OPTBIT_flashlogbackuplines,) // -r
++	IF_FEATURE_SAS_FLASH_LOG( OPTBIT_flashlogfacility   ,) // -Y
++	IF_FEATURE_SAS_FLASH_LOG( OPTBIT_flashlogfilesize   ,) // -Z
+ 	OPT_mark        = 1 << OPTBIT_mark    ,
+ 	OPT_nofork      = 1 << OPTBIT_nofork  ,
+ 	OPT_outfile     = 1 << OPTBIT_outfile ,
+@@ -235,6 +259,11 @@ enum {
+ 	OPT_cfg         = IF_FEATURE_SYSLOGD_CFG(   (1 << OPTBIT_cfg        )) + 0,
+ 	OPT_kmsg        = IF_FEATURE_KMSG_SYSLOG(   (1 << OPTBIT_kmsg       )) + 0,
+ 
++	OPT_flashoutfile        = IF_FEATURE_SAS_FLASH_LOG( (1 << OPTBIT_flashoutfile       )) + 0,
++	OPT_flashloglevel       = IF_FEATURE_SAS_FLASH_LOG( (1 << OPTBIT_flashloglevel      )) + 0,
++	OPT_flashlogbackuplines = IF_FEATURE_SAS_FLASH_LOG( (1 << OPTBIT_flashlogbackuplines)) + 0,
++	OPT_flashlogfacility    = IF_FEATURE_SAS_FLASH_LOG( (1 << OPTBIT_flashlogfacility   )) + 0,
++	OPT_flashlogfilesize    = IF_FEATURE_SAS_FLASH_LOG( (1 << OPTBIT_flashlogfilesize   )) + 0,
+ };
+ #define OPTION_STR "m:nO:l:S" \
+ 	IF_FEATURE_ROTATE_LOGFILE("s:" ) \
+@@ -244,18 +273,21 @@ enum {
+ 	IF_FEATURE_IPC_SYSLOG(    "C::") \
+ 	IF_FEATURE_SYSLOGD_DUP(   "D"  ) \
+ 	IF_FEATURE_SYSLOGD_CFG(   "f:" ) \
+-	IF_FEATURE_KMSG_SYSLOG(   "K"  )
++	IF_FEATURE_KMSG_SYSLOG(   "K"  ) \
++	IF_FEATURE_SAS_FLASH_LOG( "f:x:r:Y:Z:")
+ #define OPTION_DECL *opt_m, *opt_l \
+ 	IF_FEATURE_ROTATE_LOGFILE(,*opt_s) \
+ 	IF_FEATURE_ROTATE_LOGFILE(,*opt_b) \
+ 	IF_FEATURE_IPC_SYSLOG(    ,*opt_C = NULL) \
+-	IF_FEATURE_SYSLOGD_CFG(   ,*opt_f = NULL)
++	IF_FEATURE_SYSLOGD_CFG(   ,*opt_f = NULL) \
++	IF_FEATURE_SAS_FLASH_LOG( ,*opt_x, *opt_r, *opt_Y, *opt_Z)
+ #define OPTION_PARAM &opt_m, &(G.logFile.path), &opt_l \
+ 	IF_FEATURE_ROTATE_LOGFILE(,&opt_s) \
+ 	IF_FEATURE_ROTATE_LOGFILE(,&opt_b) \
+ 	IF_FEATURE_REMOTE_LOG(    ,&remoteAddrList) \
+ 	IF_FEATURE_IPC_SYSLOG(    ,&opt_C) \
+-	IF_FEATURE_SYSLOGD_CFG(   ,&opt_f)
++	IF_FEATURE_SYSLOGD_CFG(   ,&opt_f) \
++	IF_FEATURE_SAS_FLASH_LOG( ,&(G.flashlogFilePath), &opt_x, &opt_r, &opt_Y, &opt_Z)
+ 
+ 
+ #if ENABLE_FEATURE_SYSLOGD_CFG
+@@ -671,6 +703,82 @@ static void log_locally(time_t now, char *msg, logFile_t *log_file)
+ #endif
+ }
+ 
++/* Print a message to the flash log file. */
++#ifdef ENABLE_FEATURE_SAS_FLASH_LOG
++static void log_locally_flash(char *msg)
++{
++#ifdef SYSLOGD_WRLOCK
++	struct flock fl;
++#endif
++	int len = strlen(msg);
++
++	if (G.flashlogFD < 0) {
++		G.flashlogFD = open(G.flashlogFilePath, O_WRONLY | O_CREAT
++					| O_NOCTTY | O_APPEND | O_NONBLOCK,
++					0666);
++		if (G.flashlogFD < 0)
++			return;
++	}
++
++	struct stat statf;
++	fstat(G.flashlogFD, &statf);
++
++	/* bug (mostly harmless): can wrap around if file > 4gb */
++	G.curFlashlogFileSize = statf.st_size;
++
++#ifdef SYSLOGD_WRLOCK
++	fl.l_whence = SEEK_SET;
++	fl.l_start = 0;
++	fl.l_len = 1;
++	fl.l_type = F_WRLCK;
++	fcntl(G.flashlogFD, F_SETLKW, &fl);
++#endif
++
++	/* Handle flash log overflow */
++	if (G.flashlogFileSize && G.curFlashlogFileSize > G.flashlogFileSize) {
++		int i = strlen(G.flashlogFilePath) + 3 + 1;
++		char newFile[i];
++
++#ifdef SYSLOGD_WRLOCK
++		fl.l_type = F_UNLCK;
++		fcntl(G.flashlogFD, F_SETLKW, &fl);
++#endif
++		close(G.flashlogFD);
++
++		sprintf(newFile, "%s.0", G.flashlogFilePath);
++		unlink(newFile);
++		rename(G.flashlogFilePath, newFile);
++
++		G.flashlogFD = open(G.flashlogFilePath, O_WRONLY | O_CREAT
++					| O_NOCTTY | O_APPEND | O_NONBLOCK,
++					0666);
++
++		if (G.flashlogFD < 0)
++			return;
++
++		ftruncate(G.flashlogFD, 0);
++		G.curFlashlogFileSize = 0;
++	}
++
++	/* ... write in normal condition */
++	G.curFlashlogFileSize += full_write(G.flashlogFD, msg, len);
++	G.flashlogLines++;
++
++#ifdef SYSLOGD_WRLOCK
++	fl.l_type = F_UNLCK;
++	fcntl(G.flashlogFD, F_SETLKW, &fl);
++#endif
++
++	/* Backup all specified number of log lines */
++	if ((G.flashlogBackupLines != 0) &&
++		(G.flashlogLines % G.flashlogBackupLines) == 0) {
++		close(G.flashlogFD);
++		G.flashlogFD = -1;
++		system("write-sysconfig");
++	}
++}
++#endif
++
+ static void parse_fac_prio_20(int pri, char *res20)
+ {
+ 	const CODE *c_pri, *c_fac;
+@@ -748,6 +856,31 @@ static void timestamp_and_log(int pri, char *msg, int len)
+ #endif
+ 		log_locally(now, G.printbuf, &G.logFile);
+ 	}
++
++#ifdef ENABLE_FEATURE_SAS_FLASH_LOG
++	/*
++	* Only log if priority is more severe than the specified level (default 8)
++	* or facility bit is set in the specified value (default all facilities are enabled) but of
++	* course all of that only matters if we really specified a seperate filename
++	* to be written!
++	*/
++	if (LOG_PRI(pri) < G.flashlogLevel &&
++		LOG_FAC(pri) & G.flashlogFacility &&
++		strlen(G.flashlogFilePath)) {
++		/* We use the "small" format to save some space */
++		time_t t;
++		if (now) {
++			msg += 16;
++			t = now;
++		}
++		else
++			time(&t);
++
++		strftime(G.printbuf, sizeof(G.printbuf), "%F %T ", localtime(&t));
++		snprintf(&G.printbuf[20], sizeof(G.printbuf), " %s\n", msg);
++		log_locally_flash(G.printbuf);
++	}
++#endif
+ }
+ 
+ static void timestamp_and_log_internal(const char *msg)
+@@ -1025,6 +1158,7 @@ int syslogd_main(int argc UNUSED_PARAM, char **argv)
+ 	if (opt_C) // -Cn
+ 		G.shm_size = xatoul_range(opt_C, 4, INT_MAX/1024) * 1024;
+ #endif
++
+ 	/* If they have not specified remote logging, then log locally */
+ 	if (ENABLE_FEATURE_REMOTE_LOG && !(opts & OPT_remotelog)) // -R
+ 		option_mask32 |= OPT_locallog;
+@@ -1032,6 +1166,20 @@ int syslogd_main(int argc UNUSED_PARAM, char **argv)
+ 	parse_syslogdcfg(opt_f);
+ #endif
+ 
++#ifdef ENABLE_FEATURE_SAS_FLASH_LOG
++	if (opts & OPT_flashloglevel) // -x
++		G.flashlogLevel = xatou_range(opt_x, 1, 8);
++
++	if (opts & OPT_flashlogbackuplines) // -r
++		G.flashlogBackupLines = xatou_range(opt_r, 1, 100);
++
++	if (opts & OPT_flashlogfacility) // -Y
++		G.flashlogFacility = xatou_range(opt_Y, 1, 22);
++
++	if (opts & OPT_flashlogfilesize) // -Z
++		G.flashlogFileSize = xatou_range(opt_Z, 0, INT_MAX/1024) * 1024;
++#endif
++
+ 	/* Store away localhost's name before the fork */
+ 	G.hostname = safe_gethostname();
+ 	*strchrnul(G.hostname, '.') = '\0';
+diff --git a/util-linux/mdev.c b/util-linux/mdev.c
+index 75de14ff15783187c93f74bd4b5e7aad9424b016..3d4e135baa6cfeca2a3104cce82df477fe22b602 100644
+--- a/util-linux/mdev.c
++++ b/util-linux/mdev.c
+@@ -80,7 +80,7 @@
+ //usage:	IF_FEATURE_MDEV_CONF(
+ //usage:       "\n"
+ //usage:       "It uses /etc/mdev.conf with lines\n"
+-//usage:       "	[-]DEVNAME UID:GID PERM"
++//usage:       "	[-][ENV=regex;]...DEVNAME UID:GID PERM"
+ //usage:			IF_FEATURE_MDEV_RENAME(" [>|=PATH]|[!]")
+ //usage:			IF_FEATURE_MDEV_EXEC(" [@|$|*PROG]")
+ //usage:       "\n"
+@@ -230,9 +230,34 @@
+  * SUBSYSTEM=block
+  */
+ 
+-static const char keywords[] ALIGN1 = "add\0remove\0change\0";
++#define DEBUG_LVL 2
++
++#if DEBUG_LVL >= 1
++# define dbg1(...) do { if (G.verbose) bb_error_msg(__VA_ARGS__); } while(0)
++#else
++# define dbg1(...) ((void)0)
++#endif
++#if DEBUG_LVL >= 2
++# define dbg2(...) do { if (G.verbose >= 2) bb_error_msg(__VA_ARGS__); } while(0)
++#else
++# define dbg2(...) ((void)0)
++#endif
++#if DEBUG_LVL >= 3
++# define dbg3(...) do { if (G.verbose >= 3) bb_error_msg(__VA_ARGS__); } while(0)
++#else
++# define dbg3(...) ((void)0)
++#endif
++
++
++static const char keywords[] ALIGN1 = "add\0remove\0"; // "change\0"
+ enum { OP_add, OP_remove };
+ 
++struct envmatch {
++	struct envmatch *next;
++	char *envname;
++	regex_t match;
++};
++
+ struct rule {
+ 	bool keep_matching;
+ 	bool regex_compiled;
+@@ -243,12 +268,14 @@ struct rule {
+ 	char *ren_mov;
+ 	IF_FEATURE_MDEV_EXEC(char *r_cmd;)
+ 	regex_t match;
++	struct envmatch *envmatch;
+ };
+ 
+ struct globals {
+ 	int root_major, root_minor;
+ 	smallint verbose;
+ 	char *subsystem;
++	char *subsys_env; /* for putenv("SUBSYSTEM=subsystem") */
+ #if ENABLE_FEATURE_MDEV_CONF
+ 	const char *filename;
+ 	parser_t *parser;
+@@ -256,6 +283,7 @@ struct globals {
+ 	unsigned rule_idx;
+ #endif
+ 	struct rule cur_rule;
++	char timestr[sizeof("60.123456")];
+ } FIX_ALIASING;
+ #define G (*(struct globals*)&bb_common_bufsiz1)
+ #define INIT_G() do { \
+@@ -267,15 +295,8 @@ struct globals {
+ /* Prevent infinite loops in /sys symlinks */
+ #define MAX_SYSFS_DEPTH 3
+ 
+-/* We use additional 64+ bytes in make_device() */
+-#define SCRATCH_SIZE 80
+-
+-#if 0
+-# define dbg(...) bb_error_msg(__VA_ARGS__)
+-#else
+-# define dbg(...) ((void)0)
+-#endif
+-
++/* We use additional bytes in make_device() */
++#define SCRATCH_SIZE 128
+ 
+ #if ENABLE_FEATURE_MDEV_CONF
+ 
+@@ -288,14 +309,65 @@ static void make_default_cur_rule(void)
+ 
+ static void clean_up_cur_rule(void)
+ {
++	struct envmatch *e;
++
+ 	free(G.cur_rule.envvar);
++	free(G.cur_rule.ren_mov);
+ 	if (G.cur_rule.regex_compiled)
+ 		regfree(&G.cur_rule.match);
+-	free(G.cur_rule.ren_mov);
+ 	IF_FEATURE_MDEV_EXEC(free(G.cur_rule.r_cmd);)
++	e = G.cur_rule.envmatch;
++	while (e) {
++		free(e->envname);
++		regfree(&e->match);
++		e = e->next;
++	}
+ 	make_default_cur_rule();
+ }
+ 
++/* In later versions, endofname is in libbb */
++#define endofname mdev_endofname
++static
++const char* FAST_FUNC
++endofname(const char *name)
++{
++#define is_name(c)      ((c) == '_' || isalpha((unsigned char)(c)))
++#define is_in_name(c)   ((c) == '_' || isalnum((unsigned char)(c)))
++	if (!is_name(*name))
++		return name;
++	while (*++name) {
++		if (!is_in_name(*name))
++			break;
++	}
++	return name;
++}
++
++static char *parse_envmatch_pfx(char *val)
++{
++	struct envmatch **nextp = &G.cur_rule.envmatch;
++
++	for (;;) {
++		struct envmatch *e;
++		char *semicolon;
++		char *eq = strchr(val, '=');
++		if (!eq /* || eq == val? */)
++			return val;
++		if (endofname(val) != eq)
++			return val;
++		semicolon = strchr(eq, ';');
++		if (!semicolon)
++			return val;
++		/* ENVVAR=regex;... */
++		*nextp = e = xzalloc(sizeof(*e));
++		nextp = &e->next;
++		e->envname = xstrndup(val, eq - val);
++		*semicolon = '\0';
++		xregcomp(&e->match, eq + 1, REG_EXTENDED);
++		*semicolon = ';';
++		val = semicolon + 1;
++	}
++}
++
+ static void parse_next_rule(void)
+ {
+ 	/* Note: on entry, G.cur_rule is set to default */
+@@ -308,12 +380,13 @@ static void parse_next_rule(void)
+ 			break;
+ 
+ 		/* Fields: [-]regex uid:gid mode [alias] [cmd] */
+-		dbg("token1:'%s'", tokens[1]);
++		dbg3("token1:'%s'", tokens[1]);
+ 
+ 		/* 1st field */
+ 		val = tokens[0];
+ 		G.cur_rule.keep_matching = ('-' == val[0]);
+ 		val += G.cur_rule.keep_matching; /* swallow leading dash */
++		val = parse_envmatch_pfx(val);
+ 		if (val[0] == '@') {
+ 			/* @major,minor[-minor2] */
+ 			/* (useful when name is ambiguous:
+@@ -328,8 +401,10 @@ static void parse_next_rule(void)
+ 			if (sc == 2)
+ 				G.cur_rule.min1 = G.cur_rule.min0;
+ 		} else {
++			char *eq = strchr(val, '=');
+ 			if (val[0] == '$') {
+-				char *eq = strchr(++val, '=');
++				/* $ENVVAR=regex ... */
++				val++;
+ 				if (!eq) {
+ 					bb_error_msg("bad $envvar=regex on line %d", G.parser->lineno);
+ 					goto next_rule;
+@@ -373,7 +448,7 @@ static void parse_next_rule(void)
+ 		clean_up_cur_rule();
+ 	} /* while (config_read) */
+ 
+-	dbg("config_close(G.parser)");
++	dbg3("config_close(G.parser)");
+ 	config_close(G.parser);
+ 	G.parser = NULL;
+ 
+@@ -390,7 +465,7 @@ static const struct rule *next_rule(void)
+ 
+ 	/* Open conf file if we didn't do it yet */
+ 	if (!G.parser && G.filename) {
+-		dbg("config_open('%s')", G.filename);
++		dbg3("config_open('%s')", G.filename);
+ 		G.parser = config_open2(G.filename, fopen_for_read);
+ 		G.filename = NULL;
+ 	}
+@@ -399,7 +474,7 @@ static const struct rule *next_rule(void)
+ 		/* mdev -s */
+ 		/* Do we have rule parsed already? */
+ 		if (G.rule_vec[G.rule_idx]) {
+-			dbg("< G.rule_vec[G.rule_idx:%d]=%p", G.rule_idx, G.rule_vec[G.rule_idx]);
++			dbg3("< G.rule_vec[G.rule_idx:%d]=%p", G.rule_idx, G.rule_vec[G.rule_idx]);
+ 			return G.rule_vec[G.rule_idx++];
+ 		}
+ 		make_default_cur_rule();
+@@ -416,13 +491,28 @@ static const struct rule *next_rule(void)
+ 			rule = memcpy(xmalloc(sizeof(G.cur_rule)), &G.cur_rule, sizeof(G.cur_rule));
+ 			G.rule_vec = xrealloc_vector(G.rule_vec, 4, G.rule_idx);
+ 			G.rule_vec[G.rule_idx++] = rule;
+-			dbg("> G.rule_vec[G.rule_idx:%d]=%p", G.rule_idx, G.rule_vec[G.rule_idx]);
++			dbg3("> G.rule_vec[G.rule_idx:%d]=%p", G.rule_idx, G.rule_vec[G.rule_idx]);
+ 		}
+ 	}
+ 
+ 	return rule;
+ }
+ 
++static int env_matches(struct envmatch *e)
++{
++	while (e) {
++		int r;
++		char *val = getenv(e->envname);
++		if (!val)
++			return 0;
++		r = regexec(&e->match, val, /*size*/ 0, /*range[]*/ NULL, /*eflags*/ 0);
++		if (r != 0) /* no match */
++			return 0;
++		e = e->next;
++	}
++	return 1;
++}
++
+ #else
+ 
+ # define next_rule() (&G.cur_rule)
+@@ -468,7 +558,7 @@ static char *build_alias(char *alias, const char *device_name)
+ 
+ /* mknod in /dev based on a path like "/sys/block/hda/hda1"
+  * NB1: path parameter needs to have SCRATCH_SIZE scratch bytes
+- * after NUL, but we promise to not mangle (IOW: to restore if needed)
++ * after NUL, but we promise to not mangle (IOW: to restore NUL if needed)
+  * path string.
+  * NB2: "mdev -s" may call us many times, do not leak memory/fds!
+  *
+@@ -478,9 +568,7 @@ static char *build_alias(char *alias, const char *device_name)
+ static void make_device(char *device_name, char *path, int operation)
+ {
+ 	int major, minor, type, len;
+-
+-	if (G.verbose)
+-		bb_error_msg("device: %s, %s", device_name, path);
++	char *path_end = path + strlen(path);
+ 
+ 	/* Try to read major/minor string.  Note that the kernel puts \n after
+ 	 * the data, so we don't need to worry about null terminating the string
+@@ -489,29 +577,51 @@ static void make_device(char *device_name, char *path, int operation)
+ 	 */
+ 	major = -1;
+ 	if (operation == OP_add) {
+-		char *dev_maj_min = path + strlen(path);
+-
+-		strcpy(dev_maj_min, "/dev");
+-		len = open_read_close(path, dev_maj_min + 1, 64);
+-		*dev_maj_min = '\0';
++		strcpy(path_end, "/dev");
++		len = open_read_close(path, path_end + 1, SCRATCH_SIZE - 1);
++		*path_end = '\0';
+ 		if (len < 1) {
+ 			if (!ENABLE_FEATURE_MDEV_EXEC)
+ 				return;
+ 			/* no "dev" file, but we can still run scripts
+ 			 * based on device name */
+-		} else if (sscanf(++dev_maj_min, "%u:%u", &major, &minor) == 2) {
+-			if (G.verbose)
+-				bb_error_msg("maj,min: %u,%u", major, minor);
++		} else if (sscanf(path_end + 1, "%u:%u", &major, &minor) == 2) {
++			dbg1("dev %u,%u", major, minor);
+ 		} else {
+ 			major = -1;
+ 		}
+ 	}
+ 	/* else: for delete, -1 still deletes the node, but < -1 suppresses that */
+ 
+-	/* Determine device name, type, major and minor */
+-	if (!device_name)
+-		device_name = (char*) bb_basename(path);
+-	/* http://kernel.org/doc/pending/hotplug.txt says that only
++	/* Determine device name */
++	if (!device_name) {
++		/*
++		 * There was no $DEVNAME envvar (for example, mdev -s never has).
++		 * But it is very useful: it contains the *path*, not only basename,
++		 * Thankfully, uevent file has it.
++		 * Example of .../sound/card0/controlC0/uevent file on Linux-3.7.7:
++		 * MAJOR=116
++		 * MINOR=7
++		 * DEVNAME=snd/controlC0
++		 */
++		strcpy(path_end, "/uevent");
++		len = open_read_close(path, path_end + 1, SCRATCH_SIZE - 1);
++		if (len < 0)
++			len = 0;
++		*path_end = '\0';
++		path_end[1 + len] = '\0';
++		device_name = strstr(path_end + 1, "\nDEVNAME=");
++		if (device_name) {
++			device_name += sizeof("\nDEVNAME=")-1;
++			strchrnul(device_name, '\n')[0] = '\0';
++		} else {
++			/* Fall back to just basename */
++			device_name = (char*) bb_basename(path);
++		}
++	}
++	/* Determine device type */
++	/*
++	 * http://kernel.org/doc/pending/hotplug.txt says that only
+ 	 * "/sys/block/..." is for block devices. "/sys/bus" etc is not.
+ 	 * But since 2.6.25 block devices are also in /sys/class/block.
+ 	 * We use strstr("/block/") to forestall future surprises.
+@@ -537,6 +647,8 @@ static void make_device(char *device_name, char *path, int operation)
+ 		rule = next_rule();
+ 
+ #if ENABLE_FEATURE_MDEV_CONF
++		if (!env_matches(rule->envmatch))
++			continue;
+ 		if (rule->maj >= 0) {  /* @maj,min rule */
+ 			if (major != rule->maj)
+ 				continue;
+@@ -547,7 +659,7 @@ static void make_device(char *device_name, char *path, int operation)
+ 		}
+ 		if (rule->envvar) { /* $envvar=regex rule */
+ 			str_to_match = getenv(rule->envvar);
+-			dbg("getenv('%s'):'%s'", rule->envvar, str_to_match);
++			dbg3("getenv('%s'):'%s'", rule->envvar, str_to_match);
+ 			if (!str_to_match)
+ 				continue;
+ 		}
+@@ -555,7 +667,7 @@ static void make_device(char *device_name, char *path, int operation)
+ 
+ 		if (rule->regex_compiled) {
+ 			int regex_match = regexec(&rule->match, str_to_match, ARRAY_SIZE(off), off, 0);
+-			dbg("regex_match for '%s':%d", str_to_match, regex_match);
++			dbg3("regex_match for '%s':%d", str_to_match, regex_match);
+ 			//bb_error_msg("matches:");
+ 			//for (int i = 0; i < ARRAY_SIZE(off); i++) {
+ 			//	if (off[i].rm_so < 0) continue;
+@@ -574,9 +686,8 @@ static void make_device(char *device_name, char *path, int operation)
+ 		}
+ 		/* else: it's final implicit "match-all" rule */
+  rule_matches:
++		dbg2("rule matched, line %d", G.parser ? G.parser->lineno : -1);
+ #endif
+-		dbg("rule matched");
+-
+ 		/* Build alias name */
+ 		alias = NULL;
+ 		if (ENABLE_FEATURE_MDEV_RENAME && rule->ren_mov) {
+@@ -619,34 +730,30 @@ static void make_device(char *device_name, char *path, int operation)
+ 				}
+ 			}
+ 		}
+-		dbg("alias:'%s'", alias);
++		dbg3("alias:'%s'", alias);
+ 
+ 		command = NULL;
+ 		IF_FEATURE_MDEV_EXEC(command = rule->r_cmd;)
+ 		if (command) {
+-			const char *s = "$@*";
+-			const char *s2 = strchr(s, command[0]);
+-
+ 			/* Are we running this command now?
+-			 * Run $cmd on delete, @cmd on create, *cmd on both
++			 * Run @cmd on create, $cmd on delete, *cmd on any
+ 			 */
+-			if (s2 - s != (operation == OP_remove) || *s2 == '*') {
+-				/* We are here if: '*',
+-				 * or: '@' and delete = 0,
+-				 * or: '$' and delete = 1
+-				 */
++			if ((command[0] == '@' && operation == OP_add)
++			 || (command[0] == '$' && operation == OP_remove)
++			 || (command[0] == '*')
++			) {
+ 				command++;
+ 			} else {
+ 				command = NULL;
+ 			}
+ 		}
+-		dbg("command:'%s'", command);
++		dbg3("command:'%s'", command);
+ 
+ 		/* "Execute" the line we found */
+ 		node_name = device_name;
+ 		if (ENABLE_FEATURE_MDEV_RENAME && alias) {
+ 			node_name = alias = build_alias(alias, device_name);
+-			dbg("alias2:'%s'", alias);
++			dbg3("alias2:'%s'", alias);
+ 		}
+ 
+ 		if (operation == OP_add && major >= 0) {
+@@ -656,8 +763,17 @@ static void make_device(char *device_name, char *path, int operation)
+ 				mkdir_recursive(node_name);
+ 				*slash = '/';
+ 			}
+-			if (G.verbose)
+-				bb_error_msg("mknod: %s (%d,%d) %o", node_name, major, minor, rule->mode | type);
++			if (ENABLE_FEATURE_MDEV_CONF) {
++				dbg1("mknod %s (%d,%d) %o"
++					" %u:%u",
++					node_name, major, minor, rule->mode | type,
++					rule->ugid.uid, rule->ugid.gid
++				);
++			} else {
++				dbg1("mknod %s (%d,%d) %o",
++					node_name, major, minor, rule->mode | type
++				);
++			}
+ 			if (mknod(node_name, rule->mode | type, makedev(major, minor)) && errno != EEXIST)
+ 				bb_perror_msg("can't create '%s'", node_name);
+ 			if (ENABLE_FEATURE_MDEV_CONF) {
+@@ -671,8 +787,7 @@ static void make_device(char *device_name, char *path, int operation)
+ //TODO: on devtmpfs, device_name already exists and symlink() fails.
+ //End result is that instead of symlink, we have two nodes.
+ //What should be done?
+-					if (G.verbose)
+-						bb_error_msg("symlink: %s", device_name);
++					dbg1("symlink: %s", device_name);
+ 					symlink(node_name, device_name);
+ 				}
+ 			}
+@@ -681,27 +796,21 @@ static void make_device(char *device_name, char *path, int operation)
+ 		if (ENABLE_FEATURE_MDEV_EXEC && command) {
+ 			/* setenv will leak memory, use putenv/unsetenv/free */
+ 			char *s = xasprintf("%s=%s", "MDEV", node_name);
+-			char *s1 = xasprintf("%s=%s", "SUBSYSTEM", G.subsystem);
+ 			putenv(s);
+-			putenv(s1);
+-			if (G.verbose)
+-				bb_error_msg("running: %s", command);
++			dbg1("running: %s", command);
+ 			if (system(command) == -1)
+ 				bb_perror_msg("can't run '%s'", command);
+-			bb_unsetenv_and_free(s1);
+ 			bb_unsetenv_and_free(s);
+ 		}
+ 
+ 		if (operation == OP_remove && major >= -1) {
+ 			if (ENABLE_FEATURE_MDEV_RENAME && alias) {
+ 				if (aliaslink == '>') {
+-					if (G.verbose)
+-						bb_error_msg("unlink: %s", device_name);
++					dbg1("unlink: %s", device_name);
+ 					unlink(device_name);
+ 				}
+ 			}
+-			if (G.verbose)
+-				bb_error_msg("unlink: %s", node_name);
++			dbg1("unlink: %s", node_name);
+ 			unlink(node_name);
+ 		}
+ 
+@@ -746,9 +855,16 @@ static int FAST_FUNC dirAction(const char *fileName UNUSED_PARAM,
+ 	 * under /sys/class/ */
+ 	if (1 == depth) {
+ 		free(G.subsystem);
++		if (G.subsys_env) {
++			bb_unsetenv_and_free(G.subsys_env);
++			G.subsys_env = NULL;
++		}
+ 		G.subsystem = strrchr(fileName, '/');
+-		if (G.subsystem)
++		if (G.subsystem) {
+ 			G.subsystem = xstrdup(G.subsystem + 1);
++			G.subsys_env = xasprintf("%s=%s", "SUBSYSTEM", G.subsystem);
++			putenv(G.subsys_env);
++		}
+ 	}
+ 
+ 	return (depth >= MAX_SYSFS_DEPTH ? SKIP : TRUE);
+@@ -813,12 +929,107 @@ static void load_firmware(const char *firmware, const char *sysfs_path)
+ 		full_write(loading_fd, "-1", 2);
+ 
+  out:
++	xchdir("/dev");
+ 	if (ENABLE_FEATURE_CLEAN_UP) {
+ 		close(firmware_fd);
+ 		close(loading_fd);
+ 	}
+ }
+ 
++static char *curtime(void)
++{
++	struct timeval tv;
++	gettimeofday(&tv, NULL);
++	sprintf(G.timestr, "%u.%06u", (unsigned)tv.tv_sec % 60, (unsigned)tv.tv_usec);
++	return G.timestr;
++}
++
++static void open_mdev_log(const char *seq, unsigned my_pid)
++{
++	int logfd = open("mdev.log", O_WRONLY | O_APPEND);
++	if (logfd >= 0) {
++		xmove_fd(logfd, STDERR_FILENO);
++		G.verbose = 2;
++		applet_name = xasprintf("%s[%s]", applet_name, seq ? seq : utoa(my_pid));
++	}
++}
++
++/* If it exists, does /dev/mdev.seq match $SEQNUM?
++ * If it does not match, earlier mdev is running
++ * in parallel, and we need to wait.
++ * Active mdev pokes us with SIGCHLD to check the new file.
++ */
++static int
++wait_for_seqfile(const char *seq)
++{
++	/* We time out after 2 sec */
++	static const struct timespec ts = { 0, 32*1000*1000 };
++	int timeout = 2000 / 32;
++	int seq_fd = -1;
++	int do_once = 1;
++	sigset_t set_CHLD;
++
++	sigemptyset(&set_CHLD);
++	sigaddset(&set_CHLD, SIGCHLD);
++	sigprocmask(SIG_BLOCK, &set_CHLD, NULL);
++
++	for (;;) {
++		int seqlen;
++		char seqbuf[sizeof(int)*3 + 2];
++
++		if (seq_fd < 0) {
++			seq_fd = open("mdev.seq", O_RDWR);
++			if (seq_fd < 0)
++				break;
++		}
++		seqlen = pread(seq_fd, seqbuf, sizeof(seqbuf) - 1, 0);
++		if (seqlen < 0) {
++			close(seq_fd);
++			seq_fd = -1;
++			break;
++		}
++		seqbuf[seqlen] = '\0';
++		if (seqbuf[0] == '\n') {
++			/* seed file: write out seq ASAP */
++			xwrite_str(seq_fd, seq);
++			xlseek(seq_fd, 0, SEEK_SET);
++			dbg2("first seq written");
++			break;
++		}
++		if (strcmp(seq, seqbuf) == 0) {
++			/* correct idx */
++			break;
++		}
++		if (do_once) {
++			dbg2("%s waiting for '%s'", curtime(), seqbuf);
++			do_once = 0;
++		}
++		if (sigtimedwait(&set_CHLD, NULL, &ts) >= 0) {
++			dbg3("woken up");
++			continue; /* don't decrement timeout! */
++		}
++		if (--timeout == 0) {
++			dbg1("%s waiting for '%s'", "timed out", seqbuf);
++			break;
++		}
++	}
++	sigprocmask(SIG_UNBLOCK, &set_CHLD, NULL);
++	return seq_fd;
++}
++
++static void signal_mdevs(unsigned my_pid)
++{
++	procps_status_t* p = NULL;
++	while ((p = procps_scan(p, PSSCAN_ARGV0)) != NULL) {
++		if (p->pid != my_pid
++		 && p->argv0
++		 && strcmp(bb_basename(p->argv0), "mdev") == 0
++		) {
++			kill(p->pid, SIGCHLD);
++		}
++	}
++}
++
+ int mdev_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+ int mdev_main(int argc UNUSED_PARAM, char **argv)
+ {
+@@ -840,8 +1051,8 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
+ 	xchdir("/dev");
+ 
+ 	if (argv[1] && strcmp(argv[1], "-s") == 0) {
+-		/* Scan:
+-		 * mdev -s
++		/*
++		 * Scan: mdev -s
+ 		 */
+ 		struct stat st;
+ 
+@@ -853,6 +1064,8 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
+ 		G.root_major = major(st.st_dev);
+ 		G.root_minor = minor(st.st_dev);
+ 
++		putenv((char*)"ACTION=add");
++
+ 		/* ACTION_FOLLOWLINKS is needed since in newer kernels
+ 		 * /sys/block/loop* (for example) are symlinks to dirs,
+ 		 * not real directories.
+@@ -878,11 +1091,13 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
+ 		char *action;
+ 		char *env_devname;
+ 		char *env_devpath;
++		unsigned my_pid;
++		int seq_fd;
+ 		smalluint op;
+ 
+ 		/* Hotplug:
+ 		 * env ACTION=... DEVPATH=... SUBSYSTEM=... [SEQNUM=...] mdev
+-		 * ACTION can be "add" or "remove"
++		 * ACTION can be "add", "remove", "change"
+ 		 * DEVPATH is like "/block/sda" or "/class/input/mice"
+ 		 */
+ 		action = getenv("ACTION");
+@@ -893,39 +1108,20 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
+ 		if (!action || !env_devpath /*|| !G.subsystem*/)
+ 			bb_show_usage();
+ 		fw = getenv("FIRMWARE");
+-		/* If it exists, does /dev/mdev.seq match $SEQNUM?
+-		 * If it does not match, earlier mdev is running
+-		 * in parallel, and we need to wait */
+ 		seq = getenv("SEQNUM");
+-		if (seq) {
+-			int timeout = 2000 / 32; /* 2000 msec */
+-			do {
+-				int seqlen;
+-				char seqbuf[sizeof(int)*3 + 2];
+-
+-				seqlen = open_read_close("mdev.seq", seqbuf, sizeof(seqbuf) - 1);
+-				if (seqlen < 0) {
+-					seq = NULL;
+-					break;
+-				}
+-				seqbuf[seqlen] = '\0';
+-				if (seqbuf[0] == '\n' /* seed file? */
+-				 || strcmp(seq, seqbuf) == 0 /* correct idx? */
+-				) {
+-					break;
+-				}
+-				usleep(32*1000);
+-			} while (--timeout);
+-		}
+ 
+-		{
+-			int logfd = open("/dev/mdev.log", O_WRONLY | O_APPEND);
+-			if (logfd >= 0) {
+-				xmove_fd(logfd, STDERR_FILENO);
+-				G.verbose = 1;
+-				bb_error_msg("seq: %s action: %s", seq, action);
+-			}
+-		}
++		my_pid = getpid();
++		open_mdev_log(seq, my_pid);
++
++		seq_fd = seq ? wait_for_seqfile(seq) : -1;
++
++		dbg1("%s "
++			"ACTION:%s SUBSYSTEM:%s DEVNAME:%s DEVPATH:%s"
++			"%s%s",
++			curtime(),
++			action, G.subsystem, env_devname, env_devpath,
++			fw ? " FW:" : "", fw ? fw : ""
++		);
+ 
+ 		snprintf(temp, PATH_MAX, "/sys%s", env_devpath);
+ 		if (op == OP_remove) {
+@@ -935,16 +1131,18 @@ int mdev_main(int argc UNUSED_PARAM, char **argv)
+ 			if (!fw)
+ 				make_device(env_devname, temp, op);
+ 		}
+-		else if (op == OP_add) {
++		else {
+ 			make_device(env_devname, temp, op);
+ 			if (ENABLE_FEATURE_MDEV_LOAD_FIRMWARE) {
+-				if (fw)
++				if (op == OP_add && fw)
+ 					load_firmware(fw, temp);
+ 			}
+ 		}
+ 
+-		if (seq) {
+-			xopen_xwrite_close("mdev.seq", utoa(xatou(seq) + 1));
++		dbg1("%s exiting", curtime());
++		if (seq_fd >= 0) {
++			xwrite_str(seq_fd, utoa(xatou(seq) + 1));
++			signal_mdevs(my_pid);
+ 		}
+ 	}
+ 
+diff --git a/util-linux/mount.c b/util-linux/mount.c
+index deedd17da465ee71cbc935ae0f5435600c9d75ee..07bf9cba05dab9d1830b7f30f51e6aa1a1cfb82a 100644
+--- a/util-linux/mount.c
++++ b/util-linux/mount.c
+@@ -324,6 +324,7 @@ static const char mount_option_str[] =
+ 		"make-rslave\0"
+ 		"make-rprivate\0"
+ 		"make-runbindable\0"
++		"make-offset\0"
+ 	)
+ 
+ 	// Always understood.
+@@ -1358,7 +1359,9 @@ static NOINLINE int nfsmount(struct mntent *mp, unsigned long vfsflags, char *fi
+ 				"udp\0"
+ 				"lock\0"
+ 				"rdirplus\0"
+-				"acl\0";
++				"acl\0"
++				"v3\0"
++				"v2\0";
+ 			int val = 1;
+ 			if (!strncmp(opt, "no", 2)) {
+ 				val = 0;
+@@ -1411,6 +1414,12 @@ static NOINLINE int nfsmount(struct mntent *mp, unsigned long vfsflags, char *fi
+ 			case 12: // acl
+ 				noacl = !val;
+ 				break;
++			case 13: //v3
++				nfsvers = 3;
++				break;
++			case 14: //v2
++				nfsvers = 2;
++				break;
+ 			default:
+ 				bb_error_msg("unknown nfs mount option: %s%s", val ? "" : "no", opt);
+ 				goto fail;
+@@ -1898,9 +1907,30 @@ static int singlemount(struct mntent *mp, int ignore_busy)
+ 	) {
+ 		// Do we need to allocate a loopback device for it?
+ 		if (ENABLE_FEATURE_MOUNT_LOOP && S_ISREG(st.st_mode)) {
++			int offset = 0;
++			char *opt;
++			/* parse options */
++			if (filteropts)	for (opt = strtok(filteropts, ","); opt; opt = strtok(NULL, ",")) {
++				char *opteq = strchr(opt, '=');
++				if (opteq) {
++					int val, idx;
++					static const char options[] ALIGN1 = "offset\0";
++
++					*opteq++ = '\0';
++
++					idx = index_in_strings(options, opt);
++					val = xatoi_positive(opteq);
++					switch (idx) {
++					case 0: // "offset"
++						offset = val;
++						continue;
++					}
++				}
++			}
++
+ 			loopFile = bb_simplify_path(mp->mnt_fsname);
+ 			mp->mnt_fsname = NULL; // will receive malloced loop dev name
+-			if (set_loop(&mp->mnt_fsname, loopFile, 0, /*ro:*/ (vfsflags & MS_RDONLY)) < 0) {
++			if (set_loop(&mp->mnt_fsname, loopFile, offset, /*ro:*/ (vfsflags & MS_RDONLY)) < 0) {
+ 				if (errno == EPERM || errno == EACCES)
+ 					bb_error_msg(bb_msg_perm_denied_are_you_root);
+ 				else
+diff --git a/util-linux/volume_id/ntfs.c b/util-linux/volume_id/ntfs.c
+index 7b2612f01dd21213b0b868e32bd2ecace049fa69..0444e546b25bdea345812d3eabc3b2f20d774503 100644
+--- a/util-linux/volume_id/ntfs.c
++++ b/util-linux/volume_id/ntfs.c
+@@ -150,7 +150,7 @@ int FAST_FUNC volume_id_probe_ntfs(struct volume_id *id /*,uint64_t off*/)
+ 
+ 		attr = (struct file_attribute*) &buf[attr_off];
+ 		attr_type = le32_to_cpu(attr->type);
+-		attr_len = le16_to_cpu(attr->len);
++		attr_len = le32_to_cpu(attr->len);
+ 		val_off = le16_to_cpu(attr->value_offset);
+ 		val_len = le32_to_cpu(attr->value_len);
+ 		attr_off += attr_len;

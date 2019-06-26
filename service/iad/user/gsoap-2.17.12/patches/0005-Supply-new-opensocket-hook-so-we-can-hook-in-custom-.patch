@@ -1,0 +1,176 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Tue, 3 May 2011 13:15:49 +0200
+Subject: Supply new opensocket hook so we can hook in custom functions for
+ socket opening.
+
+Signed-off-by: Daniel Egger <daniel.egger@sphairon.com>
+---
+ gsoap/stdsoap2.c   | 21 ++++++++++++++++++---
+ gsoap/stdsoap2.cpp | 28 ++++++++++++++++++++++------
+ gsoap/stdsoap2.h   |  1 +
+ 3 files changed, 41 insertions(+), 9 deletions(-)
+
+diff --git a/gsoap/stdsoap2.c b/gsoap/stdsoap2.c
+index 2feaeed..0986088 100644
+--- a/gsoap/stdsoap2.c
++++ b/gsoap/stdsoap2.c
+@@ -220,6 +220,7 @@ static int tcp_gethost(struct soap*, const char *addr, struct in_addr *inaddr);
+ static SOAP_SOCKET tcp_connect(struct soap*, const char *endpoint, const char *host, int port);
+ static SOAP_SOCKET tcp_accept(struct soap*, SOAP_SOCKET, struct sockaddr*, int*);
+ static int tcp_disconnect(struct soap*);
++static int tcp_opensocket(struct soap*, int, int, int);
+ static int tcp_closesocket(struct soap*, SOAP_SOCKET);
+ static int tcp_shutdownsocket(struct soap*, SOAP_SOCKET, int);
+ static const char *soap_strerror(struct soap*);
+@@ -3415,6 +3416,7 @@ soap_done(struct soap *soap)
+   soap->faccept = tcp_accept;
+   soap->fopen = tcp_connect;
+   soap->fclose = tcp_disconnect;
++  soap->fopensocket = tcp_opensocket;
+   soap->fclosesocket = tcp_closesocket;
+   soap->fshutdownsocket = tcp_shutdownsocket;
+   soap->fsend = fsend;
+@@ -3669,7 +3671,7 @@ tcp_connect(struct soap *soap, const char *endpoint, const char *host, int port)
+   }
+   ressave = res;
+ again:
+-  fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
++  fd = soap->fopensocket(soap, res->ai_family, res->ai_socktype, res->ai_protocol);
+   soap->errmode = 0;
+ #else
+ #ifndef WITH_LEAN
+@@ -3677,10 +3679,10 @@ again:
+ #endif
+ #ifndef WITH_LEAN
+   if ((soap->omode & SOAP_IO_UDP))
+-    fd = socket(AF_INET, SOCK_DGRAM, 0);
++    fd = soap->fopensocket(soap, AF_INET, SOCK_DGRAM, 0);
+   else
+ #endif
+-    fd = socket(AF_INET, SOCK_STREAM, 0);
++    fd = soap->fopensocket(soap, AF_INET, SOCK_STREAM, 0);
+ #endif
+   if (!soap_valid_socket(fd))
+   {
+@@ -4741,6 +4743,19 @@ tcp_disconnect(struct soap *soap)
+ #ifndef WITH_NOIO
+ #ifndef PALM_1
+ static int
++tcp_opensocket(struct soap *soap, int domain, int type, int protocol)
++{ 
++    int fd = socket( domain, type, protocol);
++    DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Opened new socket: %d\n", fd));
++    return fd;
++}
++#endif
++#endif
++
++/******************************************************************************/
++#ifndef WITH_NOIO
++#ifndef PALM_1
++static int
+ tcp_closesocket(struct soap *soap, SOAP_SOCKET fd)
+ { DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Close socket %d\n", (int)fd));
+   return soap_closesocket(fd);
+diff --git a/gsoap/stdsoap2.cpp b/gsoap/stdsoap2.cpp
+index 2feaeed..463aee5 100644
+--- a/gsoap/stdsoap2.cpp
++++ b/gsoap/stdsoap2.cpp
+@@ -220,6 +220,7 @@ static int tcp_gethost(struct soap*, const char *addr, struct in_addr *inaddr);
+ static SOAP_SOCKET tcp_connect(struct soap*, const char *endpoint, const char *host, int port);
+ static SOAP_SOCKET tcp_accept(struct soap*, SOAP_SOCKET, struct sockaddr*, int*);
+ static int tcp_disconnect(struct soap*);
++static int tcp_opensocket(struct soap*, int, int, int);
+ static int tcp_closesocket(struct soap*, SOAP_SOCKET);
+ static int tcp_shutdownsocket(struct soap*, SOAP_SOCKET, int);
+ static const char *soap_strerror(struct soap*);
+@@ -3415,6 +3416,7 @@ soap_done(struct soap *soap)
+   soap->faccept = tcp_accept;
+   soap->fopen = tcp_connect;
+   soap->fclose = tcp_disconnect;
++  soap->fopensocket = tcp_opensocket;
+   soap->fclosesocket = tcp_closesocket;
+   soap->fshutdownsocket = tcp_shutdownsocket;
+   soap->fsend = fsend;
+@@ -3669,7 +3671,7 @@ tcp_connect(struct soap *soap, const char *endpoint, const char *host, int port)
+   }
+   ressave = res;
+ again:
+-  fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
++  fd = soap->fopensocket(soap, res->ai_family, res->ai_socktype, res->ai_protocol);
+   soap->errmode = 0;
+ #else
+ #ifndef WITH_LEAN
+@@ -3677,10 +3679,10 @@ again:
+ #endif
+ #ifndef WITH_LEAN
+   if ((soap->omode & SOAP_IO_UDP))
+-    fd = socket(AF_INET, SOCK_DGRAM, 0);
++    fd = soap->fopensocket(soap, AF_INET, SOCK_DGRAM, 0);
+   else
+ #endif
+-    fd = socket(AF_INET, SOCK_STREAM, 0);
++    fd = soap->fopensocket(soap, AF_INET, SOCK_STREAM, 0);
+ #endif
+   if (!soap_valid_socket(fd))
+   {
+@@ -4295,14 +4297,14 @@ soap_bind(struct soap *soap, const char *host, int port, int backlog)
+   { soap_set_receiver_error(soap, SOAP_GAI_STRERROR(err), "getaddrinfo failed in soap_bind()", SOAP_TCP_ERROR);
+     return SOAP_INVALID_SOCKET;
+   }
+-  soap->master = (int)socket(res.ai_family, res.ai_socktype, res.ai_protocol);
++  soap->master = (int)soap->fopensocket(soap, res.ai_family, res.ai_socktype, res.ai_protocol);
+ #else
+ #ifndef WITH_LEAN
+   if ((soap->omode & SOAP_IO_UDP))
+-    soap->master = (int)socket(AF_INET, SOCK_DGRAM, 0);
++    soap->master = (int)soap->fopensocket(soap, AF_INET, SOCK_DGRAM, 0);
+   else
+ #endif
+-    soap->master = (int)socket(AF_INET, SOCK_STREAM, 0);
++    soap->master = (int)soap->fopensocket(soap, AF_INET, SOCK_STREAM, 0);
+ #endif
+   soap->errmode = 0;
+   if (!soap_valid_socket(soap->master))
+@@ -4741,6 +4743,19 @@ tcp_disconnect(struct soap *soap)
+ #ifndef WITH_NOIO
+ #ifndef PALM_1
+ static int
++tcp_opensocket(struct soap *soap, int domain, int type, int protocol)
++{ 
++    int fd = socket( domain, type, protocol);
++    DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Opened new socket: %d\n", fd));
++    return fd;
++}
++#endif
++#endif
++
++/******************************************************************************/
++#ifndef WITH_NOIO
++#ifndef PALM_1
++static int
+ tcp_closesocket(struct soap *soap, SOAP_SOCKET fd)
+ { DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Close socket %d\n", (int)fd));
+   return soap_closesocket(fd);
+@@ -6648,6 +6663,7 @@ soap_init(struct soap *soap)
+   soap->faccept = tcp_accept;
+   soap->fopen = tcp_connect;
+   soap->fclose = tcp_disconnect;
++  soap->fopensocket = tcp_opensocket;
+   soap->fclosesocket = tcp_closesocket;
+   soap->fshutdownsocket = tcp_shutdownsocket;
+   soap->fsend = fsend;
+diff --git a/gsoap/stdsoap2.h b/gsoap/stdsoap2.h
+index 54d9375..9e0692d 100644
+--- a/gsoap/stdsoap2.h
++++ b/gsoap/stdsoap2.h
+@@ -1614,6 +1614,7 @@ struct SOAP_STD_API soap
+   int (*fresolve)(struct soap*, const char*, struct in_addr* inaddr);
+   int (*fconnect)(struct soap*, const char*, const char*, int);
+   int (*fdisconnect)(struct soap*);
++  int (*fopensocket)(struct soap*, int, int, int);
+   int (*fclosesocket)(struct soap*, SOAP_SOCKET);
+   int (*fshutdownsocket)(struct soap*, SOAP_SOCKET, int);
+   SOAP_SOCKET (*fopen)(struct soap*, const char*, const char*, int);
+--
+

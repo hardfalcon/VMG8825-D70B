@@ -1,0 +1,187 @@
+diff --git a/Makefile.am b/Makefile.am
+index 608bd110a067e2766855178af3b92fa831b112e9..50ef313ed2508573516fcf466dac943d19af4335 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -66,7 +66,7 @@ CLEANFILES = $(VC6LIBDSP) $(VC8LIBPRJ)
+ bin_SCRIPTS = curl-config
+ 
+ SUBDIRS = lib src include
+-DIST_SUBDIRS = $(SUBDIRS) tests packages docs
++DIST_SUBDIRS = $(SUBDIRS) docs
+ 
+ pkgconfigdir = $(libdir)/pkgconfig
+ pkgconfig_DATA = libcurl.pc
+diff --git a/docs/libcurl/curl_easy_setopt.3 b/docs/libcurl/curl_easy_setopt.3
+index e5ca09f4bc224a6342beb74594a93186acddf6a2..8373772228ac29287677030b87117942ac95eb1e 100644
+--- a/docs/libcurl/curl_easy_setopt.3
++++ b/docs/libcurl/curl_easy_setopt.3
+@@ -2247,6 +2247,35 @@ This option requires that libcurl was built with a resolver backend that
+ supports this operation. The c-ares backend is the only such one.
+ 
+ (Added in 7.24.0)
++.IP CURLOPT_DNS_INTERFACE
++Pass a char * as parameter. Set the name of the network interface that
++the DNS resolver should bind to. This must be an interface name (not an
++address). Set this option to NULL to use the default setting (don't
++bind to a specific interface).
++
++This option requires that libcurl was built with a resolver backend that
++supports this operation. The c-ares backend is the only such one.
++
++(Added in 7.32.0)
++.IP CURLOPT_DNS_LOCAL_IP4
++Set the local IPv4 address that the resolver should bind to. The argument
++must be an IPv4 address in host byte order as a long. Set this option
++to 0 to use the default setting (don't bind to a specific IP address).
++
++This option requires that libcurl was built with a resolver backend that
++supports this operation. The c-ares backend is the only such one.
++
++(Added in 7.32.0)
++.IP CURLOPT_DNS_LOCAL_IP6
++Set the local IPv6 address that the resolver should bind to. The argument
++must be an unsigned char * pointer to a 16-byte IPv6 address in network
++byte order. Set this option to NULL to use the default setting (don't
++bind to a specific IP address).
++
++This option requires that libcurl was built with a resolver backend that
++supports this operation. The c-ares backend is the only such one.
++
++(Added in 7.32.0)
+ .IP CURLOPT_ACCEPTTIMEOUT_MS
+ Pass a long telling libcurl the maximum number of milliseconds to wait for a
+ server to connect back to libcurl when an active FTP connection is used. If no
+diff --git a/docs/libcurl/symbols-in-versions b/docs/libcurl/symbols-in-versions
+index 54b6dbc3dd6fa07cf60f8fb412af3990d957728f..d5cd2d3c17efaff0ffe9c688a21b48c5ed597f3f 100644
+--- a/docs/libcurl/symbols-in-versions
++++ b/docs/libcurl/symbols-in-versions
+@@ -331,6 +331,9 @@ CURLOPT_DEBUGDATA               7.9.6
+ CURLOPT_DEBUGFUNCTION           7.9.6
+ CURLOPT_DIRLISTONLY             7.17.0
+ CURLOPT_DNS_CACHE_TIMEOUT       7.9.3
++CURLOPT_DNS_INTERFACE           7.32.0
++CURLOPT_DNS_LOCAL_IP4           7.32.0
++CURLOPT_DNS_LOCAL_IP6           7.32.0
+ CURLOPT_DNS_SERVERS             7.24.0
+ CURLOPT_DNS_USE_GLOBAL_CACHE    7.9.3         7.11.1
+ CURLOPT_EGDSOCKET               7.7
+diff --git a/include/curl/curl.h b/include/curl/curl.h
+index e8ec9eee664c565eb7f80552221294e8756c01fa..80d13676702c229b98e3bb349cc963cfc530d299 100644
+--- a/include/curl/curl.h
++++ b/include/curl/curl.h
+@@ -1533,6 +1533,22 @@ typedef enum {
+   /* Enable/disable SASL initial response */
+   CINIT(SASL_IR, LONG, 218),
+ 
++  /* Set the interface string for c-ares (DNS)
++   * to use as outgoing network interface */
++  CINIT(DNS_INTERFACE, OBJECTPOINT, 219),
++
++  /* Set the local IPv4 address for c-ares (DNS)
++   * to use for outgoing connections.
++   * Host-byte-order.
++   */
++  CINIT(DNS_LOCAL_IP4, LONG, 220),
++
++  /* Set the local IPv6 address for c-ares (DNS)
++   * to use for outgoing connections.
++   * 16-byte unsigned char*
++   */
++  CINIT(DNS_LOCAL_IP6, OBJECTPOINT, 221),
++
+   CURLOPT_LASTENTRY /* the last unused */
+ } CURLoption;
+ 
+diff --git a/include/curl/curlver.h b/include/curl/curlver.h
+index 58cdbc0136873532c9dc4aa0987e0efae9acee1e..2ef21ca1be55c3c81e3a6c8516a3fedb1ff35786 100644
+--- a/include/curl/curlver.h
++++ b/include/curl/curlver.h
+@@ -30,7 +30,7 @@
+ 
+ /* This is the version number of the libcurl package from which this header
+    file origins: */
+-#define LIBCURL_VERSION "7.31.0-DEV"
++#define LIBCURL_VERSION "7.31.0-sph-1.0"
+ 
+ /* The numeric version number is also available "in parts" by using these
+    defines: */
+@@ -64,6 +64,6 @@
+  *
+  * "Mon Feb 12 11:35:33 UTC 2007"
+  */
+-#define LIBCURL_TIMESTAMP "DEV"
++#define LIBCURL_TIMESTAMP "sph-1.0"
+ 
+ #endif /* __CURL_CURLVER_H */
+diff --git a/include/curl/typecheck-gcc.h b/include/curl/typecheck-gcc.h
+index f8917e811276b4cf03b47ee3c5730e4933bf6fd5..917aa45e382f36f74d91ab1161b2882c38619b75 100644
+--- a/include/curl/typecheck-gcc.h
++++ b/include/curl/typecheck-gcc.h
+@@ -264,6 +264,8 @@ _CURL_WARNING(_curl_easy_getinfo_err_curl_slist,
+    (option) == CURLOPT_RTSP_SESSION_ID ||                                     \
+    (option) == CURLOPT_RTSP_STREAM_URI ||                                     \
+    (option) == CURLOPT_RTSP_TRANSPORT ||                                      \
++   (option) == CURLOPT_DNS_INTERFACE ||                                       \
++   (option) == CURLOPT_DNS_SERVERS ||                                         \
+    0)
+ 
+ /* evaluates to true if option takes a curl_write_callback argument */
+diff --git a/lib/url.c b/lib/url.c
+index 7ba49698684b9f86bca61a4b45d8d0245917498a..9e28a203b96ce520a60e48c8ce56b8f39bce292b 100644
+--- a/lib/url.c
++++ b/lib/url.c
+@@ -74,6 +74,10 @@ void idn_free (void *ptr);
+ int curl_win32_idn_to_ascii(const char *in, char **out);
+ #endif  /* USE_LIBIDN */
+ 
++#ifdef USE_ARES
++#include "ares.h"
++#endif
++
+ #include "urldata.h"
+ #include "netrc.h"
+ 
+@@ -655,6 +659,43 @@ CURLcode Curl_setopt(struct SessionHandle *data, CURLoption option,
+     arg = va_arg(param, long);
+     data->set.global_dns_cache = (0 != arg)?TRUE:FALSE;
+     break;
++
++#ifdef USE_ARES
++  case CURLOPT_DNS_INTERFACE:
++    /*
++     * Set what interface or address/hostname to bind the socket to when
++     * performing DNS operations.
++     */
++    argptr = va_arg(param, char *);
++    ares_set_local_dev((ares_channel)data->state.resolver,
++                       argptr ? argptr : "");
++    break;
++  case CURLOPT_DNS_LOCAL_IP4:
++    /*
++     * Set the IPv4 source address for DNS operations.
++     */
++    ares_set_local_ip4((ares_channel)data->state.resolver,
++                       va_arg(param, uint32_t));
++    break;
++  case CURLOPT_DNS_LOCAL_IP6:
++    {
++      const static char zero_ip6[16] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
++      unsigned char *ip6 = va_arg(param, unsigned char *);
++      /*
++       * Set the IPv6 source address for DNS operations.
++       */
++      ares_set_local_ip6((ares_channel)data->state.resolver,
++                         ip6 ? ip6 : zero_ip6);
++    }
++    break;
++#else
++  case CURLOPT_DNS_INTERFACE:
++  case CURLOPT_DNS_LOCAL_IP4:
++  case CURLOPT_DNS_LOCAL_IP6:
++    result = CURLE_NOT_BUILT_IN;
++    break;
++#endif
++
+   case CURLOPT_SSL_CIPHER_LIST:
+     /* set a list of cipher we want to use in the SSL connection */
+     result = setstropt(&data->set.str[STRING_SSL_CIPHER_LIST],

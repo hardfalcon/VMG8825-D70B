@@ -1,0 +1,763 @@
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000000000000000000000000000000000000..f75e4f71022e3365681fa5ac87c621e4e1dc7f46
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,22 @@
++apps/Makefile.save
++crypto/Makefile.save
++crypto/asn1/Makefile.save
++crypto/cmac/Makefile.save
++crypto/conf/Makefile.save
++crypto/des/Makefile.save
++crypto/dh/Makefile.save
++crypto/dsa/Makefile.save
++crypto/err/Makefile.save
++crypto/evp/Makefile.save
++crypto/hmac/Makefile.save
++crypto/ocsp/Makefile.save
++crypto/pem/Makefile.save
++crypto/pkcs12/Makefile.save
++crypto/pkcs7/Makefile.save
++crypto/rand/Makefile.save
++crypto/rsa/Makefile.save
++crypto/sha/Makefile.save
++crypto/ts/Makefile.save
++crypto/x509/Makefile.save
++crypto/x509v3/Makefile.save
++ssl/Makefile.save
+diff --git a/Configure b/Configure
+index de78469b9f6206c32738ba88db11d8f69081710d..481bd648e4be898f8eba5bf57cffd3892ffb82f3 100755
+--- a/Configure
++++ b/Configure
+@@ -403,6 +403,10 @@ my %table=(
+ "linux-alpha-ccc","ccc:-fast -readonly_strings -DL_ENDIAN -DTERMIO::-D_REENTRANT:::SIXTY_FOUR_BIT_LONG RC4_CHUNK DES_INT DES_PTR DES_RISC1 DES_UNROLL:${alpha_asm}",
+ "linux-alpha+bwx-ccc","ccc:-fast -readonly_strings -DL_ENDIAN -DTERMIO::-D_REENTRANT:::SIXTY_FOUR_BIT_LONG RC4_CHAR RC4_CHUNK DES_INT DES_PTR DES_RISC1 DES_UNROLL:${alpha_asm}",
+ 
++# Sphairon Linux targets:
++"linux-mips-sphairon","gcc:-DB_ENDIAN -DTERMIO \$(SPHAIRON_CFLAGS) \$(DEPFLAG)::-D_REENTRANT::-ldl:BN_LLONG RC4_CHAR RC4_CHUNK DES_INT DES_UNROLL DES_RISC2:${mips32_asm}:o32:dlfcn:linux-shared:-fPIC::.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
++"linux-powerpc-sphairon","gcc:-DB_ENDIAN -DTERMIO \$(SPHAIRON_CFLAGS) \$(DEPFLAG)::-D_REENTRANT::-ldl:BN_LLONG RC4_CHAR RC4_CHUNK DES_RISC1 DES_UNROLL:${ppc32_asm}:linux32:dlfcn:linux-shared:-fPIC::.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
++
+ # Android: linux-* but without -DTERMIO and pointers to headers and libs.
+ "android","gcc:-mandroid -I\$(ANDROID_DEV)/include -B\$(ANDROID_DEV)/lib -O3 -fomit-frame-pointer -Wall::-D_REENTRANT::-ldl:BN_LLONG RC4_CHAR RC4_CHUNK DES_INT DES_UNROLL BF_PTR:${no_asm}:dlfcn:linux-shared:-fPIC::.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
+ "android-x86","gcc:-mandroid -I\$(ANDROID_DEV)/include -B\$(ANDROID_DEV)/lib -O3 -fomit-frame-pointer -Wall::-D_REENTRANT::-ldl:BN_LLONG ${x86_gcc_des} ${x86_gcc_opts}:".eval{my $asm=${x86_elf_asm};$asm=~s/:elf/:android/;$asm}.":dlfcn:linux-shared:-fPIC::.so.\$(SHLIB_MAJOR).\$(SHLIB_MINOR)",
+diff --git a/Makefile.org b/Makefile.org
+index c92806f9201fe56a75a0bf28fcd997119dd13ae2..7544c391ad787edf8723ffecee4b67e0ce1bd3f7 100644
+--- a/Makefile.org
++++ b/Makefile.org
+@@ -135,7 +135,7 @@ FIPSCANLIB=
+ 
+ BASEADDR=
+ 
+-DIRS=   crypto ssl engines apps test tools
++DIRS=   crypto ssl apps
+ ENGDIRS= ccgost
+ SHLIBDIRS= crypto ssl
+ 
+@@ -268,26 +268,26 @@ reflect:
+ 	@[ -n "$(THIS)" ] && $(CLEARENV) && $(MAKE) $(THIS) -e $(BUILDENV)
+ 
+ sub_all: build_all
+-build_all: build_libs build_apps build_tests build_tools
++build_all: build_libs build_apps
+ 
+-build_libs: build_crypto build_ssl build_engines
++build_libs: build_crypto build_ssl
+ 
+ build_crypto:
+-	@dir=crypto; target=all; $(BUILD_ONE_CMD)
+-build_ssl:
+-	@dir=ssl; target=all; $(BUILD_ONE_CMD)
+-build_engines:
+-	@dir=engines; target=all; $(BUILD_ONE_CMD)
+-build_apps:
+-	@dir=apps; target=all; $(BUILD_ONE_CMD)
+-build_tests:
+-	@dir=test; target=all; $(BUILD_ONE_CMD)
++	+@dir=crypto; target=all; $(BUILD_ONE_CMD)
++build_ssl: build_crypto
++	+@dir=ssl; target=all; $(BUILD_ONE_CMD)
++build_engines: build_crypto
++	+@dir=engines; target=all; $(BUILD_ONE_CMD)
++build_apps: build_crypto build_ssl
++	+@dir=apps; target=all; $(BUILD_ONE_CMD)
++build_tests: build_crypto build_ssl
++	+@dir=test; target=all; $(BUILD_ONE_CMD)
+ build_tools:
+-	@dir=tools; target=all; $(BUILD_ONE_CMD)
++	+@dir=tools; target=all; $(BUILD_ONE_CMD)
+ 
+ all_testapps: build_libs build_testapps
+ build_testapps:
+-	@dir=crypto; target=testapps; $(BUILD_ONE_CMD)
++	+@dir=crypto; target=testapps; $(BUILD_ONE_CMD)
+ 
+ fips_premain_dso$(EXE_EXT): libcrypto.a
+ 	[ -z "$(FIPSCANLIB)" ] || $(CC) $(CFLAG) -Iinclude \
+@@ -311,7 +311,7 @@ libcrypto$(SHLIB_EXT): libcrypto.a fips_premain_dso$(EXE_EXT)
+ 
+ libssl$(SHLIB_EXT): libcrypto$(SHLIB_EXT) libssl.a
+ 	@if [ "$(SHLIB_TARGET)" != "" ]; then \
+-		$(MAKE) SHLIBDIRS=ssl SHLIBDEPS='-lcrypto' build-shared; \
++		$(MAKE) -e SHLIBDIRS=ssl SHLIBDEPS='-lcrypto' build-shared; \
+ 	else \
+ 		echo "There's no support for shared libraries on this platform" >&2; \
+ 		exit 1; \
+@@ -407,7 +407,7 @@ libclean:
+ 
+ clean:	libclean
+ 	rm -f shlib/*.o *.o core a.out fluff rehash.time testlog make.log cctest cctest.c
+-	@set -e; target=clean; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=clean; $(RECURSIVE_BUILD_CMD)
+ 	rm -f $(LIBS)
+ 	rm -f openssl.pc libssl.pc libcrypto.pc
+ 	rm -f speed.* .pure
+@@ -423,12 +423,12 @@ makefile.one: files
+ 
+ files:
+ 	$(PERL) $(TOP)/util/files.pl Makefile > $(TOP)/MINFO
+-	@set -e; target=files; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=files; $(RECURSIVE_BUILD_CMD)
+ 
+ links:
+ 	@$(PERL) $(TOP)/util/mkdir-p.pl include/openssl
+ 	@$(PERL) $(TOP)/util/mklink.pl include/openssl $(EXHEADER)
+-	@set -e; target=links; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=links; $(RECURSIVE_BUILD_CMD)
+ 
+ gentests:
+ 	@(cd test && echo "generating dummy tests (if needed)..." && \
+@@ -460,7 +460,7 @@ report:
+ 	@$(PERL) util/selftest.pl
+ 
+ depend:
+-	@set -e; target=depend; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=depend; $(RECURSIVE_BUILD_CMD)
+ 
+ lint:
+ 	@set -e; target=lint; $(RECURSIVE_BUILD_CMD)
+@@ -538,9 +538,9 @@ dist:
+ dist_pem_h:
+ 	(cd crypto/pem; $(MAKE) -e $(BUILDENV) pem.h; $(MAKE) clean)
+ 
+-install: all install_docs install_sw
++install: all install_sw
+ 
+-install_sw:
++install_sw: all
+ 	@$(PERL) $(TOP)/util/mkdir-p.pl $(INSTALL_PREFIX)$(INSTALLTOP)/bin \
+ 		$(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR) \
+ 		$(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR)/engines \
+@@ -554,7 +554,7 @@ install_sw:
+ 	(cp $$i $(INSTALL_PREFIX)$(INSTALLTOP)/include/openssl/$$i; \
+ 	chmod 644 $(INSTALL_PREFIX)$(INSTALLTOP)/include/openssl/$$i ); \
+ 	done;
+-	@set -e; target=install; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=install; $(RECURSIVE_BUILD_CMD)
+ 	@set -e; liblist="$(LIBS)"; for i in $$liblist ;\
+ 	do \
+ 		if [ -f "$$i" ]; then \
+diff --git a/Makefile.shared b/Makefile.shared
+index e753f44e18fdf6878a25024e5939f6f0d7db6305..27318f46e29e8c5fa43fadcf89ae25452cd0bd34 100644
+--- a/Makefile.shared
++++ b/Makefile.shared
+@@ -92,7 +92,7 @@ CALC_VERSIONS=	\
+ LINK_APP=	\
+   ( $(SET_X);   \
+     LIBDEPS="$${LIBDEPS:-$(LIBDEPS)}"; \
+-    LDCMD="$${LDCMD:-$(CC)}"; LDFLAGS="$${LDFLAGS:-$(CFLAGS)}"; \
++    LDCMD="$${LDCMD:-$(CC)}"; LDFLAGS="${SPHAIRON_LDFLAGS} $${LDFLAGS:-$(CFLAGS)}"; \
+     LIBPATH=`for x in $$LIBDEPS; do echo $$x; done | sed -e 's/^ *-L//;t' -e d | uniq`; \
+     LIBPATH=`echo $$LIBPATH | sed -e 's/ /:/g'`; \
+     LD_LIBRARY_PATH=$$LIBPATH:$$LD_LIBRARY_PATH \
+@@ -102,7 +102,7 @@ LINK_SO=	\
+   ( $(SET_X);   \
+     LIBDEPS="$${LIBDEPS:-$(LIBDEPS)}"; \
+     SHAREDCMD="$${SHAREDCMD:-$(CC)}"; \
+-    SHAREDFLAGS="$${SHAREDFLAGS:-$(CFLAGS) $(SHARED_LDFLAGS)}"; \
++    SHAREDFLAGS="${SPHAIRON_LDFLAGS} $${SHAREDFLAGS:-$(CFLAGS) $(SHARED_LDFLAGS)}"; \
+     LIBPATH=`for x in $$LIBDEPS; do echo $$x; done | sed -e 's/^ *-L//;t' -e d | uniq`; \
+     LIBPATH=`echo $$LIBPATH | sed -e 's/ /:/g'`; \
+     LD_LIBRARY_PATH=$$LIBPATH:$$LD_LIBRARY_PATH \
+@@ -151,9 +151,9 @@ DO_GNU_SO=$(CALC_VERSIONS); \
+ 	SHLIB_SUFFIX=; \
+ 	ALLSYMSFLAGS='-Wl,--whole-archive'; \
+ 	NOALLSYMSFLAGS='-Wl,--no-whole-archive'; \
+-	SHAREDFLAGS="$(CFLAGS) $(SHARED_LDFLAGS) -shared -Wl,-Bsymbolic -Wl,-soname=$$SHLIB$$SHLIB_SOVER$$SHLIB_SUFFIX"
++	SHAREDFLAGS="$(CFLAGS) $(SHARED_LDFLAGS) -shared -Wl,-soname=$$SHLIB$$SHLIB_SOVER$$SHLIB_SUFFIX"
+ 
+-DO_GNU_APP=LDFLAGS="$(CFLAGS) -Wl,-rpath,$(LIBRPATH)"
++DO_GNU_APP=LDFLAGS="$(CFLAGS)"
+ 
+ #This is rather special.  It's a special target with which one can link
+ #applications without bothering with any features that have anything to
+diff --git a/apps/Makefile b/apps/Makefile
+index 72657ea658733c305028f2de7cd12f2485372416..dcc97b0e1d75a3771605397fbfac1c5541222249 100644
+--- a/apps/Makefile
++++ b/apps/Makefile
+@@ -35,11 +35,15 @@ SCRIPTS=CA.sh CA.pl tsget
+ 
+ EXE= $(PROGRAM)$(EXE_EXT)
+ 
++ifdef foo
+ E_EXE=	verify asn1pars req dgst dh dhparam enc passwd gendh errstr \
+ 	ca crl rsa rsautl dsa dsaparam ec ecparam \
+ 	x509 genrsa gendsa genpkey s_server s_client speed \
+ 	s_time version pkcs7 cms crl2pkcs7 sess_id ciphers nseq pkcs12 \
+ 	pkcs8 pkey pkeyparam pkeyutl spkac smime rand engine ocsp prime ts srp
++else
++E_EXE=	req dgst enc genpkey ciphers ecparam x509 s_client
++endif
+ 
+ PROGS= $(PROGRAM).c
+ 
+@@ -50,6 +54,7 @@ S_SRC=	s_cb.c s_socket.c
+ RAND_OBJ=app_rand.o
+ RAND_SRC=app_rand.c
+ 
++ifdef foo
+ E_OBJ=	verify.o asn1pars.o req.o dgst.o dh.o dhparam.o enc.o passwd.o gendh.o errstr.o \
+ 	ca.o pkcs7.o crl2p7.o crl.o \
+ 	rsa.o rsautl.o dsa.o dsaparam.o ec.o ecparam.o \
+@@ -65,6 +70,10 @@ E_SRC=	verify.c asn1pars.c req.c dgst.c dh.c enc.c passwd.c gendh.c errstr.c ca.
+ 	s_time.c $(A_SRC) $(S_SRC) $(RAND_SRC) version.c sess_id.c \
+ 	ciphers.c nseq.c pkcs12.c pkcs8.c pkey.c pkeyparam.c pkeyutl.c \
+ 	spkac.c smime.c cms.c rand.c engine.c ocsp.c prime.c ts.c srp.c
++else
++E_OBJ= $(addsuffix .o,$(E_EXE)) $(A_OBJ) $(S_OBJ) $(RAND_OBJ)
++E_SRC= $(addsuffix .c,$(E_EXE)) $(A_SRC) $(S_SRC) $(RAND_SRC)
++endif
+ 
+ SRC=$(E_SRC)
+ 
+@@ -127,7 +136,7 @@ links:
+ lint:
+ 	lint -DLINT $(INCLUDES) $(SRC)>fluff
+ 
+-depend:
++depend: progs.h
+ 	@if [ -z "$(THIS)" ]; then \
+ 	    $(MAKE) -f $(TOP)/Makefile reflect THIS=$@; \
+ 	else \
+diff --git a/apps/enc.c b/apps/enc.c
+index 19ea3df9409e81d4b2627024c5b720efb417dd68..c6a211ba87fd6429c3ed1b445610ca8c62770676 100644
+--- a/apps/enc.c
++++ b/apps/enc.c
+@@ -67,7 +67,9 @@
+ #include <openssl/x509.h>
+ #include <openssl/rand.h>
+ #include <openssl/pem.h>
++#ifndef OPENSSL_NO_COMP
+ #include <openssl/comp.h>
++#endif
+ #include <ctype.h>
+ 
+ int set_hex(char *in,unsigned char *out,int size);
+diff --git a/apps/progs.h b/apps/progs.h
+deleted file mode 100644
+index 949e78066b78e6049dc55f82d25ec9bd0bc0f6ca..0000000000000000000000000000000000000000
+--- a/apps/progs.h
++++ /dev/null
+@@ -1,366 +0,0 @@
+-/* apps/progs.h */
+-/* automatically generated by progs.pl for openssl.c */
+-
+-extern int verify_main(int argc,char *argv[]);
+-extern int asn1parse_main(int argc,char *argv[]);
+-extern int req_main(int argc,char *argv[]);
+-extern int dgst_main(int argc,char *argv[]);
+-extern int dh_main(int argc,char *argv[]);
+-extern int dhparam_main(int argc,char *argv[]);
+-extern int enc_main(int argc,char *argv[]);
+-extern int passwd_main(int argc,char *argv[]);
+-extern int gendh_main(int argc,char *argv[]);
+-extern int errstr_main(int argc,char *argv[]);
+-extern int ca_main(int argc,char *argv[]);
+-extern int crl_main(int argc,char *argv[]);
+-extern int rsa_main(int argc,char *argv[]);
+-extern int rsautl_main(int argc,char *argv[]);
+-extern int dsa_main(int argc,char *argv[]);
+-extern int dsaparam_main(int argc,char *argv[]);
+-extern int ec_main(int argc,char *argv[]);
+-extern int ecparam_main(int argc,char *argv[]);
+-extern int x509_main(int argc,char *argv[]);
+-extern int genrsa_main(int argc,char *argv[]);
+-extern int gendsa_main(int argc,char *argv[]);
+-extern int genpkey_main(int argc,char *argv[]);
+-extern int s_server_main(int argc,char *argv[]);
+-extern int s_client_main(int argc,char *argv[]);
+-extern int speed_main(int argc,char *argv[]);
+-extern int s_time_main(int argc,char *argv[]);
+-extern int version_main(int argc,char *argv[]);
+-extern int pkcs7_main(int argc,char *argv[]);
+-extern int cms_main(int argc,char *argv[]);
+-extern int crl2pkcs7_main(int argc,char *argv[]);
+-extern int sess_id_main(int argc,char *argv[]);
+-extern int ciphers_main(int argc,char *argv[]);
+-extern int nseq_main(int argc,char *argv[]);
+-extern int pkcs12_main(int argc,char *argv[]);
+-extern int pkcs8_main(int argc,char *argv[]);
+-extern int pkey_main(int argc,char *argv[]);
+-extern int pkeyparam_main(int argc,char *argv[]);
+-extern int pkeyutl_main(int argc,char *argv[]);
+-extern int spkac_main(int argc,char *argv[]);
+-extern int smime_main(int argc,char *argv[]);
+-extern int rand_main(int argc,char *argv[]);
+-extern int engine_main(int argc,char *argv[]);
+-extern int ocsp_main(int argc,char *argv[]);
+-extern int prime_main(int argc,char *argv[]);
+-extern int ts_main(int argc,char *argv[]);
+-extern int srp_main(int argc,char *argv[]);
+-
+-#define FUNC_TYPE_GENERAL	1
+-#define FUNC_TYPE_MD		2
+-#define FUNC_TYPE_CIPHER	3
+-#define FUNC_TYPE_PKEY		4
+-#define FUNC_TYPE_MD_ALG	5
+-#define FUNC_TYPE_CIPHER_ALG	6
+-
+-typedef struct {
+-	int type;
+-	const char *name;
+-	int (*func)(int argc,char *argv[]);
+-	} FUNCTION;
+-DECLARE_LHASH_OF(FUNCTION);
+-
+-FUNCTION functions[] = {
+-	{FUNC_TYPE_GENERAL,"verify",verify_main},
+-	{FUNC_TYPE_GENERAL,"asn1parse",asn1parse_main},
+-	{FUNC_TYPE_GENERAL,"req",req_main},
+-	{FUNC_TYPE_GENERAL,"dgst",dgst_main},
+-#ifndef OPENSSL_NO_DH
+-	{FUNC_TYPE_GENERAL,"dh",dh_main},
+-#endif
+-#ifndef OPENSSL_NO_DH
+-	{FUNC_TYPE_GENERAL,"dhparam",dhparam_main},
+-#endif
+-	{FUNC_TYPE_GENERAL,"enc",enc_main},
+-	{FUNC_TYPE_GENERAL,"passwd",passwd_main},
+-#ifndef OPENSSL_NO_DH
+-	{FUNC_TYPE_GENERAL,"gendh",gendh_main},
+-#endif
+-	{FUNC_TYPE_GENERAL,"errstr",errstr_main},
+-	{FUNC_TYPE_GENERAL,"ca",ca_main},
+-	{FUNC_TYPE_GENERAL,"crl",crl_main},
+-#ifndef OPENSSL_NO_RSA
+-	{FUNC_TYPE_GENERAL,"rsa",rsa_main},
+-#endif
+-#ifndef OPENSSL_NO_RSA
+-	{FUNC_TYPE_GENERAL,"rsautl",rsautl_main},
+-#endif
+-#ifndef OPENSSL_NO_DSA
+-	{FUNC_TYPE_GENERAL,"dsa",dsa_main},
+-#endif
+-#ifndef OPENSSL_NO_DSA
+-	{FUNC_TYPE_GENERAL,"dsaparam",dsaparam_main},
+-#endif
+-#ifndef OPENSSL_NO_EC
+-	{FUNC_TYPE_GENERAL,"ec",ec_main},
+-#endif
+-#ifndef OPENSSL_NO_EC
+-	{FUNC_TYPE_GENERAL,"ecparam",ecparam_main},
+-#endif
+-	{FUNC_TYPE_GENERAL,"x509",x509_main},
+-#ifndef OPENSSL_NO_RSA
+-	{FUNC_TYPE_GENERAL,"genrsa",genrsa_main},
+-#endif
+-#ifndef OPENSSL_NO_DSA
+-	{FUNC_TYPE_GENERAL,"gendsa",gendsa_main},
+-#endif
+-	{FUNC_TYPE_GENERAL,"genpkey",genpkey_main},
+-#if !defined(OPENSSL_NO_SOCK) && !(defined(OPENSSL_NO_SSL2) && defined(OPENSSL_NO_SSL3))
+-	{FUNC_TYPE_GENERAL,"s_server",s_server_main},
+-#endif
+-#if !defined(OPENSSL_NO_SOCK) && !(defined(OPENSSL_NO_SSL2) && defined(OPENSSL_NO_SSL3))
+-	{FUNC_TYPE_GENERAL,"s_client",s_client_main},
+-#endif
+-#ifndef OPENSSL_NO_SPEED
+-	{FUNC_TYPE_GENERAL,"speed",speed_main},
+-#endif
+-#if !defined(OPENSSL_NO_SOCK) && !(defined(OPENSSL_NO_SSL2) && defined(OPENSSL_NO_SSL3))
+-	{FUNC_TYPE_GENERAL,"s_time",s_time_main},
+-#endif
+-	{FUNC_TYPE_GENERAL,"version",version_main},
+-	{FUNC_TYPE_GENERAL,"pkcs7",pkcs7_main},
+-#ifndef OPENSSL_NO_CMS
+-	{FUNC_TYPE_GENERAL,"cms",cms_main},
+-#endif
+-	{FUNC_TYPE_GENERAL,"crl2pkcs7",crl2pkcs7_main},
+-	{FUNC_TYPE_GENERAL,"sess_id",sess_id_main},
+-#if !defined(OPENSSL_NO_SOCK) && !(defined(OPENSSL_NO_SSL2) && defined(OPENSSL_NO_SSL3))
+-	{FUNC_TYPE_GENERAL,"ciphers",ciphers_main},
+-#endif
+-	{FUNC_TYPE_GENERAL,"nseq",nseq_main},
+-#if !defined(OPENSSL_NO_DES) && !defined(OPENSSL_NO_SHA1)
+-	{FUNC_TYPE_GENERAL,"pkcs12",pkcs12_main},
+-#endif
+-	{FUNC_TYPE_GENERAL,"pkcs8",pkcs8_main},
+-	{FUNC_TYPE_GENERAL,"pkey",pkey_main},
+-	{FUNC_TYPE_GENERAL,"pkeyparam",pkeyparam_main},
+-	{FUNC_TYPE_GENERAL,"pkeyutl",pkeyutl_main},
+-	{FUNC_TYPE_GENERAL,"spkac",spkac_main},
+-	{FUNC_TYPE_GENERAL,"smime",smime_main},
+-	{FUNC_TYPE_GENERAL,"rand",rand_main},
+-#ifndef OPENSSL_NO_ENGINE
+-	{FUNC_TYPE_GENERAL,"engine",engine_main},
+-#endif
+-#ifndef OPENSSL_NO_OCSP
+-	{FUNC_TYPE_GENERAL,"ocsp",ocsp_main},
+-#endif
+-	{FUNC_TYPE_GENERAL,"prime",prime_main},
+-	{FUNC_TYPE_GENERAL,"ts",ts_main},
+-#ifndef OPENSSL_NO_SRP
+-	{FUNC_TYPE_GENERAL,"srp",srp_main},
+-#endif
+-#ifndef OPENSSL_NO_MD2
+-	{FUNC_TYPE_MD,"md2",dgst_main},
+-#endif
+-#ifndef OPENSSL_NO_MD4
+-	{FUNC_TYPE_MD,"md4",dgst_main},
+-#endif
+-#ifndef OPENSSL_NO_MD5
+-	{FUNC_TYPE_MD,"md5",dgst_main},
+-#endif
+-#ifndef OPENSSL_NO_SHA
+-	{FUNC_TYPE_MD,"sha",dgst_main},
+-#endif
+-#ifndef OPENSSL_NO_SHA1
+-	{FUNC_TYPE_MD,"sha1",dgst_main},
+-#endif
+-#ifndef OPENSSL_NO_MDC2
+-	{FUNC_TYPE_MD,"mdc2",dgst_main},
+-#endif
+-#ifndef OPENSSL_NO_RMD160
+-	{FUNC_TYPE_MD,"rmd160",dgst_main},
+-#endif
+-#ifndef OPENSSL_NO_AES
+-	{FUNC_TYPE_CIPHER,"aes-128-cbc",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_AES
+-	{FUNC_TYPE_CIPHER,"aes-128-ecb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_AES
+-	{FUNC_TYPE_CIPHER,"aes-192-cbc",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_AES
+-	{FUNC_TYPE_CIPHER,"aes-192-ecb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_AES
+-	{FUNC_TYPE_CIPHER,"aes-256-cbc",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_AES
+-	{FUNC_TYPE_CIPHER,"aes-256-ecb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_CAMELLIA
+-	{FUNC_TYPE_CIPHER,"camellia-128-cbc",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_CAMELLIA
+-	{FUNC_TYPE_CIPHER,"camellia-128-ecb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_CAMELLIA
+-	{FUNC_TYPE_CIPHER,"camellia-192-cbc",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_CAMELLIA
+-	{FUNC_TYPE_CIPHER,"camellia-192-ecb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_CAMELLIA
+-	{FUNC_TYPE_CIPHER,"camellia-256-cbc",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_CAMELLIA
+-	{FUNC_TYPE_CIPHER,"camellia-256-ecb",enc_main},
+-#endif
+-	{FUNC_TYPE_CIPHER,"base64",enc_main},
+-#ifdef ZLIB
+-	{FUNC_TYPE_CIPHER,"zlib",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_DES
+-	{FUNC_TYPE_CIPHER,"des",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_DES
+-	{FUNC_TYPE_CIPHER,"des3",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_DES
+-	{FUNC_TYPE_CIPHER,"desx",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_IDEA
+-	{FUNC_TYPE_CIPHER,"idea",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_SEED
+-	{FUNC_TYPE_CIPHER,"seed",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_RC4
+-	{FUNC_TYPE_CIPHER,"rc4",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_RC4
+-	{FUNC_TYPE_CIPHER,"rc4-40",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_RC2
+-	{FUNC_TYPE_CIPHER,"rc2",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_BF
+-	{FUNC_TYPE_CIPHER,"bf",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_CAST
+-	{FUNC_TYPE_CIPHER,"cast",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_RC5
+-	{FUNC_TYPE_CIPHER,"rc5",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_DES
+-	{FUNC_TYPE_CIPHER,"des-ecb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_DES
+-	{FUNC_TYPE_CIPHER,"des-ede",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_DES
+-	{FUNC_TYPE_CIPHER,"des-ede3",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_DES
+-	{FUNC_TYPE_CIPHER,"des-cbc",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_DES
+-	{FUNC_TYPE_CIPHER,"des-ede-cbc",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_DES
+-	{FUNC_TYPE_CIPHER,"des-ede3-cbc",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_DES
+-	{FUNC_TYPE_CIPHER,"des-cfb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_DES
+-	{FUNC_TYPE_CIPHER,"des-ede-cfb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_DES
+-	{FUNC_TYPE_CIPHER,"des-ede3-cfb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_DES
+-	{FUNC_TYPE_CIPHER,"des-ofb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_DES
+-	{FUNC_TYPE_CIPHER,"des-ede-ofb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_DES
+-	{FUNC_TYPE_CIPHER,"des-ede3-ofb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_IDEA
+-	{FUNC_TYPE_CIPHER,"idea-cbc",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_IDEA
+-	{FUNC_TYPE_CIPHER,"idea-ecb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_IDEA
+-	{FUNC_TYPE_CIPHER,"idea-cfb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_IDEA
+-	{FUNC_TYPE_CIPHER,"idea-ofb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_SEED
+-	{FUNC_TYPE_CIPHER,"seed-cbc",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_SEED
+-	{FUNC_TYPE_CIPHER,"seed-ecb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_SEED
+-	{FUNC_TYPE_CIPHER,"seed-cfb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_SEED
+-	{FUNC_TYPE_CIPHER,"seed-ofb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_RC2
+-	{FUNC_TYPE_CIPHER,"rc2-cbc",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_RC2
+-	{FUNC_TYPE_CIPHER,"rc2-ecb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_RC2
+-	{FUNC_TYPE_CIPHER,"rc2-cfb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_RC2
+-	{FUNC_TYPE_CIPHER,"rc2-ofb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_RC2
+-	{FUNC_TYPE_CIPHER,"rc2-64-cbc",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_RC2
+-	{FUNC_TYPE_CIPHER,"rc2-40-cbc",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_BF
+-	{FUNC_TYPE_CIPHER,"bf-cbc",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_BF
+-	{FUNC_TYPE_CIPHER,"bf-ecb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_BF
+-	{FUNC_TYPE_CIPHER,"bf-cfb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_BF
+-	{FUNC_TYPE_CIPHER,"bf-ofb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_CAST
+-	{FUNC_TYPE_CIPHER,"cast5-cbc",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_CAST
+-	{FUNC_TYPE_CIPHER,"cast5-ecb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_CAST
+-	{FUNC_TYPE_CIPHER,"cast5-cfb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_CAST
+-	{FUNC_TYPE_CIPHER,"cast5-ofb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_CAST
+-	{FUNC_TYPE_CIPHER,"cast-cbc",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_RC5
+-	{FUNC_TYPE_CIPHER,"rc5-cbc",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_RC5
+-	{FUNC_TYPE_CIPHER,"rc5-ecb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_RC5
+-	{FUNC_TYPE_CIPHER,"rc5-cfb",enc_main},
+-#endif
+-#ifndef OPENSSL_NO_RC5
+-	{FUNC_TYPE_CIPHER,"rc5-ofb",enc_main},
+-#endif
+-	{0,NULL,NULL}
+-	};
+diff --git a/apps/speed.c b/apps/speed.c
+index 9886ca3766913d647e0fc7cf88571f20b93ac9c6..85936f9829fa878f91e0c8a6ac4dda723ac6670e 100644
+--- a/apps/speed.c
++++ b/apps/speed.c
+@@ -150,7 +150,7 @@
+ #ifndef OPENSSL_NO_RIPEMD
+ #include <openssl/ripemd.h>
+ #endif
+-#ifndef OPENSSL_NO_WHIRLPOOL
++#ifndef OPENSSL_NO_WHRLPOOL
+ #include <openssl/whrlpool.h>
+ #endif
+ #ifndef OPENSSL_NO_RC4
+@@ -395,7 +395,7 @@ int MAIN(int argc, char **argv)
+ 	unsigned char sha512[SHA512_DIGEST_LENGTH];
+ #endif
+ #endif
+-#ifndef OPENSSL_NO_WHIRLPOOL
++#ifndef OPENSSL_NO_WHRLPOOL
+ 	unsigned char whirlpool[WHIRLPOOL_DIGEST_LENGTH];
+ #endif
+ #ifndef OPENSSL_NO_RIPEMD
+@@ -1628,7 +1628,7 @@ int MAIN(int argc, char **argv)
+ #endif
+ #endif
+ 
+-#ifndef OPENSSL_NO_WHIRLPOOL
++#ifndef OPENSSL_NO_WHRLPOOL
+ 	if (doit[D_WHIRLPOOL])
+ 		{
+ 		for (j=0; j<SIZE_NUM; j++)
+diff --git a/crypto/Makefile b/crypto/Makefile
+index a90809b2b83333a8f7246f028c738fbe4c44881c..f9f500b4dc876728c04f642bb72c2e2a6d947b43 100644
+--- a/crypto/Makefile
++++ b/crypto/Makefile
+@@ -88,17 +88,17 @@ testapps:
+ 	@if [ -z "$(THIS)" ]; then $(MAKE) -f $(TOP)/Makefile reflect THIS=$@; fi
+ 
+ subdirs:
+-	@target=all; $(RECURSIVE_MAKE)
++	+@target=all; $(RECURSIVE_MAKE)
+ 
+ files:
+ 	$(PERL) $(TOP)/util/files.pl Makefile >> $(TOP)/MINFO
+-	@target=files; $(RECURSIVE_MAKE)
++	+@target=files; $(RECURSIVE_MAKE)
+ 
+ links:
+ 	@$(PERL) $(TOP)/util/mklink.pl ../include/openssl $(EXHEADER)
+ 	@$(PERL) $(TOP)/util/mklink.pl ../test $(TEST)
+ 	@$(PERL) $(TOP)/util/mklink.pl ../apps $(APPS)
+-	@target=links; $(RECURSIVE_MAKE)
++	+@target=links; $(RECURSIVE_MAKE)
+ 
+ # lib: $(LIB): are splitted to avoid end-less loop
+ lib:	$(LIB)
+@@ -109,12 +109,12 @@ $(LIB):	$(LIBOBJ)
+ 	$(RANLIB) $(LIB) || echo Never mind.
+ 
+ shared: buildinf.h lib subdirs
+-	if [ -n "$(SHARED_LIBS)" ]; then \
+-		(cd ..; $(MAKE) $(SHARED_LIB)); \
++	+if [ -n "$(SHARED_LIBS)" ]; then \
++		(cd ..; $(MAKE) -e $(SHARED_LIB)); \
+ 	fi
+ 
+ libs:
+-	@target=lib; $(RECURSIVE_MAKE)
++	+@target=lib; $(RECURSIVE_MAKE)
+ 
+ install:
+ 	@[ -n "$(INSTALLTOP)" ] # should be set by top Makefile...
+@@ -123,7 +123,7 @@ install:
+ 	(cp $$i $(INSTALL_PREFIX)$(INSTALLTOP)/include/openssl/$$i; \
+ 	chmod 644 $(INSTALL_PREFIX)$(INSTALLTOP)/include/openssl/$$i ); \
+ 	done;
+-	@target=install; $(RECURSIVE_MAKE)
++	+@target=install; $(RECURSIVE_MAKE)
+ 
+ lint:
+ 	@target=lint; $(RECURSIVE_MAKE)
+@@ -132,12 +132,12 @@ depend:
+ 	@[ -z "$(THIS)" -o -f buildinf.h ] || touch buildinf.h # fake buildinf.h if it does not exist
+ 	@[ -z "$(THIS)" ] || $(MAKEDEPEND) -- $(CFLAG) $(INCLUDE) $(DEPFLAG) -- $(PROGS) $(LIBSRC)
+ 	@[ -z "$(THIS)" -o -s buildinf.h ] || rm buildinf.h
+-	@[ -z "$(THIS)" ] || (set -e; target=depend; $(RECURSIVE_MAKE) )
+-	@if [ -z "$(THIS)" ]; then $(MAKE) -f $(TOP)/Makefile reflect THIS=$@; fi
++	+@[ -z "$(THIS)" ] || (set -e; target=depend; $(RECURSIVE_MAKE) )
++	+@if [ -z "$(THIS)" ]; then $(MAKE) -f $(TOP)/Makefile reflect THIS=$@; fi
+ 
+ clean:
+ 	rm -f buildinf.h *.s *.o */*.o *.obj lib tags core .pure .nfs* *.old *.bak fluff
+-	@target=clean; $(RECURSIVE_MAKE)
++	+@target=clean; $(RECURSIVE_MAKE)
+ 
+ dclean:
+ 	$(PERL) -pe 'if (/^# DO NOT DELETE THIS LINE/) {print; exit(0);}' $(MAKEFILE) >Makefile.new
+diff --git a/crypto/evp/c_alld.c b/crypto/evp/c_alld.c
+index 311e1fe2f8517bed047be77608238d8db0dc75da..3b81c0d1ba01c56b1ed6b8f6e42d8751f458f21c 100644
+--- a/crypto/evp/c_alld.c
++++ b/crypto/evp/c_alld.c
+@@ -108,7 +108,7 @@ void OpenSSL_add_all_digests(void)
+ 	EVP_add_digest(EVP_sha384());
+ 	EVP_add_digest(EVP_sha512());
+ #endif
+-#ifndef OPENSSL_NO_WHIRLPOOL
++#ifndef OPENSSL_NO_WHRLPOOL
+ 	EVP_add_digest(EVP_whirlpool());
+ #endif
+ 	}
+diff --git a/crypto/evp/m_wp.c b/crypto/evp/m_wp.c
+index c51bc2d5d1eed3f355dca8e7f7a31b3fce4a4f8c..90f11d25d5cf24dcc439acdc1937bcf70ec095bf 100644
+--- a/crypto/evp/m_wp.c
++++ b/crypto/evp/m_wp.c
+@@ -3,7 +3,7 @@
+ #include <stdio.h>
+ #include "cryptlib.h"
+ 
+-#ifndef OPENSSL_NO_WHIRLPOOL
++#ifndef OPENSSL_NO_WHRLPOOL
+ 
+ #include <openssl/evp.h>
+ #include <openssl/objects.h>
+diff --git a/ssl/Makefile b/ssl/Makefile
+index 0045d8983022131f3c034a3b3a0bb1112d7e368c..19a46a94deb6653ef988f7aa71f9cacf0eb44313 100644
+--- a/ssl/Makefile
++++ b/ssl/Makefile
+@@ -62,7 +62,7 @@ lib:	$(LIBOBJ)
+ 
+ shared: lib
+ 	if [ -n "$(SHARED_LIBS)" ]; then \
+-		(cd ..; $(MAKE) $(SHARED_LIB)); \
++		(cd ..; $(MAKE) -e $(SHARED_LIB)); \
+ 	fi
+ 
+ files:

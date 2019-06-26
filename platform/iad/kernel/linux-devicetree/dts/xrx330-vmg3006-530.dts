@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2014-2019 Sphairon GmbH (a Zyxel company)
+ */
+
+/dts-v1/;
+
+#include "xrx330-vmg3006.dtsi"
+
+/ {
+	model = "Zyxel vmg3006 series [530]";
+	compatible = "zyxel,vmg3006", "lantiq,grx390", "lantiq,xway";
+};

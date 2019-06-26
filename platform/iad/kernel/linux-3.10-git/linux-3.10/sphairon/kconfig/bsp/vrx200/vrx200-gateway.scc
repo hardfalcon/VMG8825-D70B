@@ -1,0 +1,8 @@
+include bsp/lantiq-ugw/xrx200-vdsp.scc
+include bsp/lantiq-ugw/mtd-spi.scc
+include bsp/lantiq-ugw/mtd-nand.scc
+include bsp/lantiq-ugw/spi.scc
+include features/mtd/spi.scc
+include features/mtd/nand.scc
+include features/spi/spi.scc
+include flavors/sphairon-gateway.scc

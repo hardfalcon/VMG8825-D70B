@@ -1,0 +1,23 @@
+From: Alexander Sack <asac@jwsdot.com>
+Date: Thu, 18 Dec 2008 05:44:22 +0100
+Subject: /ppp-2.4.4rel/debian/patches/syslog_local2
+
+---
+ pppd/pppd.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pppd/pppd.h b/pppd/pppd.h
+index e0648e8..ef0411c 100644
+--- a/pppd/pppd.h
++++ b/pppd/pppd.h
+@@ -831,7 +831,7 @@ extern void (*snoop_send_hook) __P((unsigned char *p, int len));
+   || defined(DEBUGCHAP) || defined(DEBUG) || defined(DEBUGIPV6CP)
+ #define LOG_PPP LOG_LOCAL2
+ #else
+-#define LOG_PPP LOG_DAEMON
++#define LOG_PPP LOG_LOCAL2
+ #endif
+ #endif /* LOG_PPP */
+ 
+--
+

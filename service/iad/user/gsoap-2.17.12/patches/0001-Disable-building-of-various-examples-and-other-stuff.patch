@@ -1,0 +1,75 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Tue, 3 May 2011 13:09:38 +0200
+Subject: Disable building of various examples and other stuff.
+
+Signed-off-by: Daniel Egger <daniel.egger@sphairon.com>
+---
+ configure         | 32 +-------------------------------
+ gsoap/Makefile.in |  2 +-
+ 2 files changed, 2 insertions(+), 32 deletions(-)
+
+diff --git a/configure b/configure
+index 785f59c..31113c8 100755
+--- a/configure
++++ b/configure
+@@ -6156,7 +6156,7 @@ fi
+ 
+ 
+ 
+-                                                                                                                                                                                                                                                                                                                                                                                                      ac_config_files="$ac_config_files Makefile gsoap.pc gsoap++.pc gsoapck.pc gsoapck++.pc gsoapssl.pc gsoapssl++.pc gsoap/Makefile gsoap/src/Makefile gsoap/wsdl/Makefile gsoap/samples/Makefile gsoap/samples/calc/Makefile gsoap/samples/calc++/Makefile gsoap/samples/dime/Makefile gsoap/samples/dom/Makefile gsoap/samples/events/Makefile gsoap/samples/events++/Makefile gsoap/samples/factory/Makefile gsoap/samples/factorytest/Makefile gsoap/samples/gmt/Makefile gsoap/samples/googleapi/Makefile gsoap/samples/hello/Makefile gsoap/samples/httpcookies/Makefile gsoap/samples/lu/Makefile gsoap/samples/magic/Makefile gsoap/samples/mashup/Makefile gsoap/samples/mashup++/Makefile gsoap/samples/mtom/Makefile gsoap/samples/mtom-stream/Makefile gsoap/samples/polytest/Makefile gsoap/samples/roll/Makefile gsoap/samples/router/Makefile gsoap/samples/rss/Makefile gsoap/samples/ssl/Makefile gsoap/samples/udp/Makefile gsoap/samples/varparam/Makefile gsoap/samples/wsa/Makefile gsoap/samples/wsse/Makefile gsoap/samples/xml-rpc/Makefile"
++                                                                                                                                                                                                                                                                                                                                                                                                      ac_config_files="$ac_config_files Makefile gsoap.pc gsoap++.pc gsoapck.pc gsoapck++.pc gsoapssl.pc gsoapssl++.pc gsoap/Makefile gsoap/src/Makefile"
+ 
+ cat >confcache <<\_ACEOF
+ # This file is a shell script that caches the results of configure
+@@ -6723,36 +6723,6 @@ do
+   "gsoapssl++.pc" ) CONFIG_FILES="$CONFIG_FILES gsoapssl++.pc" ;;
+   "gsoap/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/Makefile" ;;
+   "gsoap/src/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/src/Makefile" ;;
+-  "gsoap/wsdl/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/wsdl/Makefile" ;;
+-  "gsoap/samples/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/Makefile" ;;
+-  "gsoap/samples/calc/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/calc/Makefile" ;;
+-  "gsoap/samples/calc++/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/calc++/Makefile" ;;
+-  "gsoap/samples/dime/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/dime/Makefile" ;;
+-  "gsoap/samples/dom/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/dom/Makefile" ;;
+-  "gsoap/samples/events/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/events/Makefile" ;;
+-  "gsoap/samples/events++/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/events++/Makefile" ;;
+-  "gsoap/samples/factory/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/factory/Makefile" ;;
+-  "gsoap/samples/factorytest/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/factorytest/Makefile" ;;
+-  "gsoap/samples/gmt/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/gmt/Makefile" ;;
+-  "gsoap/samples/googleapi/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/googleapi/Makefile" ;;
+-  "gsoap/samples/hello/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/hello/Makefile" ;;
+-  "gsoap/samples/httpcookies/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/httpcookies/Makefile" ;;
+-  "gsoap/samples/lu/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/lu/Makefile" ;;
+-  "gsoap/samples/magic/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/magic/Makefile" ;;
+-  "gsoap/samples/mashup/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/mashup/Makefile" ;;
+-  "gsoap/samples/mashup++/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/mashup++/Makefile" ;;
+-  "gsoap/samples/mtom/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/mtom/Makefile" ;;
+-  "gsoap/samples/mtom-stream/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/mtom-stream/Makefile" ;;
+-  "gsoap/samples/polytest/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/polytest/Makefile" ;;
+-  "gsoap/samples/roll/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/roll/Makefile" ;;
+-  "gsoap/samples/router/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/router/Makefile" ;;
+-  "gsoap/samples/rss/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/rss/Makefile" ;;
+-  "gsoap/samples/ssl/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/ssl/Makefile" ;;
+-  "gsoap/samples/udp/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/udp/Makefile" ;;
+-  "gsoap/samples/varparam/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/varparam/Makefile" ;;
+-  "gsoap/samples/wsa/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/wsa/Makefile" ;;
+-  "gsoap/samples/wsse/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/wsse/Makefile" ;;
+-  "gsoap/samples/xml-rpc/Makefile" ) CONFIG_FILES="$CONFIG_FILES gsoap/samples/xml-rpc/Makefile" ;;
+   "depfiles" ) CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
+   "config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;
+   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
+diff --git a/gsoap/Makefile.in b/gsoap/Makefile.in
+index 15543fc..65951d5 100644
+--- a/gsoap/Makefile.in
++++ b/gsoap/Makefile.in
+@@ -108,7 +108,7 @@ AM_CXXFLAGS = $(SOAPCPP2_DEBUG) -D$(platform)
+ AM_CFLAGS = $(SOAPCPP2_DEBUG) -D$(platform)
+ 
+ # Install all soapcpp2 and wsdl2h files into ${prefix}/share/gsoap
+-nobase_pkgdata_DATA = import/* plugin/* WS/* custom/* extras/*
++nobase_pkgdata_DATA =
+ 
+ lib_LIBRARIES = libgsoap.a libgsoap++.a libgsoapck.a libgsoapck++.a libgsoapssl.a libgsoapssl++.a
+ libgsoap_a_SOURCES = stdsoap2.c
+--
+

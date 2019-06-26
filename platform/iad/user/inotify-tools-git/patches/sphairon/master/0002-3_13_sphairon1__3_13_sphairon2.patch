@@ -1,0 +1,52 @@
+diff --git a/configure.ac b/configure.ac
+index b4635f9dfdb401709382e62f86007abb260a4602..3ddc4e3671308f32fb96f23e59c5e602cfc83bf8 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -2,7 +2,7 @@
+ # Process this file with autoconf to produce a configure script.
+ 
+ AC_PREREQ(2.59)
+-AC_INIT([inotify-tools], [3.13-sphairon1], [rohan@mcgovern.id.au])
++AC_INIT([inotify-tools], [3.13-sphairon2], [rohan@mcgovern.id.au])
+ AM_INIT_AUTOMAKE
+ AC_CONFIG_SRCDIR([src/inotifywait.c])
+ AM_CONFIG_HEADER([config.h])
+@@ -45,7 +45,7 @@ AM_CONDITIONAL([DOXYGEN_ENABLE], test x$DOXYGEN != xNO_DOXYGEN )
+ AC_CHECK_HEADERS([sys/inotify.h mcheck.h])
+ AC_LANG(C)
+ AC_MSG_CHECKING([whether sys/inotify.h actually works])
+-AC_RUN_IFELSE(
++AC_COMPILE_IFELSE(
+   AC_LANG_PROGRAM([[#include <sys/inotify.h>]],
+                   [[return (-1 == inotify_init());]]
+   ),
+diff --git a/src/inotifywait.c b/src/inotifywait.c
+index 491d777562db5c3f0c08c3f50d886498c09fe3d3..a7715877ecd814bcf8439ebb3cd8283836e07b49 100644
+--- a/src/inotifywait.c
++++ b/src/inotifywait.c
+@@ -16,8 +16,8 @@
+ #include <assert.h>
+ #include <regex.h>
+ 
+-#include <inotifytools/inotifytools.h>
+-#include <inotifytools/inotify.h>
++#include <../libinotifytools/src/inotifytools/inotifytools.h>
++#include <../libinotifytools/src/inotifytools/inotify.h>
+ 
+ #include <getopt.h>
+ 
+diff --git a/src/inotifywatch.c b/src/inotifywatch.c
+index cb412d6417c7b559fd220067677ae6b24aaa2e01..14ae9aef1a6d22b82f78febe9809c1a445f705c5 100644
+--- a/src/inotifywatch.c
++++ b/src/inotifywatch.c
+@@ -21,8 +21,8 @@
+ #include <assert.h>
+ #include <regex.h>
+ 
+-#include <inotifytools/inotifytools.h>
+-#include <inotifytools/inotify.h>
++#include <../libinotifytools/src/inotifytools/inotifytools.h>
++#include <../libinotifytools/src/inotifytools/inotify.h>
+ 
+ #define _GNU_SOURCE
+ #include <getopt.h>

@@ -1,0 +1,33 @@
+From 313132741b5cd595c13fb44d18dadb0a96210253 Mon Sep 17 00:00:00 2001
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Fri, 6 Aug 2010 17:40:24 +0200
+Subject: Fix compilation without reference to headers from an iptables version later than 1.4.0.
+
+---
+ include/ebtables_u.h |    3 +--
+ 1 files changed, 1 insertions(+), 2 deletions(-)
+
+diff --git a/include/ebtables_u.h b/include/ebtables_u.h
+index 910c213..71212d8 100644
+--- a/include/ebtables_u.h
++++ b/include/ebtables_u.h
+@@ -25,7 +25,6 @@
+ #define EBTABLES_U_H
+ #include <netinet/in.h>
+ #include <linux/netfilter_bridge/ebtables.h>
+-#include <linux/netfilter/x_tables.h>
+ 
+ #ifndef IPPROTO_SCTP
+ #define IPPROTO_SCTP		132
+@@ -38,7 +37,7 @@
+ #define EXEC_STYLE_DAEMON	1
+ 
+ #ifndef EBT_MIN_ALIGN
+-#define EBT_MIN_ALIGN (__alignof__(struct _xt_align))
++#define EBT_MIN_ALIGN (__alignof__(struct ebt_u_target))
+ #endif
+ #define EBT_ALIGN(s) (((s) + (EBT_MIN_ALIGN-1)) & ~(EBT_MIN_ALIGN-1))
+ #define ERRORMSG_MAXLEN 128
+-- 
+1.7.3.3
+

@@ -1,0 +1,24 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Tue, 3 May 2011 13:18:07 +0200
+Subject: Don't use TR-069 incompatible SOAP-ENC:Array encoding.
+
+Signed-off-by: Daniel Egger <daniel.egger@sphairon.com>
+---
+ gsoap/stdsoap2.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/gsoap/stdsoap2.cpp b/gsoap/stdsoap2.cpp
+index 463aee5..a3a1cc0 100644
+--- a/gsoap/stdsoap2.cpp
++++ b/gsoap/stdsoap2.cpp
+@@ -7404,7 +7404,7 @@ SOAP_FMAC2
+ soap_array_begin_out(struct soap *soap, const char *tag, int id, const char *type, const char *offset)
+ { if (!type || !*type)
+     return soap_element_begin_out(soap, tag, id, NULL);
+-  if (soap_element(soap, tag, id, "SOAP-ENC:Array"))
++  if (soap_element(soap, tag, id, ""))
+     return soap->error;
+   if (soap->version == 2)
+   { const char *s;
+--
+

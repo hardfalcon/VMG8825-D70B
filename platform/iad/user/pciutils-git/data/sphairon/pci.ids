@@ -1,0 +1,110 @@
+#
+#	List of PCI ID's
+#
+#	Version: 2015.05.13
+#	Date:    2015-05-13 03:15:02
+#
+#	Maintained by Martin Mares <mj@ucw.cz> and other volunteers from the
+#	PCI ID Project at http://pci-ids.ucw.cz/.
+#
+#	New data are always welcome, especially if they are accurate. If you have
+#	anything to contribute, please follow the instructions at the web site.
+#
+#	This file can be distributed under either the GNU General Public License
+#	(version 2 or higher) or the 3-clause BSD License.
+#
+
+# Vendors, devices and subsystems. Please keep sorted.
+
+# Syntax:
+# vendor  vendor_name
+#	device  device_name				<-- single tab
+#		subvendor subdevice  subsystem_name	<-- two tabs
+#
+# This file has been modified to shrink data for Sphairon based devices
+
+1814  Ralink corp.
+	0101  Wireless PCI Adapter RT2400 / RT2460
+		1043 0127  WiFi-b add-on Card
+		1371 0010  Minitar MNW2BPCI Wireless PCI Card
+		1462 6828  PC11B2 (MS-6828) Wireless 11b PCI Card
+	0200  RT2500 802.11g PCI [PC54G2]
+	0201  RT2500 Wireless 802.11bg
+		1043 130f  WL-130g
+		1186 3c00  DWL-G650X Wireless 11g CardBus Adapter
+		1371 001e  CWC-854 Wireless-G CardBus Adapter
+		1371 001f  CWM-854 Wireless-G Mini PCI Adapter
+		1371 0020  CWP-854 Wireless-G PCI Adapter
+		1458 e381  GN-WMKG 802.11b/g Wireless CardBus Adapter
+		1458 e931  GN-WIKG 802.11b/g mini-PCI Adapter
+		1462 6833  Unknown 802.11g mini-PCI Adapter
+		1462 6835  Wireless 11G CardBus CB54G2
+		1737 0032  WMP54G v4.0 PCI Adapter
+		1799 700a  F5D7000 v2000/v3000 Wireless G Desktop Card
+		1799 701a  F5D7010 v2000/v3000 Wireless G Notebook Card
+		1814 2560  RT2500 Wireless 802.11bg
+		182d 9073  WL-115 Wireless Network PCI Adapter
+		185f 22a0  CN-WF513 Wireless Cardbus Adapter
+		18eb 5312  WL531P IEEE 802.11g PCI Card-EU
+		1948 3c00  C54RC v1 Wireless 11g CardBus Adapter
+		1948 3c01  C54Ri v1 Wireless 11g PCI Adapter
+	0300  Wireless Adapter Canyon CN-WF511
+	0301  RT2561/RT61 802.11g PCI
+		1186 3c08  AirPlus G DWL-G630 Wireless Cardbus Adapter (rev.E1)
+		1186 3c09  DWL-G510 Rev C
+		13d1 abe3  miniPCI Pluscom 802.11 a/b/g
+		1458 e933  GN-WI01GS
+		1458 e934  GN-WP01GS
+		1737 0055  WMP54G v4.1
+		1799 700e  F5D7000 v6000 Wireless G Desktop Card
+		1799 701e  F5D7010 v6000 Wireless G Notebook Card
+		17f9 0012  AWLC3026T 802.11g Wireless CardBus Adapter
+		1814 2561  EW-7108PCg/EW-7128g
+	0302  RT2561/RT61 rev B 802.11g
+		1186 3a71  DWA-510 Wireless G Desktop Adapter
+		1186 3c08  AirPlus G DWL-G630 Wireless Cardbus Adapter (rev.E2)
+		1186 3c09  AirPlus G DWL-G510 Wireless Network Adapter (Rev.C)
+		1462 b834  PC54G3 Wireless 11g PCI Card
+		1948 3c23  C54RC v2 Wireless 11g CardBus Adapter
+		1948 3c24  C54Ri v2 Wireless 11g PCI Adapter
+	0401  RT2600 802.11 MIMO
+		1737 0052  WPC54GR v1 802.11g Wireless-G Notebook Adapter with RangeBooster
+		17f9 0011  WPCR-137G 802.11bg Wireless CardBus Adapter
+		17f9 0016  WPIR-119GH 802.11bg Wireless Desktop Adapter
+	0601  RT2800 802.11n PCI
+		1799 801c  F5D8011 v3 802.11n N1 Wireless Notebook Card
+		187e 3412  NWD-310N 802.11n Wireless PCI Adapter
+	0681  RT2890 Wireless 802.11n PCIe
+		1458 e939  GN-WS30N-RH 802.11bgn Mini PCIe Card
+	0701  RT2760 Wireless 802.11n 1T/2R
+		1737 0074  WMP110 v2 802.11n RangePlus Wireless PCI Adapter
+	0781  RT2790 Wireless 802.11n 1T/2R PCIe
+		1814 2790  RT2790 Wireless 802.11n 1T/2R PCIe
+	3060  RT3060 Wireless 802.11n 1T/1R
+		1186 3c04  DWA-525 Wireless N 150 Desktop Adapter (rev.A1)
+	3062  RT3062 Wireless 802.11n 2T/2R
+	3090  RT3090 Wireless 802.11n 1T/1R PCIe
+		13bd 1057  GN-WS32L-RH Half-size Mini PCIe Card
+	3091  RT3091 Wireless 802.11n 1T/2R PCIe
+	3092  RT3092 Wireless 802.11n 2T/2R PCIe
+	3290  RT3290 Wireless 802.11n 1T/1R PCIe
+		103c 18ec  Ralink RT3290LE 802.11bgn 1x1 Wi-Fi and Bluetooth 4.0 Combo Adapter
+	3298  RT3290 Bluetooth
+		103c 18ec  Ralink RT3290LE 802.11bgn 1x1 Wi-Fi and Bluetooth 4.0 Combo Adapter
+	3592  RT3592 Wireless 802.11abgn 2T/2R PCIe
+	359f  RT3592 PCIe Wireless Network Adapter
+	5360  RT5360 Wireless 802.11n 1T/1R
+		1186 3c05  DWA-525 Wireless N 150 Desktop Adapter (rev.A2)
+		20f4 703a  TEW-703PI N150 Wireless PCI Adapter
+	5362  RT5362 PCI 802.11n Wireless Network Adapter
+	5390  RT5390 Wireless 802.11n 1T/1R PCIe
+		103c 1636  U98Z077.00 Half-size Mini PCIe Card
+	5392  RT5392 PCIe Wireless Network Adapter
+	539f  RT5390 [802.11 b/g/n 1T1R G-band PCI Express Single Chip]
+		103c 1637  Pavilion DM1Z-3000 PCIe wireless card
+	5592  RT5592 PCIe Wireless Network Adapter
+	e932  RT2560F 802.11 b/g PCI
+1a30  Lantiq
+	0680  MtW8171 [Hyperion II]
+	0700  Wave300 PSB8224 [Hyperion III]
+	0710  Wave300 PSB8231 [Hyperion III]

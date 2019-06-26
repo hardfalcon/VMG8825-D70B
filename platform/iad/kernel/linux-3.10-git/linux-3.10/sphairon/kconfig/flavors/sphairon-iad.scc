@@ -1,0 +1,12 @@
+include flavors/sphairon-base.scc
+include features/scsi/disk.scc
+include features/usb/mass-storage.scc
+include features/usb/serial.scc
+include features/usb/printer.scc
+include features/usb/test.scc
+include features/fat/fat.scc
+include features/fuse/fuse.scc
+include features/nls/nls.scc
+include features/ipsec/ipsec.scc
+include features/ipsec/ipsec6.scc
+include features/partitions/partitions.scc

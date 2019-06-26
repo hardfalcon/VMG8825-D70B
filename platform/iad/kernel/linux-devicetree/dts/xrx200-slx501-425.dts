@@ -1,0 +1,90 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2014-2019 Sphairon GmbH (a Zyxel company)
+ */
+
+/dts-v1/;
+
+#include "xrx200-slx501.dtsi"
+
+/ {
+	model = "Zyxel slx501 series [425]";
+	compatible = "zyxel,slx501", "lantiq,vr9", "lantiq,xway";
+};
+
+#if !defined(IS_UGW_61)
+&gphy0 {
+	lantiq,phy-mode = "11g";
+	status = "ok";
+};
+
+&gphy1 {
+	lantiq,phy-mode = "11g";
+	status = "ok";
+};
+#endif
+
+&eth {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_eth_default>;
+
+#if defined(IS_UGW_61)
+	gphy@0 {
+		lantiq,phy-mode = "11g";
+		status = "ok";
+	};
+
+	gphy@1 {
+		lantiq,phy-mode = "11g";
+		status = "ok";
+	};
+#endif
+
+	mdio@0 {
+		phy0: ethernet-phy@11 {
+			compatible = "lantiq,pef7071", "ethernet-phy-ieee802.3-c22";
+			/*interrupt-parent = <&icu0>;
+			interrupts = <122>;*/
+			reg = <0x11>;
+			lantiq,led0 = <0x7003>;
+			lantiq,led1 = <0x0>;
+			lantiq,led2 = <0x0>;
+		};
+
+		phy1: ethernet-phy@13 {
+			compatible = "lantiq,pef7071", "ethernet-phy-ieee802.3-c22";
+			/*interrupt-parent = <&icu0>;
+			interrupts = <121>;*/
+			reg = <0x13>;
+			lantiq,led0 = <0x7003>;
+			lantiq,led1 = <0x0>;
+			lantiq,led2 = <0x0>;
+		};
+	};
+
+	ethernet@2 {
+		phy-handle = <&phy0>;
+		phy-mode = "gmii";
+		status = "ok";
+		lantiq,port-name = "sw-p2-lan1";
+	};
+
+	ethernet@4 {
+		phy-handle = <&phy1>;
+		phy-mode = "gmii";
+		status = "ok";
+		lantiq,port-name = "sw-p2-lan2";
+	};
+
+	ethernet@5 {
+		phy-mode = "rgmii";
+		status = "ok";
+		lantiq,port-name = "sw-p5-wifi";
+		lantiq,rgmii-tx-delay = <3>;
+		lantiq,mii-isolate;
+		fixed-link {
+			speed = <1000>;
+			full-duplex;
+		};
+	};
+};

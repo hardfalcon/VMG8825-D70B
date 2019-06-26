@@ -1,0 +1,2 @@
+include bsp/xrx330/xrx330-vrx518_cpe.scc
+include flavors/sphairon-media.scc

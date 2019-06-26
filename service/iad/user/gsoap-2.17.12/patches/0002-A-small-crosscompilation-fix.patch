@@ -1,0 +1,33 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Tue, 3 May 2011 13:12:25 +0200
+Subject: A small crosscompilation fix.
+
+Signed-off-by: Daniel Egger <daniel.egger@sphairon.com>
+---
+ configure | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/configure b/configure
+index 31113c8..95491a5 100755
+--- a/configure
++++ b/configure
+@@ -5939,7 +5939,7 @@ if test "${ac_cv_func_malloc_0_nonnull+set}" = set; then
+   echo $ECHO_N "(cached) $ECHO_C" >&6
+ else
+   if test "$cross_compiling" = yes; then
+-  ac_cv_func_malloc_0_nonnull=no
++  ac_cv_func_malloc_0_nonnull=yes
+ else
+   cat >conftest.$ac_ext <<_ACEOF
+ /* confdefs.h.  */
+@@ -5979,7 +5979,7 @@ echo "$as_me: failed program was:" >&5
+ sed 's/^/| /' conftest.$ac_ext >&5
+ 
+ ( exit $ac_status )
+-ac_cv_func_malloc_0_nonnull=no
++ac_cv_func_malloc_0_nonnull=yes
+ fi
+ rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+ fi
+--
+

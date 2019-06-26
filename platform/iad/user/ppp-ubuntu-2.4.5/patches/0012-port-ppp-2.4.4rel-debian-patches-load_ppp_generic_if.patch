@@ -1,0 +1,69 @@
+From: Alexander Sack <asac@jwsdot.com>
+Date: Thu, 18 Dec 2008 05:33:13 +0100
+Subject: port: ppp-2.4.4rel/debian/patches/load_ppp_generic_if_needed
+
+---
+ pppd/sys-linux.c | 41 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 41 insertions(+)
+
+diff --git a/pppd/sys-linux.c b/pppd/sys-linux.c
+index 7efa6b6..3ebb7ad 100644
+--- a/pppd/sys-linux.c
++++ b/pppd/sys-linux.c
+@@ -92,6 +92,7 @@
+ #include <ctype.h>
+ #include <termios.h>
+ #include <unistd.h>
++#include <wait.h>
+ 
+ /* This is in netdevice.h. However, this compile will fail miserably if
+    you attempt to include netdevice.h because it has so many references
+@@ -2102,6 +2103,46 @@ int ppp_available(void)
+ 
+     if (kernel_version >= KVERSION(2,3,13)) {
+ 	error("Couldn't open the /dev/ppp device: %m");
++	char modprobePath[PATH_MAX] = "";
++	int status, p, count;
++	pid_t pid;
++
++	fd = open("/proc/sys/kernel/modprobe", O_RDONLY);
++	if (fd >= 0) {
++		int count = read(fd, modprobePath, PATH_MAX - 1);
++		if (count < 1)
++			modprobePath[0] = 0;
++		else if (modprobePath[count - 1] == '\n')
++			modprobePath[count - 1] = 0;
++		close(fd);
++	}
++
++	if (modprobePath[0] == 0)
++		strcpy(modprobePath, "/sbin/modprobe");
++
++	switch (pid = fork()) {
++		case 0: /* child */
++			setenv("PATH", "/sbin", 1);
++			status = execl(modprobePath, "modprobe", "ppp_generic", NULL);
++		case -1: /* couldn't fork */
++			errno = ENOENT;
++		default: /* parent */
++			do
++				p = waitpid(pid, &status, 0);
++			while (p == -1 && count++ < 4);
++
++			sleep (5);
++
++	}
++
++	if ((fd = open("/dev/ppp", O_RDWR)) >= 0) {
++		new_style_driver = 1;
++		driver_version = 2;
++		driver_modification = 4;
++		driver_patch = 0;
++		close(fd);
++		return 1;
++	}
+ 	if (errno == ENOENT)
+ 	    no_ppp_msg =
+ 		"You need to create the /dev/ppp device node by\n"
+--
+

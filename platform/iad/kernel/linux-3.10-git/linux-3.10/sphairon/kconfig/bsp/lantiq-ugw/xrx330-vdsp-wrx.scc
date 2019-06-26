@@ -1,0 +1,3 @@
+include bsp/lantiq-ugw/xrx330-vdsp.scc
+
+kconf xrx330-vdsp-wrx.cfg

@@ -1,0 +1,100 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Mon, 14 Feb 2011 18:05:49 +0100
+Subject: fix for SAS implementation of rp-pppoe-3.10: needs variable
+ mac_to_use added (from SAS ppp-2.4.4 implementation): option "Set path name
+ for resolv.conf"
+
+Signed-off-by: Olaf.Boettcher@sphairon.com
+---
+ pppd/ipcp.c    | 6 +++---
+ pppd/options.c | 6 ++++++
+ pppd/pppd.h    | 4 ++++
+ 3 files changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/pppd/ipcp.c b/pppd/ipcp.c
+index 6966cff..997059c 100644
+--- a/pppd/ipcp.c
++++ b/pppd/ipcp.c
+@@ -2061,9 +2061,9 @@ create_resolv(peerdns1, peerdns2)
+ {
+     FILE *f;
+ 
+-    f = fopen(_PATH_RESOLV, "w");
++    f = fopen(resolvconf, "w");
+     if (f == NULL) {
+-	/* error("Failed to create %s: %m", _PATH_RESOLV); */
++	error("Failed to create %s: %m", resolvconf);
+ 	return;
+     }
+ 
+@@ -2074,7 +2074,7 @@ create_resolv(peerdns1, peerdns2)
+ 	fprintf(f, "nameserver %s\n", ip_ntoa(peerdns2));
+ 
+     if (ferror(f))
+-	error("Write failed to %s: %m", _PATH_RESOLV);
++	error("Write failed to %s: %m", resolvconf);
+ 
+     fclose(f);
+ }
+diff --git a/pppd/options.c b/pppd/options.c
+index a42cb94..a0eccd4 100644
+--- a/pppd/options.c
++++ b/pppd/options.c
+@@ -110,6 +110,7 @@ int	log_to_fd = 1;		/* send log messages to this fd too */
+ bool	log_default = 1;	/* log_to_fd is default (stdout) */
+ int	maxfail = 10;		/* max # of unsuccessful connection attempts */
+ char	linkname[MAXPATHLEN];	/* logical name for link */
++char	resolvconf[MAXPATHLEN] = _PATH_RESOLV;  /* global path */
+ bool	tune_kernel;		/* may alter kernel settings */
+ int	connect_delay = 1000;	/* wait this many ms after connect script */
+ int	req_unit = -1;		/* requested interface unit */
+@@ -121,6 +122,7 @@ bool	dump_options;		/* print out option values */
+ bool	dryrun;			/* print out option values and exit */
+ char	*domain;		/* domain name set by domain option */
+ int	child_wait = 5;		/* # seconds to wait for children at exit */
++unsigned char mac_to_use[ETH_ALEN] = {0,0,0,0,0,0};   /* use this MAC-Address */
+ 
+ #ifdef MAXOCTETS
+ unsigned int  maxoctets = 0;    /* default - no limit */
+@@ -257,6 +259,10 @@ option_t general_options[] = {
+       "Set logical name for link",
+       OPT_PRIO | OPT_PRIV | OPT_STATIC, NULL, MAXPATHLEN },
+ 
++    { "resolvconf", o_string, resolvconf,
++      "Set path name for resolv.conf",
++      OPT_PRIO | OPT_PRIV | OPT_STATIC, NULL, MAXPATHLEN },
++
+     { "maxfail", o_int, &maxfail,
+       "Maximum number of unsuccessful connection attempts to allow",
+       OPT_PRIO },
+diff --git a/pppd/pppd.h b/pppd/pppd.h
+index ef0411c..867dd02 100644
+--- a/pppd/pppd.h
++++ b/pppd/pppd.h
+@@ -81,6 +81,8 @@
+ #define MAXNAMELEN	256	/* max length of hostname or name for auth */
+ #define MAXSECRETLEN	256	/* max length of password or secret */
+ 
++#define ETH_ALEN 6
++
+ /*
+  * Option descriptor structure.
+  */
+@@ -246,6 +248,7 @@ extern char	ppp_devnam[MAXPATHLEN];
+ extern char     remote_number[MAXNAMELEN]; /* Remote telephone number, if avail. */
+ extern int      ppp_session_number; /* Session number (eg PPPoE session) */
+ extern int	fd_devnull;	/* fd open to /dev/null */
++extern unsigned char mac_to_use[ETH_ALEN];   /* use this MAC-Address */
+ 
+ extern int	listen_time;	/* time to listen first (ms) */
+ extern bool	doing_multilink;
+@@ -309,6 +312,7 @@ extern char	*record_file;	/* File to record chars sent/received */
+ extern bool	sync_serial;	/* Device is synchronous serial device */
+ extern int	maxfail;	/* Max # of unsuccessful connection attempts */
+ extern char	linkname[MAXPATHLEN]; /* logical name for link */
++extern char	resolvconf[MAXPATHLEN]; /* path for resolv.conf */
+ extern bool	tune_kernel;	/* May alter kernel settings as necessary */
+ extern int	connect_delay;	/* Time to delay after connect script */
+ extern int	max_data_rate;	/* max bytes/sec through charshunt */
+--
+

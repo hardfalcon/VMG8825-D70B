@@ -1,0 +1,218 @@
+From: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+Date: Tue, 8 Jun 2010 18:19:18 +0200
+Subject: br2684ctl: make PVC payload setting compatible with Danube ATM driver
+
+- give CONFIG_DANUBE in compile flags to enable danube support for
+  linux-2.4 and linux-2.6
+---
+ src/br2684/br2684ctl.c | 65 +++++++++++++++++++++++++-------------------------
+ 1 file changed, 33 insertions(+), 32 deletions(-)
+
+diff --git a/src/br2684/br2684ctl.c b/src/br2684/br2684ctl.c
+index 2e64690..c0992e5 100644
+--- a/src/br2684/br2684ctl.c
++++ b/src/br2684/br2684ctl.c
+@@ -14,7 +14,6 @@
+ #include <linux/atmbr2684.h>
+ #ifndef BR2684_FLAG_ROUTED
+ #warning "Kernel missing routed support for br2684"
+-#define BR2684_FLAG_ROUTED    (1<<16) /* payload is routed, not bridged */
+ #endif
+ 
+ /* This feature was introduced with mpc8323 and must be explicitially ported
+@@ -33,7 +32,7 @@
+   Modified feb 2001 by Stephen Aaskov (saa@lasat.com)
+   - Added daemonization code
+   - Added syslog
+-  
++
+   TODO: Delete interfaces after exit?
+ */
+ 
+@@ -184,7 +183,7 @@ void kill_daemon(int num)
+ int create_br(int itfnum, int payload)
+ {
+   int err;
+-  
++
+   if(lastsock<0) {
+     lastsock = socket(PF_ATMPVC, SOCK_DGRAM, ATM_AAL5);
+   }
+@@ -200,17 +199,20 @@ int create_br(int itfnum, int payload)
+       if (payload == 0)
+         ni.media |= BR2684_FLAG_ROUTED;
+ #endif
++#if defined CONFIG_DANUBE && !defined BR2684_FLAG_ROUTED
++      ni.payload = payload;
++#endif
+       ni.mtu = 1500;
+       sprintf(ni.ifname, "nas%d", itfnum);
+       err=ioctl (lastsock, ATM_NEWBACKENDIF, &ni);
+-  
++
+       if (err == 0)
+ 	syslog(LOG_NOTICE, "Interface \"%s\" created sucessfully",ni.ifname);
+       else
+ 	syslog(LOG_INFO, "Interface \"%s\" could not be created, reason: %s",
+ 	       ni.ifname,
+ 	       strerror(errno));
+-      lastitf=itfnum;	/* even if we didn't create, because existed, 
++      lastitf=itfnum;	/* even if we didn't create, because existed,
+ 			assign_vcc wil want to know it! */
+     } else {
+       syslog(LOG_ERR,"err: strange interface number %d", itfnum );
+@@ -232,17 +234,17 @@ int assign_vcc(char *astr, int encap, int payload,
+     err=text2atm(astr,(struct sockaddr *)(&addr), sizeof(addr), T2A_PVC);
+     if (err!=0)
+       syslog(LOG_ERR,"Could not parse ATM parameters (error=%d)",err);
+-    
++
+     syslog(LOG_INFO,"Communicating over ATM %d.%d.%d, encapsulation: %s%s",
+ 	   addr.sap_addr.itf,
+ 	   addr.sap_addr.vpi,
+ 	   addr.sap_addr.vci,
+ 	   (encap & 0x1)?"VC mux":"LLC",(encap & 0x2)?", FCS preserve":"");
+-    
++
+     if ((fd = socket(PF_ATMPVC, SOCK_DGRAM, ATM_AAL5)) < 0)
+-      syslog(LOG_ERR,"failed to create socket %d, reason: %s", 
++      syslog(LOG_ERR,"failed to create socket %d, reason: %s",
+ 	     errno,strerror(errno));
+-    
++
+     if (qos.aal == 0) {
+       qos.aal                     = ATM_AAL5;
+       qos.txtp.traffic_class      = ATM_UBR;
+@@ -253,17 +255,17 @@ int assign_vcc(char *astr, int encap, int payload,
+ 
+     if ( (err=setsockopt(fd,SOL_SOCKET,SO_SNDBUF, &bufsize ,sizeof(bufsize))) )
+       syslog(LOG_ERR,"setsockopt SO_SNDBUF: (%d) %s",err, strerror(err));
+-    
++
+     if (setsockopt(fd, SOL_ATM, SO_ATMQOS, &qos, sizeof(qos)) < 0)
+       syslog(LOG_ERR,"setsockopt SO_ATMQOS %d", errno);
+ 
+     err = connect(fd, (struct sockaddr*)&addr, sizeof(struct sockaddr_atmpvc));
+-    
++
+     if (err < 0)
+       fatal("failed to connect on socket", errno);
+-    
++
+     /* attach the vcc to device: */
+-    
++
+     be.backend_num = ATM_BACKEND_BR2684;
+     be.ifspec.method = BR2684_FIND_BYIFNAME;
+     sprintf(be.ifspec.spec.ifname, "nas%d", lastitf);
+@@ -280,6 +282,9 @@ int assign_vcc(char *astr, int encap, int payload,
+ 		default: be.encaps = BR2684_ENCAPS_VC;      break;
+     }
+ 
++#if defined CONFIG_DANUBE && !defined BR2684_FLAG_ROUTED
++    be.payload = payload;
++#endif
+     be.has_vpiid = 0;
+     be.send_padding = 0;
+     be.min_size = 0;
+@@ -327,10 +332,10 @@ int main (int argc, char **argv)
+   params.payload=1;
+   params.astr=NULL;
+   memset(&params.reqqos, 0, sizeof(params.reqqos));
+-  
++
+   lastsock=-1;
+   lastitf=0;
+-  
++
+   /* st qos to 0 */
+ 
+   openlog (LOG_NAME,LOG_OPTION,LOG_FACILITY);
+@@ -371,18 +376,14 @@ int main (int argc, char **argv)
+       case 's':
+ 	params.sndbuf=(atoi(optarg));
+ 	if(params.sndbuf<0){
+-	  syslog(LOG_ERR, "Invalid sndbuf: %s, using size of 8192 instead", 
++	  syslog(LOG_ERR, "Invalid sndbuf: %s, using size of 8192 instead",
+ 		 optarg);
+ 	  params.sndbuf=8192;
+ 	}
+ 	break;
+       case 'p':	/* payload type: routed (0) or bridged (1) */
+-#ifdef BR2684_FLAG_ROUTED
+ 	params.payload = atoi(optarg);
+ 	break;
+-#else
+-	syslog(LOG_ERR, "payload option not supported.");
+-#endif
+       case '?':
+       case 'h':
+       default:
+@@ -392,27 +393,27 @@ int main (int argc, char **argv)
+     usage(argv[0]);
+ 
+   if (argc != optind) usage(argv[0]);
+-  
+-  start_interface(&params);  
++
++  start_interface(&params);
+ 
+   if(lastsock>=0) close(lastsock);
+-  
++
+   if (background) {
+     pid_t pid;
+-    
++
+     pid=fork();
+     if (pid < 0) {
+       fprintf(stderr,"Error detaching\n");
+       exit(2);
+-    } else if (pid) 
++    } else if (pid)
+       exit(0); // This is the parent
+-    
++
+     // Become a process group and session group leader
+     if (setsid()<0) {
+       fprintf (stderr,"Could not set process group\n");
+       exit(2);
+     }
+-    
++
+     // Fork again to let process group leader exit
+     pid = fork();
+     if (pid < 0) {
+@@ -420,25 +421,25 @@ int main (int argc, char **argv)
+       exit(2);
+     } else if (pid)
+       exit(0); // This is the parent
+-    
++
+     // Now we're ready for buisness
+     chdir("/");            // Don't keep directories in use
+     close(0); close(1); close(2);  // Close stdin, -out and -error
+     /*
+-      Note that this implementation does not keep an open 
++      Note that this implementation does not keep an open
+       stdout/err.
+       If we need them they can be opened now
+     */
+-    
++
+   }
+-  
++
+   create_pidfile(params.itfnum);
+   signal(SIGINT, int_signal);
+   signal(SIGTERM, int_signal);
+ 
+   syslog (LOG_INFO, "RFC 1483/2684 bridge daemon started");
+   atexit (exitFunc);
+-  
++
+   while (1) pause();	/* to keep the sockets... */
+   return 0;
+ }
+--
+

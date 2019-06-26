@@ -1,0 +1,9 @@
+include arch/mips/mips32r2.scc
+include arch/mips/up.scc
+include arch/timer/hrt.scc
+include arch/timer/idle.scc
+#include arch/preempt.scc
+
+kconf lantiq.cfg
+kconf xway.cfg
+kconf serial.cfg

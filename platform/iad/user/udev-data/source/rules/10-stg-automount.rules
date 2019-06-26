@@ -1,0 +1,20 @@
+# USB Storage Support
+# mounting the filesystem is done via blkdev_mount calls
+# notifying the services is done via scsi_device_action_handler
+
+# get productname
+#SUBSYSTEMS=="usb", ATTRS{idVendor}=="?*", ENV{COMMENT}="$driver_v$attr{idVendor}p$attr{idProduct}_$attr{serial}"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="?*", ENV{COMMENT}="%s{model}"
+SUBSYSTEM=="scsi",DRIVERS=="sd", ENV{COMMENT}="%s{model}"
+
+# mount it
+SUBSYSTEM=="block",ACTION=="add",KERNEL=="sd[a-z]*",RUN+="/bin/blkdev_mount %k %n"
+
+SUBSYSTEM!="scsi_device", GOTO="scsi_device_end"
+
+# report it to services
+SUBSYSTEM=="scsi_device",ATTRS{type}=="0|7|14",ACTION=="add",RUN+="/bin/scsi_device_action_handler add %p"
+SUBSYSTEM=="scsi_device",ACTION=="remove",RUN+="/bin/scsi_device_action_handler rem %p"
+
+LABEL="scsi_device_end"
+

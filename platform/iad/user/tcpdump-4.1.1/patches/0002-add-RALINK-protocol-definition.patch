@@ -1,0 +1,402 @@
+From: Martin Volkmer <martin.volkmer@sphairon.com>
+Date: Thu, 3 Feb 2011 10:30:13 +0200
+Subject: add RALINK protocol definition
+
+---
+ Makefile.in    |    4 +-
+ ethertype.h    |    3 +
+ netdissect.h   |    2 +
+ print-ether.c  |   10 ++-
+ print-ralink.c |  186 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ralink.h       |   97 +++++++++++++++++++++++++++++
+ 6 files changed, 298 insertions(+), 4 deletions(-)
+ create mode 100644 print-ralink.c
+ create mode 100644 ralink.h
+
+diff --git a/Makefile.in b/Makefile.in
+index db23559..83ead2e 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -86,6 +86,7 @@ CSRC =	addrtoname.c af.c checksum.c cpack.c oui.c gmt2local.c ipproto.c \
+ 	print-syslog.c print-tcp.c print-telnet.c print-tftp.c \
+ 	print-timed.c print-udp.c print-usb.c \
+ 	print-vjc.c \
++	print-ralink.c \
+ 	signature.c setsignal.c tcpdump.c util.c
+ 
+ LIBNETDISSECT_SRC=print-isakmp.c
+@@ -180,7 +181,8 @@ HDR = \
+ 	tftp.h \
+ 	timed.h \
+ 	token.h \
+-	udp.h
++	udp.h \
++	ralink.h
+ 
+ TAGHDR = \
+ 	/usr/include/arpa/tftp.h \
+diff --git a/ethertype.h b/ethertype.h
+index 900bd38..a88ae12 100644
+--- a/ethertype.h
++++ b/ethertype.h
+@@ -163,5 +163,8 @@
+ #ifndef	ETHERTYPE_ISO
+ #define	ETHERTYPE_ISO           0xfefe  /* nonstandard - used in Cisco HDLC encapsulation */
+ #endif
++#ifndef ETHERTYPE_RALINK	
++#define ETHERTYPE_RALINK	0xffff
++#endif
+ 
+ extern const struct tok ethertype_values[];
+diff --git a/netdissect.h b/netdissect.h
+index e87941d..8fec71b 100644
+--- a/netdissect.h
++++ b/netdissect.h
+@@ -281,6 +281,8 @@ extern void ip_print_inner(netdissect_options *ndo,
+ 			   const u_char *bp2);
+ extern void rrcp_print(netdissect_options *,const u_char *, u_int);
+ 
++extern void ralink_print(netdissect_options *, const u_char *, u_int);
++
+ /* stuff that has not yet been rototiled */
+ #if 0
+ extern void ascii_print(netdissect_options *,u_int);
+diff --git a/print-ether.c b/print-ether.c
+index dc28779..152d6b4 100644
+--- a/print-ether.c
++++ b/print-ether.c
+@@ -80,6 +80,7 @@ const struct tok ethertype_values[] = {
+     { ETHERTYPE_CFM_OLD,        "CFM (old)" },
+     { ETHERTYPE_CFM,            "CFM" },
+     { ETHERTYPE_LLDP,           "LLDP" },
++    { ETHERTYPE_RALINK,		"RALINK" },
+     { 0, NULL}
+ };
+ 
+@@ -140,7 +141,7 @@ ether_print(const u_char *p, u_int length, u_int caplen,
+ 	}
+ 	orig_length = length;
+ 
+-	length -= ETHER_HDRLEN;
++	length -= ETHER_HDRLEN;     //cut off MAC (2x6Byte) and Ether-Type (2Byte ) --> 14Byte
+ 	caplen -= ETHER_HDRLEN;
+ 	ep = (struct ether_header *)p;
+ 	p += ETHER_HDRLEN;
+@@ -231,8 +232,8 @@ recurse:
+ /*
+  * This is the top level routine of the printer.  'p' points
+  * to the ether header of the packet, 'h->ts' is the timestamp,
+- * 'h->len' is the length of the packet off the wire, and 'h->caplen'
+- * is the number of bytes actually captured.
++ * 'h->len' is the length of the packet off the wire, 
++ * 'h->caplen' is the number of bytes actually captured.
+  */
+ u_int
+ ether_if_print(const struct pcap_pkthdr *h, const u_char *p)
+@@ -354,6 +355,9 @@ ethertype_print(u_short ether_type, const u_char *p, u_int length, u_int caplen)
+ 	case ETHERTYPE_MOPDL:
+ 		/* default_print for now */
+ #endif
++	case ETHERTYPE_RALINK:
++		ralink_print(gndo, p, length);
++		return (1);
+ 	default:
+ 		return (0);
+ 	}
+diff --git a/print-ralink.c b/print-ralink.c
+new file mode 100644
+index 0000000..57b154c
+--- /dev/null
++++ b/print-ralink.c
+@@ -0,0 +1,186 @@
++/**************************************************************
++*   Dissector-script for RALINK-specific INIC-Communication Protocol
++* 
++*   extracted from Ralink INIC-Driver 2.2.0.8 @ RT3052
++* 
++*   (C) Sphairon Technologies GmbH
++* 
++*   Author: Martin Volkmer
++* 
++*   Date:   12.01.2011
++*
++***************************************************************/
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
++#include <tcpdump-stdinc.h>
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++
++#include "extract.h"	
++#include "interface.h"
++
++#include "ralink.h"
++
++/************* CMD-TRANSLATION *****************/
++CMD_TRANSLATION cmd_type[] = {
++    {MSG_CMD_TYPE_BOOTSTRAP, "CMD_BOOTSTRAP"},
++    {MSG_CMD_TYPE_ASYNC, "CMD_ASYNC"},
++    {MSG_CMD_TYPE_COPY_TO_USER, "CMD_COPY_TO_USER"},
++    {MSG_CMD_TYPE_IWREQ_STRUCT, "CMD_IWREQ_STRUCT"},
++    {MSG_CMD_TYPE_IOCTL_STATUS, "CMD_IOCTL_STATUS"},
++    {MSG_CMD_TYPE_SYNC, "CMD_SYNC"},
++    {MSG_CMD_TYPE_IW_HANDLER, "CMD_IW_HANDLER"},
++    {MSG_CMD_TYPE_TUNNEL, "CMD_TUNNEL"},
++    {MSG_CMD_TYPE_IGMP_TUNNEL, "CMD_IGMP_TUNNEL"},
++    {0, NULL },
++};
++
++CMD_TRANSLATION cmd_async_feedback[] = {
++    {MSG_CMD_CONSOLE, "CMD_CONSOLE"},
++    {MSG_CMD_WSC_UPDATE_CFG, "CMD_WSC_UPDATE"},
++    {MSG_CMD_WIRELESS_SEND_EVENT, "CMD_WIRELESS_SEND_EVENT"},
++    {MSG_CMD_SEND_DAEMON_SIGNAL, "CMD_SEND_DEAMON_SIGNALE"},
++    {MSG_CMD_HEART_BEAT, "CMD_HEART_BEAT"},
++    {MSG_CMD_WIRELESS_SEND_EVENT2, "CMD_WIRELESS_SEND_EVENT2"},
++    {MSG_CMD_EXT_EEPROM_UPDATE, "CMD_EXTEEPROM_UPDATE"},
++    {0, NULL},
++};
++
++CMD_TRANSLATION cmd_sync_feedback[] = {
++    {MSG_CMD_GET_MAC, "CMD_GET_MAC"},
++    {MSG_CMD_MBSS_OPEN, "CMD_MBSS_OPEN"},
++    {MSG_CMD_MBSS_CLOSE, "CMD_MBSS_CLOSE"},
++    {MSG_CMD_WDS_OPEN, "CMD_WDS_OPEN"},
++    {MSG_CMD_WDS_CLOSE, "CMD_WDS_CLOSE"},
++    {MSG_CMD_APCLI_OPEN, "CMD_APCLI_OPEN"},
++    {MSG_CMD_APCLI_CLOSE, "CMD_APCLI_CLOSE"},
++    {MSG_CMD_MESH_OPEN, "CMD_MESH_OPEN"},
++    {MSG_CMD_MESH_CLOSE, "CMD_MESH_CLOSE"},
++    {0, NULL},
++};
++
++CMD_TRANSLATION cmd_iwhandler[] = {
++    {MSG_CMD_GET_STATS, "CMD_GET_STATS"},
++    {0, NULL},
++};
++
++CMD_TRANSLATION cmd_id[] = {
++    {MSG_CMD_BOOT_NOTIFY, "CMD_BOOT_NOTIFY"},
++    {MSG_CMD_BOOT_INITCFG, "CMD_INITCFG"},
++    {MSG_CMD_BOOT_UPLOAD, "CMD_BOOT_UPLOAD"},
++    {MSG_CMD_BOOT_STARTUP, "CMD_BOOT_STARTUP"},
++    {MSG_CMD_BOOT_REGWR, "CMD_BOOT_REGWR"},
++    {MSG_CMD_BOOT_REGRD, "CMD_BOOT_REGRD"},
++    {MSG_CMD_BOOT_RESET, "CMD_BOOT_RESET"},
++    {MSG_CMD_ID_NONE, "CMD_ID_NONE"},
++    {0,NULL},
++};
++
++static const char Response[] = {"RSP"};
++static const char NoResponse[] = {""}; 
++
++/***************** FUNCTIONS *******************/
++static char *GetCmdTrans(CMD_TRANSLATION *TransTable, u_int16_t cmd)
++{
++    u_int16_t i = 0;
++    if(TransTable != NULL) {
++        while(TransTable[i].cmd_name != NULL) {
++            if(TransTable[i].id == cmd) {
++                return TransTable[i].cmd_name;
++            }
++            i++;
++        }
++    }
++    return "No Translation";
++}
++
++void ralink_print(netdissect_options *ndo, const u_char *bp, u_int length) {
++    struct ralink_msg msg;
++    CMD_TRANSLATION *TransTable;
++    char *CmdType;
++    char *CmdId;
++    const char *Rsp = NoResponse;    
++    u_char databyte;
++    int i;
++    u_int16_t RspFlg;
++
++    //split data
++    //HEADER
++    if(bp != NULL) {
++        msg.magic_no = EXTRACT_LE_32BITS(bp);
++        msg.cmd_type = EXTRACT_LE_16BITS(bp+4);
++        msg.cmd_id = EXTRACT_LE_16BITS(bp+6);
++        msg.length = EXTRACT_LE_16BITS(bp+8);
++        msg.seq_no = EXTRACT_LE_16BITS(bp+10);
++        msg.dev_id = EXTRACT_LE_16BITS(bp+12);
++        msg.dev_type = EXTRACT_LE_16BITS(bp+14);
++        msg.cmd_seq = EXTRACT_LE_16BITS(bp+16);
++        msg.flags = EXTRACT_LE_16BITS(bp+18);
++        msg.state = (signed)EXTRACT_LE_32BITS(bp+20);
++        msg.res[0] = EXTRACT_LE_32BITS(bp+24);
++        msg.res[1] = EXTRACT_LE_32BITS(bp+28);
++        //DATA
++        msg.data = bp+32;
++        
++        /* get right cmd_id translation table and translate -> depends on cmd_type */
++        switch(msg.cmd_type & REMOVE_RSP_FLAG_MASK) {      
++            case MSG_CMD_TYPE_ASYNC:
++                TransTable = cmd_async_feedback;
++                break;
++            case MSG_CMD_TYPE_SYNC:
++                TransTable = cmd_sync_feedback;
++                break;
++            case MSG_CMD_TYPE_IW_HANDLER:
++                TransTable = cmd_iwhandler;
++                break;
++            case MSG_CMD_TYPE_BOOTSTRAP:
++                TransTable = cmd_id;
++                break;
++            default:
++                TransTable = NULL;
++                break;
++        }   
++        RspFlg = msg.cmd_type & GET_RSP_FLAG_MASK;
++        if(RspFlg != 0) {        
++            if(RspFlg == MSG_CMD_TYPE_RSP_FLAG) {	        
++                Rsp = Response;
++            }
++        } 
++
++        /* Translate CMD-TYPE  and ID */
++        CmdType = GetCmdTrans(cmd_type, msg.cmd_type & REMOVE_RSP_FLAG_MASK);        
++        CmdId = GetCmdTrans(TransTable,msg.cmd_id);
++
++        /** PRINT THE DATA **/
++        printf("[RALINK] MagicNo: 0x%08X,Seq: 0x%04X | ",msg.magic_no, msg.seq_no);
++        printf("CMD: Type:0x%04X (%s %s),ID:0x%04X (%s),Seq:0x%04X | ",msg.cmd_type, CmdType, Rsp, msg.cmd_id, CmdId, msg.cmd_seq);
++        printf("Data-Length:%d Byte",msg.length);
++        
++        if(ndo->ndo_vflag != 0) {
++            printf("\n\t\tDevice: ID:0x%04X, Type:0x%04X",msg.dev_id,msg.dev_type);
++            printf("\n\t\tFlags:0x%04X , State:0x%04X, Reserved:0x%08X 0x%08X",msg.flags,msg.state,msg.res[0],msg.res[1]);
++            if(ndo->ndo_vflag == 2 && msg.length != 0) {
++                printf("\n\t\tData:\n");
++                if(((msg.cmd_type & REMOVE_RSP_FLAG_MASK) == MSG_CMD_TYPE_BOOTSTRAP) && (msg.cmd_id == MSG_CMD_BOOT_INITCFG)) {
++                    printf("%s",(signed)msg.data);
++                } else {
++                    for(i = 0; i < msg.length; i++) {
++                        databyte = *(msg.data+i);
++                        printf("%02X ",databyte);   
++                        if(((i*8) > 255) && (((i*8)%256) == 0)) {
++                            printf("\n");
++                        }
++                    }
++                }
++            }   
++        }
++    } else {
++        printf("packed dropped!");
++    }
++}
++
++
+diff --git a/ralink.h b/ralink.h
+new file mode 100644
+index 0000000..ba0d2c9
+--- /dev/null
++++ b/ralink.h
+@@ -0,0 +1,97 @@
++/**************************************************************
++*   Header for RALINK-specific INIC-Communication Protocol
++* 
++*   extracted from Ralink INIC-Driver 2.2.0.8 @ RT3052
++* 
++*   (C) Sphairon Technologies GmbH
++* 
++*   Author: Martin Volkmer
++* 
++*   Date:   12.01.2011
++*
++***************************************************************/
++struct ralink_msg {
++    u_int32_t	magic_no;       /* ralink magic-number */
++    u_int16_t   cmd_type;       /* Command */
++    u_int16_t   cmd_id;         /* Command ID*/
++    u_int16_t   length;         
++    u_int16_t   seq_no;         /* sequence_number */
++    u_int16_t   dev_id;         /* device-id */
++    u_int16_t   dev_type;       /* device-type */
++    u_int16_t   cmd_seq;
++    u_int16_t   flags;
++    int32_t   state;		
++    u_int32_t   res[2];  
++    const u_char *data;		//data (esp. firmware, etc);
++};
++
++/* 
++ * MSG frame Comand Type
++ */
++
++/* use in bootstrapping state */
++
++#define MSG_CMD_TYPE_PASSIVE_MASK  0x7FFF
++#define MSG_CMD_TYPE_RSP_FLAG      0x8000
++
++#define REMOVE_RSP_FLAG_MASK	0x0FFF
++#define GET_RSP_FLAG_MASK	0xF000
++
++/* 
++ * Bootstrapping command group 
++ */
++
++/* command type */
++/* protocol = 2880 */
++//#define MSG_CMD_TYPE_ATE          0x0005
++/* protocol = ffff */
++#define MSG_CMD_TYPE_BOOTSTRAP	0x0001
++#define MSG_CMD_TYPE_ASYNC        0x0005
++#define MSG_CMD_TYPE_COPY_TO_USER 0x0006
++#define MSG_CMD_TYPE_IWREQ_STRUCT  0x0007
++#define MSG_CMD_TYPE_IOCTL_STATUS 0x0008
++#define MSG_CMD_TYPE_SYNC         0x0009
++//#define MSG_CMD_TYPE_MBSS         0x0009
++#define MSG_CMD_TYPE_IW_HANDLER   0x000a
++#define MSG_CMD_TYPE_TUNNEL		0x000b 
++#define MSG_CMD_TYPE_IGMP_TUNNEL	0x000c 
++
++/* ASYNC FEEDBACK Command ID */
++#define MSG_CMD_CONSOLE               0x0000
++#define MSG_CMD_WSC_UPDATE_CFG        0x0001
++#define MSG_CMD_WIRELESS_SEND_EVENT   0x0002
++#define MSG_CMD_SEND_DAEMON_SIGNAL    0x0003
++#define MSG_CMD_HEART_BEAT            0x0004
++#define MSG_CMD_WIRELESS_SEND_EVENT2  0x0005
++#define MSG_CMD_EXT_EEPROM_UPDATE     0x0006 
++
++/* SYNC FEEDBACK Command ID */
++#define MSG_CMD_GET_MAC             0x0000
++#define MSG_CMD_MBSS_OPEN           0x0001
++#define MSG_CMD_MBSS_CLOSE          0x0002
++#define MSG_CMD_WDS_OPEN            0x0003
++#define MSG_CMD_WDS_CLOSE           0x0004
++#define MSG_CMD_APCLI_OPEN          0x0005
++#define MSG_CMD_APCLI_CLOSE         0x0006
++#define MSG_CMD_MESH_OPEN           0x0007
++#define MSG_CMD_MESH_CLOSE          0x0008
++
++/* IW HANDLER Command ID */
++/* Must enumerate the Command ID from 0x0001 */
++#define MSG_CMD_GET_STATS           0x0001
++
++/* command id */
++#define MSG_CMD_BOOT_NOTIFY		0x0001
++#define MSG_CMD_BOOT_INITCFG	0x0002
++#define MSG_CMD_BOOT_UPLOAD		0x0003
++#define MSG_CMD_BOOT_STARTUP	0x0004
++#define MSG_CMD_BOOT_REGWR		0x0005
++#define MSG_CMD_BOOT_REGRD		0x0006
++#define MSG_CMD_BOOT_RESET		0x0007
++
++#define MSG_CMD_ID_NONE			0x0000
++
++typedef struct {
++    u_int16_t	id;
++    char *cmd_name;
++} CMD_TRANSLATION;
+--
+

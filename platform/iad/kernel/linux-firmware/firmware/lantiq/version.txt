@@ -1,0 +1,6 @@
+vr9_phy11g_a2x.bin
+Gigabit Ethernet Firmware Version R8430
+
+vr9_phy22f_a2x.bin
+Dual Fast Ethernet Firmware Version RC430
+

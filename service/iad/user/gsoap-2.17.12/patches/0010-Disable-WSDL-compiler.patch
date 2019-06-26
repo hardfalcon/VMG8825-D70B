@@ -1,0 +1,24 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Tue, 3 May 2011 13:35:00 +0200
+Subject: Disable WSDL compiler.
+
+Signed-off-by: Daniel Egger <daniel.egger@sphairon.com>
+---
+ gsoap/Makefile.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/gsoap/Makefile.in b/gsoap/Makefile.in
+index 65951d5..41e1fb4 100644
+--- a/gsoap/Makefile.in
++++ b/gsoap/Makefile.in
+@@ -101,7 +101,7 @@ install_sh = @install_sh@
+ platform = @platform@
+ AUTOMAKE_OPTIONS = foreign 1.4
+ 
+-SUBDIRS = src wsdl @SAMPLE_DIRS@
++SUBDIRS = src @SAMPLE_DIRS@
+ CLEANFILES = soapcpp2 wsdl2h stdsoap2_cpp.cpp stdsoap2_ck.c stdsoap2_ck_cpp.cpp stdsoap2_ssl.c stdsoap2_ssl_cpp.cpp
+ 
+ AM_CXXFLAGS = $(SOAPCPP2_DEBUG) -D$(platform)
+--
+

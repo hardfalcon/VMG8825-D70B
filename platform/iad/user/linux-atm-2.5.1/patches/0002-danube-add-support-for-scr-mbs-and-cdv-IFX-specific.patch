@@ -1,0 +1,88 @@
+From: Maik Dybek <maik.dybek@sphairon.com>
+Date: Fri, 21 May 2010 14:20:03 +0200
+Subject: danube: add support for scr, mbs and cdv - IFX specific
+
+Signed-off-by: Maik Dybek <maik.dybek@sphairon.com>
+---
+ src/lib/qos2text.c | 15 +++++++++++++++
+ src/lib/text2qos.c | 25 +++++++++++++++++++++++++
+ 2 files changed, 40 insertions(+)
+
+diff --git a/src/lib/qos2text.c b/src/lib/qos2text.c
+index c5b4530..60abc86 100644
+--- a/src/lib/qos2text.c
++++ b/src/lib/qos2text.c
+@@ -33,6 +33,11 @@ static void params(char *buffer,char **pos,const struct atm_trafprm *ref,
+     FLD(pcr);
+     FLD(min_pcr);
+     FLD(max_sdu);
++#ifdef CONFIG_DANUBE
++    FLD(scr);
++    FLD(mbs);
++    FLD(cdv);
++#endif
+ }
+ 
+ 
+@@ -72,6 +77,16 @@ int qos2text(char *buffer,int length,const struct atm_qos *qos,int flags)
+ 	    strcpy(buffer,"cbr");
+ 	    pos += 3;
+ 	    break;
++#ifdef CONFIG_DANUBE
++	case ATM_VBR_RT:
++	    strcpy(buffer,"rt-vbr");
++	    pos += 6;
++	    break;
++	case ATM_VBR_NRT:
++	    strcpy(buffer,"nrt-vbr");
++	    pos += 7;
++	    break;
++#endif
+ 	case ATM_ABR:
+ 	    strcpy(buffer,"abr");
+ 	    pos += 3;
+diff --git a/src/lib/text2qos.c b/src/lib/text2qos.c
+index 060407a..ced12aa 100644
+--- a/src/lib/text2qos.c
++++ b/src/lib/text2qos.c
+@@ -87,6 +87,9 @@ static int params(const char **text,struct atm_trafprm *a,
+     while (1) {
+ 	if (!**text) return -1;
+ 	switch (fetch(text,"max_pcr=","pcr=","min_pcr=","max_sdu=","sdu=",
++#ifdef CONFIG_DANUBE
++                      "scr=","mbs=","cdv=",
++#endif
+ 	  NULL)) {
+ 	    case 0:
+ 		if ((value = __t2q_get_rate(text,0)) == RATE_ERROR) return -1;
+@@ -112,6 +115,28 @@ static int params(const char **text,struct atm_trafprm *a,
+ 		if (a) a->max_sdu = value;
+ 		if (b) b->max_sdu = value;
+ 		break;
++#ifdef CONFIG_DANUBE
++	    case 5:
++		if ((value = __t2q_get_rate(text,1)) == RATE_ERROR) return -1;
++		if (value == ATM_MAX_PCR) return -1;
++		if (a) a->scr = value;
++		if (b) b->scr = value;
++		break;
++	    case 6:
++		value = strtol(*text,&end,10);
++		if (value < 0) return -1;
++		*text = end;
++		if (a) a->mbs = value;
++		if (b) b->mbs = value;
++		break;
++	    case 7:
++		value = strtol(*text,&end,10);
++		if (value < 0) return -1;
++		*text = end;
++		if (a) a->cdv = value;
++		if (b) b->cdv = value;
++		break;
++#endif
+ 	    default:
+ 		return 0;
+ 	}
+--
+

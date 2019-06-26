@@ -1,0 +1,66 @@
+diff --git a/Makefile b/Makefile
+index 4c81055d839ddb9f43a449071c1699c18f04e5f0..a40f70e39251cdbc309d61509f4d817eee20b9de 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,7 +1,7 @@
+ VERSION = 1
+ PATCHLEVEL = 22
+ SUBLEVEL = 1
+-EXTRAVERSION = -sphairon8
++EXTRAVERSION = -sphairon9
+ NAME = Unnamed
+ 
+ # *DOCUMENTATION*
+diff --git a/sphairon/config.generic b/sphairon/config.generic
+index eecde890b7fed16d398829d77a9a5f5308fec7b1..de596a51a824aa7bdefda90f043396facbddf3f8 100644
+--- a/sphairon/config.generic
++++ b/sphairon/config.generic
+@@ -748,7 +748,7 @@ CONFIG_ARPING=y
+ # CONFIG_FEATURE_BRCTL_FANCY is not set
+ # CONFIG_FEATURE_BRCTL_SHOW is not set
+ # CONFIG_DNSD is not set
+-# CONFIG_ETHER_WAKE is not set
++CONFIG_ETHER_WAKE=y
+ # CONFIG_FAKEIDENTD is not set
+ # CONFIG_FTPD is not set
+ # CONFIG_FEATURE_FTP_WRITE is not set
+@@ -807,7 +807,7 @@ CONFIG_IFUPDOWN_IFSTATE_PATH=""
+ # CONFIG_IPROUTE is not set
+ # CONFIG_IPTUNNEL is not set
+ # CONFIG_IPRULE is not set
+-# CONFIG_IPCALC is not set
++CONFIG_IPCALC=y
+ # CONFIG_FEATURE_IPCALC_FANCY is not set
+ # CONFIG_FEATURE_IPCALC_LONG_OPTIONS is not set
+ CONFIG_NETSTAT=y
+diff --git a/sphairon/config.host b/sphairon/config.host
+index 4749c7b936f286b5a54280745f57a0f06dda3469..1232c19b7ebdf6111676bb436d8b13a3aa15f2a8 100644
+--- a/sphairon/config.host
++++ b/sphairon/config.host
+@@ -427,7 +427,7 @@ CONFIG_FEATURE_GREP_FGREP_ALIAS=y
+ # CONFIG_BOOTCHARTD is not set
+ # CONFIG_FEATURE_BOOTCHARTD_BLOATED_HEADER is not set
+ # CONFIG_FEATURE_BOOTCHARTD_CONFIG_FILE is not set
+-CONFIG_HALT=y
++# CONFIG_HALT is not set
+ # CONFIG_FEATURE_CALL_TELINIT is not set
+ CONFIG_TELINIT_PATH=""
+ CONFIG_INIT=y
+@@ -748,7 +748,7 @@ CONFIG_ARPING=y
+ # CONFIG_FEATURE_BRCTL_FANCY is not set
+ # CONFIG_FEATURE_BRCTL_SHOW is not set
+ # CONFIG_DNSD is not set
+-# CONFIG_ETHER_WAKE is not set
++CONFIG_ETHER_WAKE=y
+ # CONFIG_FAKEIDENTD is not set
+ # CONFIG_FTPD is not set
+ # CONFIG_FEATURE_FTP_WRITE is not set
+@@ -807,7 +807,7 @@ CONFIG_IFUPDOWN_IFSTATE_PATH=""
+ # CONFIG_IPROUTE is not set
+ # CONFIG_IPTUNNEL is not set
+ # CONFIG_IPRULE is not set
+-# CONFIG_IPCALC is not set
++CONFIG_IPCALC=y
+ # CONFIG_FEATURE_IPCALC_FANCY is not set
+ # CONFIG_FEATURE_IPCALC_LONG_OPTIONS is not set
+ CONFIG_NETSTAT=y

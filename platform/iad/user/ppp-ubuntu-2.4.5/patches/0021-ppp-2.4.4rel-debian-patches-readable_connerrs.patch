@@ -1,0 +1,23 @@
+From: Alexander Sack <asac@jwsdot.com>
+Date: Thu, 18 Dec 2008 05:43:28 +0100
+Subject: ppp-2.4.4rel/debian/patches/readable_connerrs
+
+---
+ pppd/main.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pppd/main.c b/pppd/main.c
+index 2f462c3..77c5f37 100644
+--- a/pppd/main.c
++++ b/pppd/main.c
+@@ -1635,7 +1635,7 @@ device_script(program, in, out, dont_wait)
+     if (log_to_fd >= 0)
+ 	errfd = log_to_fd;
+     else
+-	errfd = open(_PATH_CONNERRS, O_WRONLY | O_APPEND | O_CREAT, 0600);
++	errfd = open(_PATH_CONNERRS, O_WRONLY | O_APPEND | O_CREAT, 0644);
+ 
+     ++conn_running;
+     pid = safe_fork(in, out, errfd);
+--
+

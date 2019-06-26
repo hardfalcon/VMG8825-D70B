@@ -1,0 +1,162 @@
+diff --git a/Makefile b/Makefile
+index f25fbb37e91bf94d6ef526143aaf9c1b26e1fd57..dfed85caa2211ac964461354a9d21970fbe99633 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,7 +1,7 @@
+ VERSION = 1
+ PATCHLEVEL = 22
+ SUBLEVEL = 1
+-EXTRAVERSION = -sphairon12
++EXTRAVERSION = -sphairon13
+ NAME = Unnamed
+ 
+ # *DOCUMENTATION*
+diff --git a/archival/libarchive/decompress_bunzip2.c b/archival/libarchive/decompress_bunzip2.c
+index 6396fe40d186a1a67f3df46c4858ac6558a570e4..3d1a66df523edc0e31c68a808d25a1b61fa98c9f 100644
+--- a/archival/libarchive/decompress_bunzip2.c
++++ b/archival/libarchive/decompress_bunzip2.c
+@@ -134,7 +134,7 @@ static unsigned get_bits(bunzip_data *bd, int bits_wanted)
+ 
+ 		/* Avoid 32-bit overflow (dump bit buffer to top of output) */
+ 		if (bit_count >= 24) {
+-			bits = bd->inbufBits & ((1 << bit_count) - 1);
++			bits = bd->inbufBits & ((1U << bit_count) - 1);
+ 			bits_wanted -= bit_count;
+ 			bits <<= bits_wanted;
+ 			bit_count = 0;
+@@ -157,15 +157,15 @@ static unsigned get_bits(bunzip_data *bd, int bits_wanted)
+ static int get_next_block(bunzip_data *bd)
+ {
+ 	struct group_data *hufGroup;
+-	int dbufCount, dbufSize, groupCount, *base, *limit, selector,
+-		i, j, t, runPos, symCount, symTotal, nSelectors, byteCount[256];
+-	int runCnt = runCnt; /* for compiler */
++	int groupCount, *base, *limit, selector,
++		i, j, symCount, symTotal, nSelectors, byteCount[256];
+ 	uint8_t uc, symToByte[256], mtfSymbol[256], *selectors;
+ 	uint32_t *dbuf;
+-	unsigned origPtr;
++	unsigned origPtr, t;
++	unsigned dbufCount, runPos;
++	unsigned runCnt = runCnt; /* for compiler */
+ 
+ 	dbuf = bd->dbuf;
+-	dbufSize = bd->dbufSize;
+ 	selectors = bd->selectors;
+ 
+ /* In bbox, we are ok with aborting through setjmp which is set up in start_bunzip */
+@@ -188,7 +188,7 @@ static int get_next_block(bunzip_data *bd)
+ 	   it didn't actually work. */
+ 	if (get_bits(bd, 1)) return RETVAL_OBSOLETE_INPUT;
+ 	origPtr = get_bits(bd, 24);
+-	if ((int)origPtr > dbufSize) return RETVAL_DATA_ERROR;
++	if (origPtr > bd->dbufSize) return RETVAL_DATA_ERROR;
+ 
+ 	/* mapping table: if some byte values are never used (encoding things
+ 	   like ascii text), the compression code removes the gaps to have fewer
+@@ -436,7 +436,14 @@ static int get_next_block(bunzip_data *bd)
+ 			   symbols, but a run of length 0 doesn't mean anything in this
+ 			   context).  Thus space is saved. */
+ 			runCnt += (runPos << nextSym); /* +runPos if RUNA; +2*runPos if RUNB */
+-			if (runPos < dbufSize) runPos <<= 1;
++//The 32-bit overflow of runCnt wasn't yet seen, but probably can happen.
++//This would be the fix (catches too large count way before it can overflow):
++//			if (runCnt > bd->dbufSize) {
++//				dbg("runCnt:%u > dbufSize:%u RETVAL_DATA_ERROR",
++//						runCnt, bd->dbufSize);
++//				return RETVAL_DATA_ERROR;
++//			}
++			if (runPos < bd->dbufSize) runPos <<= 1;
+ 			goto end_of_huffman_loop;
+ 		}
+ 
+@@ -446,14 +453,15 @@ static int get_next_block(bunzip_data *bd)
+ 		   literal used is the one at the head of the mtfSymbol array.) */
+ 		if (runPos != 0) {
+ 			uint8_t tmp_byte;
+-			if (dbufCount + runCnt > dbufSize) {
+-				dbg("dbufCount:%d+runCnt:%d %d > dbufSize:%d RETVAL_DATA_ERROR",
+-						dbufCount, runCnt, dbufCount + runCnt, dbufSize);
++			if (dbufCount + runCnt > bd->dbufSize) {
++				dbg("dbufCount:%u+runCnt:%u %u > dbufSize:%u RETVAL_DATA_ERROR",
++						dbufCount, runCnt, dbufCount + runCnt, bd->dbufSize);
+ 				return RETVAL_DATA_ERROR;
+ 			}
+ 			tmp_byte = symToByte[mtfSymbol[0]];
+ 			byteCount[tmp_byte] += runCnt;
+-			while (--runCnt >= 0) dbuf[dbufCount++] = (uint32_t)tmp_byte;
++			while ((int)--runCnt >= 0)
++				dbuf[dbufCount++] = (uint32_t)tmp_byte;
+ 			runPos = 0;
+ 		}
+ 
+@@ -467,7 +475,7 @@ static int get_next_block(bunzip_data *bd)
+ 		   first symbol in the mtf array, position 0, would have been handled
+ 		   as part of a run above.  Therefore 1 unused mtf position minus
+ 		   2 non-literal nextSym values equals -1.) */
+-		if (dbufCount >= dbufSize) return RETVAL_DATA_ERROR;
++		if (dbufCount >= bd->dbufSize) return RETVAL_DATA_ERROR;
+ 		i = nextSym - 1;
+ 		uc = mtfSymbol[i];
+ 
+diff --git a/libbb/crc32.c b/libbb/crc32.c
+index ac9836cc9e61b185e08687e75c73c380fc751762..0711ca84eac4f87cbd841d8e0e6bd68b3e31f1bd 100644
+--- a/libbb/crc32.c
++++ b/libbb/crc32.c
+@@ -24,7 +24,7 @@ uint32_t* FAST_FUNC crc32_filltable(uint32_t *crc_table, int endian)
+ {
+ 	uint32_t polynomial = endian ? 0x04c11db7 : 0xedb88320;
+ 	uint32_t c;
+-	int i, j;
++	unsigned i, j;
+ 
+ 	if (!crc_table)
+ 		crc_table = xmalloc(256 * sizeof(uint32_t));
+diff --git a/libbb/getopt32.c b/libbb/getopt32.c
+index d0e83d88ee4d31090527a7f2f632907e9ebe0312..cebb4b22088dc217ba0661940720c0209636aaf3 100644
+--- a/libbb/getopt32.c
++++ b/libbb/getopt32.c
+@@ -376,7 +376,7 @@ getopt32(char **argv, const char *applet_opts, ...)
+ 		if (c >= 32)
+ 			break;
+ 		on_off->opt_char = *s;
+-		on_off->switch_on = (1 << c);
++		on_off->switch_on = (1U << c);
+ 		if (*++s == ':') {
+ 			on_off->optarg = va_arg(p, void **);
+ 			while (*++s == ':')
+@@ -419,7 +419,7 @@ getopt32(char **argv, const char *applet_opts, ...)
+ 			if (c >= 32)
+ 				break;
+ 			on_off->opt_char = l_o->val;
+-			on_off->switch_on = (1 << c);
++			on_off->switch_on = (1U << c);
+ 			if (l_o->has_arg != no_argument)
+ 				on_off->optarg = va_arg(p, void **);
+ 			c++;
+diff --git a/libbb/pw_encrypt.c b/libbb/pw_encrypt.c
+index 39ffa084f29a81ce2817e15a9547a0e9d3fb74a8..513d8532e656a22aa37e329a3bf09c6edd19dbb9 100644
+--- a/libbb/pw_encrypt.c
++++ b/libbb/pw_encrypt.c
+@@ -30,7 +30,7 @@ static int i64c(int i)
+ int FAST_FUNC crypt_make_salt(char *p, int cnt /*, int x */)
+ {
+ 	/* was: x += ... */
+-	int x = getpid() + monotonic_us();
++	unsigned x = getpid() + monotonic_us();
+ 	do {
+ 		/* x = (x*1664525 + 1013904223) % 2^32 generator is lame
+ 		 * (low-order bit is not "random", etc...),
+diff --git a/miscutils/rx.c b/miscutils/rx.c
+index 1dffb593afc70dfe771b9717c822d659f9a172e2..2bbf19a885bcece0cdc7d5757271eebb1dba2cac 100644
+--- a/miscutils/rx.c
++++ b/miscutils/rx.c
+@@ -84,7 +84,7 @@ static int receive(/*int read_fd, */int file_fd)
+ 		int blockBegin;
+ 		int blockNo, blockNoOnesCompl;
+ 		int cksum_or_crc;
+-		int expected;
++		unsigned expected;
+ 		int i, j;
+ 
+ 		blockBegin = read_byte(timeout);

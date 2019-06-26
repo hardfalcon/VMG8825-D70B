@@ -1,0 +1,433 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2014-2019 Sphairon GmbH (a Zyxel company)
+ */
+
+#include <dt-bindings/gpio/gpio.h>
+#include "xrx200.dtsi"
+
+/ {
+	gpio-keys-polled {
+		compatible = "gpio-keys-polled";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		poll-interval = <100>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pins_gpio_keys_default>;
+
+		wlan {
+			label = "wlan-btn";
+			gpios = <&gpio 45 GPIO_ACTIVE_LOW>;
+			linux,code = <0x101>;	/* BTN_1 */
+		};
+		wps {
+			label = "wps-btn";
+			gpios = <&gpio 46 GPIO_ACTIVE_LOW>;
+			linux,code = <0x102>;	/* BTN_2 */
+		};
+		reset {
+			label = "reset-btn";
+			gpios = <&gpio 47 GPIO_ACTIVE_LOW>;
+			linux,code = <0x100>;	/* BTN_0 */
+		};
+	};
+
+	gpio-leds {
+		compatible = "gpio-leds";
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pins_gpio_leds_default>;
+
+		power_green {
+			label = "green:power";
+			gpios = <&gpio 3 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+		power_red {
+			label = "red:power";
+			gpios = <&gpio 19 GPIO_ACTIVE_LOW>;
+			default-state = "on";
+		};
+		info_green {
+			label = "green:info";
+			gpios = <&gpio 20 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+		info_red {
+			label = "red:info";
+			gpios = <&gpio 21 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+		wlan_green {
+			label = "green:wlan";
+			gpios = <&gpio 29 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+		wps_green {
+			label = "green:wps";
+			gpios = <&gpio 30 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+		web_green {
+			label = "green:web";
+			gpios = <&gpio 27 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+		web_red {
+			label = "red:web";
+			gpios = <&gpio 28 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+		phone_green {
+			label = "green:phone";
+			gpios = <&stp 7 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+		phone_red {
+			label = "red:phone";
+			gpios = <&stp 4 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+		dsl_green {
+			label = "green:dsl-led1";
+			gpios = <&stp 0 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+	};
+
+	sph_platform {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "sphairon,platform";
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pins_sph_platform_default>;
+
+		wlan_pwr {
+			label = "wlan-pwr";
+			gpios = <&gpio 37 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+		wlan_rst {
+			label = "wlan-rst";
+			gpios = <&gpio 15 GPIO_ACTIVE_LOW>;
+			default-state = "on";
+		};
+    };
+};
+
+&mps {
+	pinctrl-names = "default", "master", "slave";
+	pinctrl-0 = <&pins_tdm_default &pins_ssio_default>;
+	pinctrl-1 = <&pins_tdm_master>;
+	pinctrl-2 = <&pins_tdm_slave>;
+
+	lantiq,slic-reset = <&gpio 31 GPIO_ACTIVE_HIGH>;
+};
+
+&localbus {
+	nand@1 {
+		compatible = "gen_nand", "lantiq,nand-xway";
+		reg = <1 0x0 0x2000000>;
+		linux,mtd-name = "nand-xway";
+		bbt-use-flash;
+		bank-width = <2>;
+		lantiq,cs = <1>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pins_nand_default>;
+	};
+};
+
+&spi {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_spi_default>;
+
+	status = "ok";
+
+	m25p80@4 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "spansion,m25p80";
+		reg = <4>;
+		spi-max-frequency = <25000000>;
+	};
+};
+
+&gpio {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_default>;
+
+	pins_default: pins_default {
+	};
+
+	pins_eth_default: pins_eth_default {
+		mdio {
+			lantiq,groups = "mdio";
+			lantiq,function = "mdio";
+			lantiq,output = <1>;
+		};
+		exin2 {
+			lantiq,groups = "exin2";
+			lantiq,function = "exin";
+			lantiq,output = <0>;
+		};
+	};
+
+	pins_gpio_keys_default: pins_gpio_keys_default {
+		gpio_in {
+			lantiq,pins = "io45", "io46", "io47";
+			lantiq,output = <0>;
+		};
+	};
+
+	pins_gpio_leds_default: pins_gpio_leds_default {
+		gpio_low_active {
+			lantiq,pins = "io3", "io19", "io20",
+					"io21", "io27", "io28",
+					"io29", "io30";
+			lantiq,output = <1>;
+		};
+	};
+
+	pins_nand_default: pins_nand_default {
+		nand_out {
+			lantiq,groups = "ebu cs1", "nand cle",
+					"nand ale", "nand rd";
+			lantiq,function = "ebu";
+			lantiq,output = <1>;
+		};
+		nand_in {
+			lantiq,groups = "nand rdy";
+			lantiq,function = "ebu";
+			lantiq,output = <0>;
+		};
+	};
+
+	pins_psb21150_default: pins_psb21150_default {
+		exin1 {
+			lantiq,groups = "exin1";
+			lantiq,function = "exin";
+			lantiq,output = <0>;
+		};
+	};
+
+	pins_sph_platform_default: pins_sph_platform_default {
+		gpio_low_active {
+			lantiq,pins = "io15", "io31";
+			lantiq,output = <1>;
+		};
+		gpio_high_active {
+			lantiq,pins = "io37";
+			lantiq,output = <1>;
+		};
+	};
+
+	pins_spi_default: pins_spi_default {
+		spi_in {
+			lantiq,groups = "spi_din";
+			lantiq,function = "spi";
+			lantiq,output = <0>;
+		};
+		spi_out {
+			lantiq,groups = "spi_dout", "spi_clk",
+					"spi_cs4";
+			lantiq,function = "spi";
+			lantiq,output = <1>;
+		};
+	};
+
+	pins_stp_default: pins_stp_default {
+		stp {
+			lantiq,groups = "stp";
+			lantiq,function = "stp";
+			lantiq,output = <1>;
+		};
+	};
+
+	pins_usif_spi_default: pins_usif_spi_default {
+		usif_in {
+			lantiq,groups = "usif din";
+			lantiq,function = "usif";
+			lantiq,pull = <2>;
+			lantiq,output = <0>;
+		};
+		usif_out {
+			lantiq,groups = "usif dout";
+			lantiq,function = "usif";
+			lantiq,output = <1>;
+		};
+		usif_clk {
+			lantiq,groups = "usif clk drive";
+			lantiq,function = "gpio";
+			lantiq,output = <1>;
+			lantiq,drive = <1>;
+			lantiq,open-drain = <0>;
+		};
+	};
+
+	pins_usif_clk_active: pins_usif_clk_active{
+		usif_clk {
+			lantiq,groups = "usif clk";
+			lantiq,function = "usif";
+			lantiq,output = <1>;
+		};
+	};
+
+	pins_usif_clk_high: pins_usif_clk_high {
+		usif_clk {
+			lantiq,groups = "usif clk drive";
+			lantiq,function = "gpio";
+			lantiq,output = <1>;
+			lantiq,drive = <1>;
+		};
+	};
+
+	pins_usif_clk_low: pins_usif_clk_low {
+		usif_clk {
+			lantiq,groups = "usif clk drive";
+			lantiq,function = "gpio";
+			lantiq,output = <1>;
+			lantiq,drive = <0>;
+		};
+	};
+
+	pins_tdm_default: pins_tdm_default {
+		tdm_clock {
+			lantiq,groups = "tdm fsc", "tdm dcl";
+			lantiq,function = "gpio";
+			lantiq,pull = <2>;
+			lantiq,open-drain = <0>;
+			lantiq,output = <0>;
+		};
+		tdm_data {
+			lantiq,groups = "tdm di", "tdm do";
+			lantiq,function = "gpio";
+			lantiq,pull = <2>;
+			lantiq,open-drain = <0>;
+			lantiq,output = <0>;
+		};
+	};
+
+	pins_tdm_master: pins_tdm_master {
+		tdm_clock {
+			lantiq,groups = "tdm fsc", "tdm dcl";
+			lantiq,function = "tdm";
+			lantiq,pull = <0>;
+			lantiq,open-drain = <0>;
+			lantiq,output = <1>;
+		};
+		tdm_di {
+			lantiq,groups = "tdm di";
+			lantiq,function = "tdm";
+			lantiq,pull = <2>;
+			lantiq,open-drain = <0>;
+			lantiq,output = <0>;
+		};
+		tdm_do {
+			lantiq,groups = "tdm do";
+			lantiq,function = "tdm";
+			lantiq,pull = <0>;
+			lantiq,open-drain = <0>;
+			lantiq,output = <1>;
+		};
+	};
+
+	pins_tdm_slave: pins_tdm_slave {
+		tdm_clock {
+			lantiq,groups = "tdm fsc", "tdm dcl";
+			lantiq,function = "tdm";
+			lantiq,pull = <2>;
+			lantiq,open-drain = <0>;
+			lantiq,output = <0>;
+		};
+		tdm_di {
+			lantiq,groups = "tdm di";
+			lantiq,function = "tdm";
+			lantiq,pull = <2>;
+			lantiq,open-drain = <0>;
+			lantiq,output = <0>;
+		};
+		tdm_do {
+			lantiq,groups = "tdm do";
+			lantiq,function = "tdm";
+			lantiq,pull = <0>;
+			lantiq,open-drain = <0>;
+			lantiq,output = <1>;
+		};
+	};
+
+	pins_ssio_default: pins_ssio_default {
+		ssio_out {
+			lantiq,groups = "ssio tx";
+			lantiq,function = "ssio";
+			lantiq,output = <1>;
+		};
+		ssio_in {
+			lantiq,groups = "ssio rx", "ssio clk";
+			lantiq,function = "ssio";
+			lantiq,output = <0>;
+		};
+		clk {
+			lantiq,groups = "clkout0";
+			lantiq,function = "cgu";
+			lantiq,output = <1>;
+		};
+		slic_reset {
+			lantiq,pins = "io31";
+			lantiq,pull = <0>;
+			lantiq,open-drain = <0>;
+			lantiq,output = <1>;
+			lantiq,drive = <1>;
+		};
+	};
+
+	pins_usb0_default: pins_usb0_default {
+		gpio_high_active {
+			lantiq,pins = "io41";
+			lantiq,output = <1>;
+		};
+	};
+
+	pins_usb1_default: pins_usb1_default {
+		gpio_high_active {
+			lantiq,pins = "io33";
+			lantiq,output = <1>;
+		};
+	};
+};
+
+&stp {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_stp_default>;
+
+	status = "ok";
+
+	lantiq,shadow = <0x0>;
+	lantiq,groups = <0x1>;
+	lantiq,speed = <0x8>;
+	lantiq,phy1 = <0x3>;
+	lantiq,phy2 = <0x3>;
+};
+
+&usif {
+	pinctrl-names = "default", "clk active", "clk high",
+			"clk low";
+	pinctrl-0 = <&pins_usif_spi_default &pins_usif_clk_low
+			&pins_psb21150_default>;
+	pinctrl-1 = <&pins_usif_clk_active>;
+	pinctrl-2 = <&pins_usif_clk_high>;
+	pinctrl-3 = <&pins_usif_clk_low>;
+};
+
+&usb0_oc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_usb0_default>;
+	gpios = <&gpio 41 GPIO_ACTIVE_HIGH>;
+};
+
+&usb1_oc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_usb1_default>;
+	gpios = <&gpio 33 GPIO_ACTIVE_HIGH>;
+};

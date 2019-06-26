@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2014-2019 Sphairon GmbH (a Zyxel company)
+ */
+
+/dts-v1/;
+
+#include "xrx200-gw400.dtsi"
+
+/ {
+	model = "Zyxel gw400 series [410]";
+	compatible = "zyxel,gw400", "lantiq,vr9", "lantiq,xway";
+};

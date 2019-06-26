@@ -1,0 +1,174 @@
+diff --git a/Makefile b/Makefile
+index b25f074b86fadc74c745b56793362b3008ec8a60..30d830a4e94c269eee0a63ed4bbb0442146c500e 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,7 +1,7 @@
+ VERSION = 1
+ PATCHLEVEL = 21
+ SUBLEVEL = 1
+-EXTRAVERSION = -sphairon5
++EXTRAVERSION = -sphairon6
+ NAME = Unnamed
+ 
+ # *DOCUMENTATION*
+diff --git a/networking/udhcp/dhcpc.c b/networking/udhcp/dhcpc.c
+index 06907c0996688c0178cbdbc2d6179f9cdfa5a6af..8bd4f6fb9f2992dde41e38038535cf46cd1946d6 100644
+--- a/networking/udhcp/dhcpc.c
++++ b/networking/udhcp/dhcpc.c
+@@ -1242,6 +1242,10 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 	int max_fd;
+ 	int retval;
+ 	fd_set rfds;
++	uint32_t T2_seconds = 0;
++	uint32_t elapsed_time = 0;
++	uint32_t lease_time = 0;
++	uint32_t transition_into_rebind = 0;
+ 
+ 	/* Default options */
+ 	IF_FEATURE_UDHCP_PORT(SERVER_PORT = 67;)
+@@ -1454,9 +1458,13 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 						transaction_start = now;
+ 					}
+ 
++					log1("INIT_SELECTING: send_discover");
++
+ 					send_discover(xid, requested_ip, (now - transaction_start)); /* broadcast */
+ 					timeout = discover_timeout;
+ 					packet_num++;
++					elapsed_time = 0;
++					lease_time = 0;
+ 					continue;
+ 				}
+  leasefail:
+@@ -1503,11 +1511,12 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 				transaction_start = now;
+ 				change_listen_mode(LISTEN_KERNEL);
+ 				log1("Entering renew state");
++				log1("BOUND: T1 (%d s)passed - next state --> RENEWING", timeout);
+ 				/* fall right through */
+ 			case RENEW_REQUESTED: /* manual (SIGUSR1) renew */
+ 			case_RENEW_REQUESTED:
+ 			case RENEWING:
+-				if (timeout > 60) {
++				if (elapsed_time < T2_seconds) {
+ 					/* send an unicast renew request */
+ 			/* Sometimes observed to fail (EADDRNOTAVAIL) to bind
+ 			 * a new UDP socket for sending inside send_renew.
+@@ -1517,14 +1526,27 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 			 * Anyway, it does recover by eventually failing through
+ 			 * into INIT_SELECTING state.
+ 			 */
+-					send_renew(xid, server_addr, requested_ip, (now - transaction_start));
++					if ((T2_seconds - elapsed_time) > 60) {
++						/* In both RENEWING and REBINDING states, if the client receives no
++						* response to its DHCPREQUEST message, the client SHOULD wait one-half
++						* of the remaining time until T2 (in RENEWING state) and one-half of
++						* the remaining lease time (in REBINDING state), down to a minimum of
++						* 60 seconds, before retransmitting the DHCPREQUEST message.*/
++						send_renew(xid, server_addr, requested_ip, (now - transaction_start));
++						log1("RENEW_REQUESTED/RENEWING: elapsed time (%d s) < T2 (%d s) -> send_renew (unicast)", elapsed_time, T2_seconds);
++					}
++
+ 					timeout >>= 1;
++					elapsed_time = elapsed_time + timeout;
+ 					continue;
+ 				}
+ 				/* Timed out, enter rebinding state */
+ 				log1("Entering rebinding state");
++				log1("RENEW_REQUESTED/RENEWING: T2 (%d s) passed - next state --> REBINDING", T2_seconds);
++
+ 				state = REBINDING;
+ 				transaction_start = now;
++				transition_into_rebind = 1;
+ 				/* fall right through */
+ 			case REBINDING:
+ 				/* Switch to bcast receive */
+@@ -1532,13 +1554,34 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 				/* Lease is *really* about to run out,
+ 				 * try to find DHCP server using broadcast */
+ 				if (timeout > 0) {
+-					/* send a broadcast renew request */
+-					send_renew(xid, 0 /*INADDR_ANY*/, requested_ip, (now - transaction_start));
++					if ((transition_into_rebind == 1)) {
++						/* first time in this state, because T2 was passed */
++						transition_into_rebind = 0;
++						/* send the first broadcast renew request */
++						send_renew(xid, 0 /*INADDR_ANY*/, requested_ip, (now - transaction_start));
++						log1("REBINDING: first send_renew (BROADCAST)", elapsed_time);
++					} else {
++						if ((lease_time - elapsed_time) > 60) {
++							/* In both RENEWING and REBINDING states, if the client receives no
++							 * response to its DHCPREQUEST message, the client SHOULD wait one-half
++							 * of the remaining time until T2 (in RENEWING state) and one-half of
++							 * the remaining lease time (in REBINDING state), down to a minimum of
++							 * 60 seconds, before retransmitting the DHCPREQUEST message.*/
++
++							/* send a broadcast renew request */
++							send_renew(xid, 0 /*INADDR_ANY*/, requested_ip, (now - transaction_start));
++							log1("REBINDING: elapsed time = %d -> send_renew (BROADCAST)", elapsed_time);
++						}
++					}
+ 					timeout >>= 1;
++					elapsed_time = elapsed_time + timeout;
+ 					continue;
+ 				}
+ 				/* Timed out, enter init state */
+ 				bb_info_msg("Lease lost, entering init state");
++
++				log1("REBINDING: Lease lost (lease time passed) - next state --> INIT_SELECTING");
++
+ 				udhcp_run_script(NULL, "deconfig");
+ 				transaction_start = now;
+ 				change_listen_mode(LISTEN_RAW);
+@@ -1674,6 +1717,9 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 				requested_ip = packet.yiaddr;
+ 
+ 				/* enter requesting state */
++
++				log1("INIT_SELECTING - DHCPOFFER received - next state --> REQUESTING ");
++
+ 				state = REQUESTING;
+ 				timeout = 0;
+ 				packet_num = 0;
+@@ -1690,6 +1736,9 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 
+ 				temp = udhcp_get_option(&packet, DHCP_LEASE_TIME);
+ 				if (!temp) {
++
++					log1("REQUESTING/RENEWING/RENEW_REQUESTED/REBINDING - DHCPACK received: no lease time with ACK, using 1 hour lease");
++
+ 					bb_error_msg("no lease time with ACK, using 1 hour lease");
+ 					lease_seconds = 60 * 60;
+ 				} else {
+@@ -1701,6 +1750,11 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 						lease_seconds = 0x10;
+ 					if (lease_seconds >= 0x10000000)
+ 						lease_seconds = 0x0fffffff;
++
++					/* calculate default Rebinding Time T2 (87,5 % of Lease Time) */
++					T2_seconds = (uint32_t)lease_seconds * 0.875;
++					lease_time = lease_seconds;
++					elapsed_time = 0;
+ 				}
+ #if ENABLE_FEATURE_UDHCPC_ARPING
+ 				if (opt & OPT_a) {
+@@ -1739,6 +1793,11 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 				/* enter bound state */
+ 				timeout = lease_seconds / 2;
+ 				temp_addr.s_addr = packet.yiaddr;
++
++				elapsed_time = elapsed_time + timeout;
++
++				log1("REQUESTING/RENEWING/RENEW_REQUESTED/REBINDING - DHCPACK received: lease time = %d s, T1 = %d s, T2 = %d s - next state --> BOUND", lease_seconds, timeout, T2_seconds);
++
+ 				bb_info_msg("Lease of %s obtained, lease time %u",
+ 					inet_ntoa(temp_addr), (unsigned)lease_seconds);
+ 				requested_ip = packet.yiaddr;
+@@ -1764,6 +1823,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 				continue; /* back to main loop */
+ 			}
+ 			if (*message == DHCPNAK) {
++				log1("REQUESTING/RENEWING/RENEW_REQUESTED/REBINDING - DHCPNACK received - next state --> INIT_SELECTING");
+ 				/* return to init state */
+ 				bb_info_msg("Received DHCP NAK");
+ 				udhcp_run_script(&packet, "nak");

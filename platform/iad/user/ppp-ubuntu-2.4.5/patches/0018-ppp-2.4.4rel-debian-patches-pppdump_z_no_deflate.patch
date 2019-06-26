@@ -1,0 +1,23 @@
+From: Alexander Sack <asac@jwsdot.com>
+Date: Thu, 18 Dec 2008 05:37:43 +0100
+Subject: ppp-2.4.4rel/debian/patches/pppdump_z_no_deflate
+
+---
+ pppdump/Makefile.linux | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pppdump/Makefile.linux b/pppdump/Makefile.linux
+index 268467f..3894750 100644
+--- a/pppdump/Makefile.linux
++++ b/pppdump/Makefile.linux
+@@ -2,7 +2,7 @@ DESTDIR = $(INSTROOT)@DESTDIR@
+ BINDIR = $(DESTDIR)/sbin
+ MANDIR = $(DESTDIR)/share/man/man8
+ 
+-DO_DEFLATE=y
++#DO_DEFLATE=y
+ DO_BSD_COMPRESS=y
+ HAVE_ZLIB=y
+ 
+--
+

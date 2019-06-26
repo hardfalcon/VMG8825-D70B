@@ -1,0 +1,79 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Mon, 6 Jun 2011 13:42:42 +0200
+Subject: Get rid of bogus code doing some shady operations in IPv6 mode if the
+ code happens to include a header file which defines certain macros.
+
+Signed-off-by: Daniel Egger <daniel.egger@sphairon.com>
+---
+ gsoap/stdsoap2.c   | 15 ---------------
+ gsoap/stdsoap2.cpp | 15 ---------------
+ 2 files changed, 30 deletions(-)
+
+diff --git a/gsoap/stdsoap2.c b/gsoap/stdsoap2.c
+index 1791507..6ad74e8 100644
+--- a/gsoap/stdsoap2.c
++++ b/gsoap/stdsoap2.c
+@@ -4244,14 +4244,6 @@ soap_bind(struct soap *soap, const char *host, int port, int backlog)
+   struct addrinfo hints;
+   struct addrinfo res;
+   int err;
+-#ifdef IPV6_V6ONLY
+-  int unset = 0;
+-#ifdef SOL_IP
+-  int level = SOL_IP;
+-#else
+-  int level = IPPROTO_IPV6;
+-#endif
+-#endif
+ #endif
+ #ifndef WITH_LEAN
+   int len = SOAP_BUFLEN;
+@@ -4349,13 +4341,6 @@ soap_bind(struct soap *soap, const char *host, int port, int backlog)
+ #endif
+ #endif
+ #ifdef WITH_IPV6
+-#ifdef IPV6_V6ONLY
+-  if (setsockopt(soap->master, level, IPV6_V6ONLY, (char*)&unset, sizeof(int)))
+-  { soap->errnum = soap_socket_errno(soap->master);
+-    soap_set_receiver_error(soap, tcp_error(soap), "setsockopt IPV6_V6ONLY failed in soap_bind()", SOAP_TCP_ERROR);
+-    return SOAP_INVALID_SOCKET;
+-  }
+-#endif
+   soap->errmode = 0;
+   if (bind(soap->master, res.ai_addr, (int)res.ai_addrlen))
+   { soap->errnum = soap_socket_errno(soap->master);
+diff --git a/gsoap/stdsoap2.cpp b/gsoap/stdsoap2.cpp
+index eeb97ba..6b512df 100644
+--- a/gsoap/stdsoap2.cpp
++++ b/gsoap/stdsoap2.cpp
+@@ -4244,14 +4244,6 @@ soap_bind(struct soap *soap, const char *host, int port, int backlog)
+   struct addrinfo hints;
+   struct addrinfo res;
+   int err;
+-#ifdef IPV6_V6ONLY
+-  int unset = 0;
+-#ifdef SOL_IP
+-  int level = SOL_IP;
+-#else
+-  int level = IPPROTO_IPV6;
+-#endif
+-#endif
+ #endif
+ #ifndef WITH_LEAN
+   int len = SOAP_BUFLEN;
+@@ -4349,13 +4341,6 @@ soap_bind(struct soap *soap, const char *host, int port, int backlog)
+ #endif
+ #endif
+ #ifdef WITH_IPV6
+-#ifdef IPV6_V6ONLY
+-  if (setsockopt(soap->master, level, IPV6_V6ONLY, (char*)&unset, sizeof(int)))
+-  { soap->errnum = soap_socket_errno(soap->master);
+-    soap_set_receiver_error(soap, tcp_error(soap), "setsockopt IPV6_V6ONLY failed in soap_bind()", SOAP_TCP_ERROR);
+-    return SOAP_INVALID_SOCKET;
+-  }
+-#endif
+   soap->errmode = 0;
+   if (bind(soap->master, res.ai_addr, (int)res.ai_addrlen))
+   { soap->errnum = soap_socket_errno(soap->master);
+--
+

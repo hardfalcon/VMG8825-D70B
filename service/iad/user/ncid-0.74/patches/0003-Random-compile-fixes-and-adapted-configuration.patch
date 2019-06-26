@@ -1,0 +1,301 @@
+From 2bd8275ac36fba8282476713a2673dde2fa2e726 Mon Sep 17 00:00:00 2001
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Thu, 5 May 2011 15:09:19 +0200
+Subject: [PATCH 3/5] Random compile fixes and adapted configuration.
+
+---
+ cidgate/config.c      |   10 +++-
+ cidgate/config.h      |   14 ++++--
+ cidgate/sip2ncid.conf |    7 ++-
+ ncidd.conf.dist       |  113 +-----------------------------------------------
+ nciddconf.c           |   12 +++--
+ 5 files changed, 30 insertions(+), 126 deletions(-)
+
+diff --git a/cidgate/config.c b/cidgate/config.c
+index 7810d99..531216b 100644
+--- a/cidgate/config.c
++++ b/cidgate/config.c
+@@ -37,7 +37,7 @@ struct setword setword[] = {
+  * Process the config file.
+  */
+ 
+-int doConf()
++int doConf(void)
+ {
+     char input[BUFSIZ], word[BUFSIZ], msgbuf[BUFSIZ], *inptr;
+     int lc;
+@@ -79,7 +79,7 @@ int doSet(char *inptr, int lc)
+     char word[BUFSIZ], msgbuf[BUFSIZ];
+ 
+     /* process configuration parameters */
+-    while (inptr = getWord(inptr, word, lc))
++    while ((inptr = getWord(inptr, word, lc)))
+     {
+         if (word[0] == '#')    break; /* rest of line is comment */
+ 
+@@ -139,6 +139,8 @@ int doSet(char *inptr, int lc)
+             logMsg(LEVEL1, msgbuf);
+         }
+     }
++
++    return 0;
+ }
+ 
+ int findWord(char *wdptr)
+@@ -158,6 +160,8 @@ int configError(int lc, char *word, char *mesg)
+         fprintf(stderr, "%s: Line %d; %s %s\n", config, lc, mesg, word);
+         ++conferr;
+     }
++
++    return 0;
+ }
+ 
+ /*
+@@ -172,7 +176,7 @@ char *getWord(char *inptr, char *wdptr, int lc)
+     if (inptr == 0) return 0;
+ 
+     while (*inptr && isspace(*inptr)) inptr++;
+-    if (endptr = strchr(inptr, '\n')) *endptr = 0;
++    if ((endptr = strchr(inptr, '\n'))) *endptr = 0;
+     if (*inptr == 0) return 0;
+     *wdptr = 0;
+ 
+diff --git a/cidgate/config.h b/cidgate/config.h
+index b92887a..f044b56 100644
+--- a/cidgate/config.h
++++ b/cidgate/config.h
+@@ -55,13 +55,17 @@ struct setword
+     int max;
+ };
+ 
+-void perror();
+-char *getWord();
+-int findWord(), doConf(), doSet(), configError();
+-
+-extern void errorExit();
+ extern int debug, verbose, delay;
+ extern char *config, *name;
+ extern struct setword setword[];
+ 
++char *getWord(char *inptr, char *wdptr, int lc);
++int findWord(char *wdptr);
++int doConf(void);
++int doSet(char *inptr, int lc);
++int configError(int lc, char *word, char *mesg);
++
++extern void perror(const char *s);
++extern void errorExit(int error, char *msg, char *arg);
++
+ #endif /* CONFIG_H */
+diff --git a/cidgate/sip2ncid.conf b/cidgate/sip2ncid.conf
+index 0f0c411..feb45de 100644
+--- a/cidgate/sip2ncid.conf
++++ b/cidgate/sip2ncid.conf
+@@ -26,7 +26,7 @@
+ 
+ # Set the PID file is set to /var/run/sip2ncid.pid for rc and init scripts
+ # The default is no PID file
+-# set pidfile = /var/run/sip2ncid.pid
++set pidfile = /var/run/sip2ncid.pid
+ 
+ # ###################
+ # Network Interface #
+@@ -34,7 +34,7 @@
+ 
+ # Set the network interface
+ # pcap finds the network interface
+-# set interface = eth0
++set interface = ppp1
+ 
+ # ####################
+ # NCID host and port #
+@@ -45,7 +45,7 @@
+ # set ncidhost = 192.168.0.10
+ 
+ # Set the NCID port
+-# the defailt NCID port: 3333
++# the default NCID port: 3333
+ # set ncidport = 3334
+ 
+ # ###################
+@@ -60,3 +60,4 @@
+ # Normal SIP ports are: 1061, 10000
+ # the default SIP port: 10000
+ # set sipport = 1061
++set sipport = 5060
+diff --git a/ncidd.conf.dist b/ncidd.conf.dist
+index 9de7f90..faaf48e 100644
+--- a/ncidd.conf.dist
++++ b/ncidd.conf.dist
+@@ -38,7 +38,7 @@
+ 
+ # Send the call log to a client when connected
+ # The default is not to send the call log file
+-send cidlog
++# send cidlog
+ 
+ # Send call info (LINE and RING) to a client at each ring
+ # The default is not to send the call info line
+@@ -57,7 +57,7 @@ send cidinfo
+ 
+ # Set pidfile to /var/run/ncidd.pid in rc and init scripts
+ # The default is no PID file
+-# set pidfile = /var/log/ncidd.pid
++set pidfile = /var/run/ncidd.pid
+ 
+ # The default CID alias file: /etc/ncid/ncidd.alias
+ # set cidalias = /etc/ncid/ncidd.alias
+@@ -92,114 +92,7 @@ send cidinfo
+ 
+ #  NETWORK AND NO SERIAL: noserial = 1 (do not use a serial port)
+ #  SERIAL AND NETWORK:    noserial = 0 (default - use a serial port)
+-# set noserial = 1
++set noserial = 1
+ 
+ # NOTE: if noserial is set to 1, nothing needs to be configured beyond
+ #       this point.
+-
+-############################
+-# Telephone Line Indicator #
+-############################
+-
+-# Set the line indicator if you have more than one telephone
+-# line sending information to ncidd and noserial is set to 0.
+-# normally you would set it to the last 4 digits of your number.
+-# lineid default: -
+-# set lineid = 7744
+-
+-#####################
+-# TTY Configuration #
+-#####################
+-
+-# The default tty port: /dev/modem
+-# set ttyport = /dev/cu.modem # Macintosh OS X
+-# set ttyport = /dev/ttyS0
+-
+-# The default tty port speed: 19200
+-# The tty speed can be one of: 38400, 19200, 9600, 4800
+-# set ttyspeed = 4800 # NetCallerID port speed
+-
+-# Ignore tty control signals for internal modems and 3 wire serial cables
+-#   Disable tty control signals: ttyclocal = 1
+-#   Enable tty control signals: ttyclocal = 0 (default)
+-# set ttyclocal = 1
+-
+-# The lockfile name is generated automatically
+-# If tty port is /dev/modem, lockfile is: /var/lock/LCK..modem
+-# set lockfile = /var/lock/LCK..ttyS0
+-
+-#####################
+-# Modem or No Modem #
+-#####################
+-
+-# Obtain CallerID from a CID device or a modem
+-# The NetCallerID device is not a modem
+-#  DEVICE: nomodem = 1 (do not send AT commands)
+-#  MODEM:  nomodem = 0 (default - send AT commands)
+-# set nomodem = 1
+-
+-########################
+-# Modem Initialization #
+-########################
+-
+-# The default modem initialization is: "AT Z S0=0 E1 V1 Q0"
+-# set initstr = "ATE1V1Q0"
+-#
+-# If minicom can talk to the modem but ncidd fails, use the Minicom init string
+-# Minicom initialization string is "AT S7=45 S0=0 L1 V1 X4 &c1 E1 Q0"
+-# set initstr = "ATS7=45S0=0L1V1X4&c1E1Q0"
+-#
+-# Alternate modem initialization string
+-# set initstr = "AT&FE1V1Q0+VIP"
+-#
+-# Alternate modem initialization string for the Mac Motorola UbiSoft modem
+-# set initstr = "AT+FCLASS=8;+VCID=1" # Macintosh OS X
+-
+-# The U.S.Robotics USR5631 56K Faxmodem has a +GCI command to set the
+-# country code to adjust parameters for a particular telephone network
+-# (perhaps other modems do also).  See the following on how to set +GCI
+-#   http://www.usr.com/support/5631/5631-ug/generic.htm
+-#   doc/Modem-init (has a copy of the information needed to set +GCI)
+-
+-# Addon strings to set modem for Distinctive Ring:
+-#   http://www.modemsite.com/56k/dring.asp
+-#
+-# 3Com/USR/TI chipset: ATS41=1
+-#   Reported Ring Codes: RING A, RING B, RING C
+-# Rockwell/Conexant chipset: AT-SDR=7
+-#   Reported Ring Codes: RING 1, RING 2, RING 3
+-# Lucent/Agere chipset: AT+VDR=1,0
+-#   Reported DROF/DRON messages: DRON=5 DROF=11, DRON=5 DROF=34
+-#
+-# Example adds 3Com DR to the default modem initialization
+-# set initstr = "ATE1V1Q0S41=1"
+-
+-# The default for ncidd is to try two CID strings to setup
+-# CallerID: "AT+VCID=1" and if that fails: "AT#CID=1".
+-# set initcid = "AT#CID=1"
+-#
+-# Alternate CID strings to try if default does not work:
+-# set initcid = "AT+FCLASS=8;+VCID=1"
+-# set initcid = "AT-STE=1;+VCID=1"
+-# set initcid = "AT-STE=1;#CID=1"
+-
+-#################
+-# TiVo Settings #
+-#################
+-# set ttyclocal = 1 # TiVo requires CLOCAL
+-# set ttyport = /dev/ttyS1 # TiVo Modem Port
+-# set lockfile = /var/tmp/modemlock # needed for TiVo Modem Port
+-#
+-# To use a modem on the TiVo serial port
+-#   Tivo (stereo mini jack) ->
+-#   -> (stereo mini plug) TiVo serial cable (9-pin male) ->
+-#   -> (9-pin Female) PC modem cable (25-pin Male ->
+-#   -> (25-pin Female) Modem
+-# if the modem has switches, disable DTR
+-# Use this string to set the modem before attaching it to the TiVo:
+-#   AT&F0&D0&B1&W
+-#
+-# set ttyport = /dev/ttyS3 # TiVo Serial Port
+-#
+-# End TiVo Settings
+-
+diff --git a/nciddconf.c b/nciddconf.c
+index 28a0f19..94e1264 100644
+--- a/nciddconf.c
++++ b/nciddconf.c
+@@ -21,15 +21,17 @@
+ 
+ int errorStatus;
+ char *cidconf = CIDCONF;
+-char *getWord();
+-int doset();
+-void doSend(), configError(), doSet();
++char *getWord(char *inptr, char *wdptr, int lc);
++/* int doset(); */
++void doSend(char *inptr, int lc);
++void configError(char *file, int lc, char *word, char *mesg);
++void doSet(char *inptr, int lc);
+ 
+ struct setword setword[] = {
+     /* char *word; int type; char **buf; int *value; int min; int max */
+     {"cidalias",   WORDSTR,            &cidalias, 0,         0,    0},
+     {"cidlog",     WORDSTR,            &cidlog,   0,         0,    0},
+-    {"cidlogmax",  WORDNUM,            0,         (int *) &cidlogmax,1,    LOGMAXNUM},
++    {"cidlogmax",  WORDNUM,            0,         &cidlogmax,1,    LOGMAXNUM},
+     {"datalog",    WORDSTR,            &datalog,  0,         0,    0},
+     {"lineid",     WORDSTR,            &lineid,   0,         0,    0},
+     {"initcid",    WORDSTR | WORDFLAG, &initcid,  &setcid,   0,    0},
+@@ -56,7 +58,7 @@ struct sendclient sendclient[] = {
+  * Process the config file.
+  */
+ 
+-int doConf()
++int doConf(void)
+ {
+     char input[BUFSIZ], word[BUFSIZ], buf[BUFSIZ], *inptr;
+     int lc;
+-- 
+1.7.4.1
+

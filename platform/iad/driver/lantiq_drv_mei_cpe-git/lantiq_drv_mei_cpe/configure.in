@@ -1,0 +1,669 @@
+
+AC_REVISION($Revision: 1.21 $)
+
+AC_INIT(IFX MEI CPE Driver, 1.7.2-pd3, , drv_mei_cpe)
+AC_CONFIG_SRCDIR(src/Makefile.am)
+AM_INIT_AUTOMAKE([tar-pax])
+
+AC_PROG_CC
+AM_PROG_CC_C_O
+AC_PROG_RANLIB
+
+AC_CONFIG_HEADER(src/drv_mei_cpe_config_auto.h)
+
+#
+# save the configure arguments
+#
+CONFIGURE_OPTIONS="$ac_configure_args"
+AC_SUBST(CONFIGURE_OPTIONS)
+
+# target options for build
+MEI_DRV_TARGET_OPTIONS=""
+
+dnl Select device support
+AM_CONDITIONAL(SELECT_DEVICE_SUPPORT, false)
+AC_ARG_ENABLE(device,
+    AC_HELP_STRING([--enable-device=vr9 | vr10 | vr10_320 | ar9],[Select Device]),
+    [
+        echo Set Device = $enableval
+        case $enableval in
+        vr9)
+            AM_CONDITIONAL(SELECT_DEVICE_SUPPORT, true)
+            AC_SUBST([DSL_DEVICE_NAME],[VR9])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_SUPPORT_DEVICE_VR9=1 -DMEI_SUPPORT_DEVICE_VR10=0 -DMEI_SUPPORT_DEVICE_VR10_320=0 -DMEI_SUPPORT_DEVICE_VR11=0 -DMEI_SUPPORT_DEVICE_AR9=0"
+            ;;
+        vr10)
+            AM_CONDITIONAL(SELECT_DEVICE_SUPPORT, true)
+            AC_SUBST([DSL_DEVICE_NAME],[VR10])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_SUPPORT_DEVICE_VR9=0 -DMEI_SUPPORT_DEVICE_VR10=1 -DMEI_SUPPORT_DEVICE_VR10_320=0 -DMEI_SUPPORT_DEVICE_VR11=0 -DMEI_SUPPORT_DEVICE_AR9=0"
+            ;;
+        vr10_320)
+            AM_CONDITIONAL(SELECT_DEVICE_SUPPORT, true)
+            AC_SUBST([DSL_DEVICE_NAME],[VR10_320])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_SUPPORT_DEVICE_VR9=0 -DMEI_SUPPORT_DEVICE_VR10=0 -DMEI_SUPPORT_DEVICE_VR10_320=1 -DMEI_SUPPORT_DEVICE_VR11=0 -DMEI_SUPPORT_DEVICE_AR9=0"
+            ;;
+        vr11)
+            AM_CONDITIONAL(SELECT_DEVICE_SUPPORT, true)
+            AC_SUBST([DSL_DEVICE_NAME],[VR11])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_SUPPORT_DEVICE_VR9=0 -DMEI_SUPPORT_DEVICE_VR10=0 -DMEI_SUPPORT_DEVICE_VR10_320=0 -DMEI_SUPPORT_DEVICE_VR11=1 -DMEI_SUPPORT_DEVICE_AR9=0"
+            ;;
+        ar9)
+            AM_CONDITIONAL(SELECT_DEVICE_SUPPORT, true)
+            AC_SUBST([DSL_DEVICE_NAME],[AR9])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_SUPPORT_DEVICE_VR9=0 -DMEI_SUPPORT_DEVICE_VR10=0 -DMEI_SUPPORT_DEVICE_VR10_320=0 -DMEI_SUPPORT_DEVICE_VR11=0 -DMEI_SUPPORT_DEVICE_AR9=1"
+            ;;
+        *) AC_MSG_ERROR([ Select Device, use vr9 | vr10 | vr10_320 | vr11 | ar9 ]);
+             ;;
+        esac
+    ]
+)
+
+AC_ARG_ENABLE(debug,
+    AC_HELP_STRING([--enable-debug],[Enable debug messages]),
+   [
+        echo Set MEI CPE Debug Print = $enableval
+        case $enableval in
+        0|no)
+            AC_SUBST([DSL_ENABLE_DEBUG_PRINTS],[no])
+            ;;
+        1|yes)
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DDEBUG_PRINT"
+            AC_SUBST([DSL_ENABLE_DEBUG_PRINTS],[yes])
+            ;;
+        *) AC_MSG_ERROR([ Remote Access Selection, use enable or disable ]);
+            ;;
+        esac
+    ]
+)
+
+AC_ARG_ENABLE(error_print,
+    AC_HELP_STRING([--enable-error-print],[Enable error messages]),
+   [
+        echo Set VRX Error Print = $enableval
+        case $enableval in
+        0|no)
+            AC_SUBST([DSL_ENABLE_ERROR_PRINTS],[no])
+            ;;
+        1|yes)
+            AC_SUBST([DSL_ENABLE_ERROR_PRINTS],[yes])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DERROR_PRINT"
+            ;;
+        *) AC_MSG_ERROR([ Remote Access Selection, use enable or disable ]);
+            ;;
+        esac
+    ]
+)
+
+
+dnl enable MIPSEL support
+AM_CONDITIONAL(TARGET_ADM5120_MIPSEL, false)
+AC_ARG_ENABLE(adm5120,
+   AC_HELP_STRING([--enable-adm5120],[Build for ADM5120]),
+    [
+        AC_MSG_RESULT(MEI CPE drv: build for ADM5120 - mipsel)
+        AM_CONDITIONAL(TARGET_ADM5120_MIPSEL, true)
+    ])
+
+dnl enable linux kernel 2.6.x support
+AM_CONDITIONAL(KERNEL_2_6, false)
+AC_ARG_ENABLE(linux-26,
+   AC_HELP_STRING([--enable-linux-26],[Enable support for linux kernel 2.6.x]),
+    [
+        AM_CONDITIONAL(KERNEL_2_6, true)
+        [ARCH=`$CC -dumpmachine | sed -e s'/-.*//' \
+            -e 's/i[3-9]86/i386/' \
+            -e 's/mipsel/mips/' \
+            -e 's/powerpc/ppc/' \
+            -e 's/sh[234]/sh/' \
+        `]
+        if test -n "$ARCH" ; then
+            echo "Set the kernel architecture to $ARCH"
+            AC_SUBST([KERNEL_ARCH],[$ARCH])
+        else
+            AC_MSG_ERROR([Kernel architecture not set!])
+        fi
+	AC_SUBST([CROSS_COMPILE],[$CROSS_COMPILE])
+    ]
+)
+
+dnl Set kernel include path (Linux, eCos, ...)
+DEFAULT_KERNEL_INCL_PATH='.'
+AC_ARG_ENABLE(kernelincl,
+   AS_HELP_STRING(
+      [--enable-kernelincl=x],
+      [Set the target kernel include path]
+   ),
+   [
+    if test -n $enableval; then
+       echo Set the kernel include path $enableval
+       AC_SUBST([KERNEL_INCL_PATH],[$enableval])
+    else
+       echo Set the default kernel include path $DEFAULT_KERNEL_INCL_PATH
+       AC_SUBST([KERNEL_INCL_PATH],[$DEFAULT_KERNEL_INCL_PATH])
+    fi
+   ],
+   [
+       echo Set the default kernel include path $DEFAULT_KERNEL_INCL_PATH
+       AC_SUBST([KERNEL_INCL_PATH],[$DEFAULT_KERNEL_INCL_PATH])
+   ]
+)
+
+dnl Set kernel build path
+AC_ARG_ENABLE(kernelbuild,
+   AC_HELP_STRING([--enable-kernelbuild=x],[Set the target kernel build path]),
+    [
+        if test -e $enableval/include/linux/autoconf.h -o -e $enableval/include/generated/autoconf.h; then
+            AC_SUBST([KERNEL_BUILD_PATH],[$enableval])
+        else
+            AC_MSG_ERROR([The kernel build directory is not valid or not configured!])
+        fi
+    ],
+    [
+        if test -z $KERNEL_BUILD_PATH; then
+            # assume kernel was build in source dir...
+            AC_SUBST([KERNEL_BUILD_PATH],[$KERNEL_INCL_PATH/..])
+        fi
+    ]
+)
+
+dnl Set additional driver cflags
+AM_CONDITIONAL(ADD_DRV_CFLAGS_SET, false)
+AC_ARG_ENABLE(add_drv_cflags,
+   AC_HELP_STRING([--enable-add_drv_cflags=x],[Set add driver cflags]),
+    [
+        if test -n "$enableval"; then
+            echo Set add drv cflags = $enableval
+            AM_CONDITIONAL(ADD_DRV_CFLAGS_SET, true)
+            AC_SUBST([ADD_DRV_CFLAGS],[$enableval])
+        fi
+    ]
+)
+
+dnl Set additional external driver cflags
+AM_CONDITIONAL(CONFIG_USE_MEI_ADD_EXT_DRV_CFLAGS, false)
+AC_ARG_ENABLE(add_ext_drv_cflags,
+   AC_HELP_STRING([--enable-add_ext_drv_cflags=x],[Set add external driver cflags]),
+    [
+        if test -n "$enableval"; then
+            echo Set add ext drv cflags = $enableval
+            AM_CONDITIONAL(CONFIG_USE_MEI_ADD_EXT_DRV_CFLAGS, true)
+            AC_SUBST([MEI_ADD_EXT_DRV_CFLAGS],[$enableval])
+        fi
+    ]
+)
+
+dnl Set target application cflags
+AM_CONDITIONAL(ADD_APPL_CFLAGS_SET, false)
+AC_ARG_ENABLE(add_appl_cflags,
+   AC_HELP_STRING([--enable-add_appl_cflags=x],[Set add appl cflags]),
+    [
+        if test -n "$enableval"; then
+            echo Set add appl compile flags = $enableval
+            AM_CONDITIONAL(ADD_APPL_CFLAGS_SET, true)
+            AC_SUBST([ADD_APPL_CFLAGS],[$enableval])
+        fi
+    ]
+)
+
+dnl Set target application ldflags
+AM_CONDITIONAL(ADD_APPL_LDFLAGS_SET, false)
+AC_ARG_ENABLE(add_appl_ldflags,
+   AC_HELP_STRING([--enable-add_appl_ldflags=x],[Set add appl ldflags]),
+    [
+        if test -n "$enableval"; then
+            echo Set add appl ldflags = $enableval
+            AM_CONDITIONAL(ADD_APPL_LDFLAGS_SET, true)
+            AC_SUBST([ADD_APPL_LDFLAGS],[$enableval])
+        fi
+    ]
+)
+
+dnl Set VRX driver feature configure option
+AC_ARG_ENABLE(drv_target_opt,
+   AC_HELP_STRING([--enable-drv_target_opt=x],[Set the VRX driver feature configure option]),
+    [
+        if test -n "$enableval"; then
+            echo Set VRX Driver target options = $enableval
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS $enableval"
+        fi
+    ]
+)
+
+dnl Enable Internal API export
+AM_CONDITIONAL(ADD_INTERNAL_IF_SET, false)
+AC_ARG_ENABLE(internal_if,
+    AC_HELP_STRING([--enable-internal_if=x],[Enable Support Internal Interface]),
+    [
+        echo Set MEI CPE Internal Interface = $enableval
+        case $enableval in
+        0|no)
+            AM_CONDITIONAL(ADD_INTERNAL_IF_SET, false)
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_EXPORT_INTERNAL_API=0"
+            ;;
+        1|yes)
+            AM_CONDITIONAL(ADD_INTERNAL_IF_SET, true)
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_EXPORT_INTERNAL_API=1"
+            ;;
+        *) AC_MSG_ERROR([ Internal IF Selection, use enable or disable ]);
+             ;;
+        esac
+    ]
+)
+
+dnl Set the internal NFC buffer count
+AC_ARG_ENABLE(nfcbuffer,
+    AC_HELP_STRING([--enable-nfcbuffer=x],[Set the internal NFC buffer count]),
+    [
+        if test -n $enableval; then
+            echo Set MEI CPE NFC buffer = $enableval
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_DRV_NFC_BUFFER=$enableval"
+        fi
+    ]
+)
+
+
+dnl Set - add driver modem tests
+AM_CONDITIONAL(ADD_DRV_MODEM_TESTS_SET, false)
+AC_ARG_ENABLE(add_drv_modem_tests,
+    AC_HELP_STRING([--enable-add_drv_modem_tests=x],[Set add driver modem tests]),
+    [
+        echo Set VRX DRV_MODEM_TESTS = $enableval
+        case $enableval in
+        0|no)
+         AM_CONDITIONAL(ADD_DRV_MODEM_TESTS_SET, false)
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_SUPPORT_DRV_MODEM_TESTS=0"
+            ;;
+        1|yes)
+         AM_CONDITIONAL(ADD_DRV_MODEM_TESTS_SET, true)
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_SUPPORT_DRV_MODEM_TESTS=1"
+            ;;
+        *) AM_CONDITIONAL(ADD_DRV_MODEM_TESTS_SET, false)
+            ;;
+        esac
+    ]
+)
+
+dnl enable BAR register debug support
+AC_ARG_ENABLE(predef-dbg-bar,
+    AC_HELP_STRING([--enable-predef-dbg-bar=x],[Enable predefined table for bar address init]),
+    [
+        case $enableval in
+        0|no)
+         AC_SUBST([CONFIG_MEI_PREDEF_DBG_BAR],[no])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_PREDEF_DBG_BAR=0"
+            ;;
+        1|yes)
+         AC_SUBST([CONFIG_MEI_PREDEF_DBG_BAR],[yes])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_PREDEF_DBG_BAR=1"
+            ;;
+        *)
+         AC_SUBST([CONFIG_MEI_PREDEF_DBG_BAR],[no])
+            ;;
+        esac
+    ],
+    [
+        MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_PREDEF_DBG_BAR=1"
+        AC_SUBST([CONFIG_MEI_PREDEF_DBG_BAR],[yes])
+    ]
+)
+
+dnl enable Debug Stream support
+AM_CONDITIONAL(ADD_SUPPORT_DEBUG_STREAMS, false)
+AC_ARG_ENABLE(debug-stream-support,
+    AC_HELP_STRING([--enable-debug-stream-support=x],[Enable debug stream support]),
+    [
+        case $enableval in
+        0|no)
+         AC_SUBST([CONFIG_SUPPORT_DEBUG_STREAMS],[no])
+         AM_CONDITIONAL([ADD_SUPPORT_DEBUG_STREAMS], false)
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_SUPPORT_DEBUG_STREAMS=0"
+            ;;
+        1|yes)
+         AC_SUBST([CONFIG_SUPPORT_DEBUG_STREAMS],[yes])
+         AM_CONDITIONAL([ADD_SUPPORT_DEBUG_STREAMS], true)
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_SUPPORT_DEBUG_STREAMS=1"
+            ;;
+        *)
+         AC_SUBST([CONFIG_SUPPORT_DEBUG_STREAMS],[no])
+         AM_CONDITIONAL([ADD_SUPPORT_DEBUG_STREAMS], false)
+            ;;
+        esac
+    ]
+)
+
+dnl enable Debug Logger support
+AM_CONDITIONAL(ADD_SUPPORT_DEBUG_LOGGER, false)
+AC_ARG_ENABLE(debug-logger-support,
+    AC_HELP_STRING([--enable-debug-logger-support=x],[Enable debug logger support]),
+    [
+        case $enableval in
+        0|no)
+         AC_SUBST([CONFIG_SUPPORT_DEBUG_LOGGER],[no])
+         AM_CONDITIONAL([ADD_SUPPORT_DEBUG_LOGGER], false)
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_SUPPORT_DEBUG_LOGGER=0"
+            ;;
+        1|yes)
+         AC_SUBST([CONFIG_SUPPORT_DEBUG_LOGGER],[yes])
+         AM_CONDITIONAL([ADD_SUPPORT_DEBUG_LOGGER], true)
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_SUPPORT_DEBUG_LOGGER=1"
+            ;;
+        *)
+         AC_SUBST([CONFIG_SUPPORT_DEBUG_LOGGER],[no])
+         AM_CONDITIONAL([ADD_SUPPORT_DEBUG_LOGGER], false)
+            ;;
+        esac
+    ]
+)
+
+dnl set the ID of netlink debug messages channel
+AC_ARG_WITH(dbg-netlink-id,
+    AC_HELP_STRING([--with-dbg-netlink-id=value],[Debug netlink ID number.]),
+    [
+        if test -n $withval; then
+            echo Set Debug Message netlink ID = $withval
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DDSL_DBG_MSG_NETLINK_ID=$withval"
+        fi
+    ]
+)
+
+dnl enable Emulation configuration
+AC_ARG_ENABLE(emulation-configuration,
+    AC_HELP_STRING([--enable-emulation-configuration=x],[Enable emulation related configurations]),
+    [
+        case $enableval in
+        0|no)
+         AC_SUBST([CONFIG_MEI_EMULATION_CONFIGURATION],[no])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_EMULATION_CONFIGURATION=0"
+            ;;
+        1|yes)
+         AC_SUBST([CONFIG_MEI_EMULATION_CONFIGURATION],[yes])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_EMULATION_CONFIGURATION=1"
+            ;;
+        *)
+         AC_SUBST([CONFIG_MEI_EMULATION_CONFIGURATION],[no])
+            ;;
+        esac
+    ],
+    [
+        MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_EMULATION_CONFIGURATION=0"
+        AC_SUBST([CONFIG_MEI_EMULATION_CONFIGURATION],[yes])
+    ]
+)
+
+dnl Enable MEI CPE driver build as a Loadable Kernel Module
+AC_ARG_ENABLE(lkm,
+    AC_HELP_STRING([--enable-lkm=x],[Enable MEI CPE driver build as a Loadable Kernel Module]),
+    [
+        echo Set Loadable Kernel Module Enable = $enableval
+        case $enableval in
+        0|no)
+         AC_SUBST([MEI_DRV_LKM_ENABLE],[no])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_DRV_LKM_ENABLE=0"
+            ;;
+        1|yes)
+         AC_SUBST([MEI_DRV_LKM_ENABLE],[yes])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_DRV_LKM_ENABLE=1"
+            ;;
+        *)
+         AC_SUBST([MEI_DRV_LKM_ENABLE],[no])
+            ;;
+        esac
+    ],
+    [
+        MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_DRV_LKM_ENABLE=1"
+        AC_SUBST([MEI_DRV_LKM_ENABLE],[no])
+    ]
+)
+
+dnl Enable MEI CPE driver PCI Slave firmware download support
+AC_ARG_ENABLE(pci-slave,
+    AC_HELP_STRING([--enable-pci-slave=x],[Enable MEI CPE driver PCI Slave firmware download support]),
+    [
+        echo Set PCI Slave firmware download Enable = $enableval
+        case $enableval in
+        0|no)
+         AC_SUBST([MEI_SUPPORT_PCI_SLAVE_FW_DOWNLOAD],[no])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_SUPPORT_PCI_SLAVE_FW_DOWNLOAD=0"
+            ;;
+        1|yes)
+         AC_SUBST([MEI_SUPPORT_PCI_SLAVE_FW_DOWNLOAD],[yes])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_SUPPORT_PCI_SLAVE_FW_DOWNLOAD=1"
+            ;;
+        *)
+         AC_SUBST([MEI_SUPPORT_PCI_SLAVE_FW_DOWNLOAD],[no])
+            ;;
+        esac
+    ],
+    [
+        MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_SUPPORT_PCI_SLAVE_FW_DOWNLOAD=0"
+        AC_SUBST([MEI_SUPPORT_PCI_SLAVE_FW_DOWNLOAD],[no])
+    ]
+)
+
+dnl Enable MEI CPE driver PCI Slave application specific address range
+AC_ARG_ENABLE(pci-slave-addr,
+    AC_HELP_STRING([--enable-pci-slave-addr=bonding | bonding_external],[Select PCI Slave address range]),
+    [
+        echo Set Device = $enableval
+        case $enableval in
+        bonding)
+            AC_SUBST([MEI_PCI_SLAVE_ADDR_RANGE],[BONDING])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_SUPPORT_PCI_SLAVE_ADDR_RANGE_BONDING_EXTERNAL=0 -DMEI_SUPPORT_PCI_SLAVE_ADDR_RANGE_BONDING=1"
+            ;;
+        bonding_external)
+            AC_SUBST([MEI_PCI_SLAVE_ADDR_RANGE],[BONDING_EXTERNAL])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_SUPPORT_PCI_SLAVE_ADDR_RANGE_BONDING_EXTERNAL=1 -DMEI_SUPPORT_PCI_SLAVE_ADDR_RANGE_BONDING=0"
+            ;;
+        *) AC_MSG_ERROR([ Select PCI Slave address range, use bonding | bonding_external ]);
+             ;;
+        esac
+    ]
+)
+
+AC_ARG_ENABLE(ppa-callbacks-tc,
+    AC_HELP_STRING([--disable-ppa-callbacks-tc],[Call TC callbacks in the PPA subsystem, default activated]),
+   [
+        case $enableval in
+        0|no)
+            AC_SUBST([MEI_PPA_SUPPORTS_TC_CALLBACKS],[no])
+            ;;
+        1|yes|*)
+            AC_SUBST([MEI_PPA_SUPPORTS_TC_CALLBACKS],[yes])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DPPA_SUPPORTS_TC_CALLBACKS"
+            ;;
+        esac
+    ],
+    [
+        AC_SUBST([MEI_PPA_SUPPORTS_TC_CALLBACKS],[yes])
+        MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DPPA_SUPPORTS_TC_CALLBACKS"
+    ]
+)
+
+AC_ARG_ENABLE(ppa-callbacks,
+    AC_HELP_STRING([--disable-ppa-callbacks],[Call callbacks in the PPA subsystem, default activated]),
+   [
+        case $enableval in
+        0|no)
+            AC_SUBST([MEI_PPA_SUPPORTS_CALLBACKS],[no])
+            ;;
+        1|yes|*)
+            AC_SUBST([MEI_PPA_SUPPORTS_CALLBACKS],[yes])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DPPA_SUPPORTS_CALLBACKS"
+            ;;
+        esac
+    ],
+    [
+        AC_SUBST([MEI_PPA_SUPPORTS_CALLBACKS],[yes])
+        MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DPPA_SUPPORTS_CALLBACKS"
+    ]
+)
+
+dnl Enable MEI CPE driver test application support
+AC_ARG_ENABLE(drv_test_appl,
+    AC_HELP_STRING([--enable-drv_test_appl=x],[Enable MEI CPE driver test application support]),
+    [
+        echo Set MEI CPE driver test application = $enableval
+        case $enableval in
+        0|no)
+         AM_CONDITIONAL(MEI_TEST_APPL_ENABLE, false)
+         AC_SUBST([MEI_TEST_APPL_ENABLE],[no])
+            ;;
+        1|yes)
+         AM_CONDITIONAL(MEI_TEST_APPL_ENABLE, true)
+         AC_SUBST([MEI_TEST_APPL_ENABLE],[yes])
+            ;;
+        *)
+         AM_CONDITIONAL(MEI_TEST_APPL_ENABLE, false)
+         AC_SUBST([MEI_TEST_APPL_ENABLE],[no])
+            ;;
+        esac
+    ],
+    [
+         AM_CONDITIONAL(MEI_TEST_APPL_ENABLE, true)
+         AC_SUBST([MEI_TEST_APPL_ENABLE],[yes])
+    ]
+)
+
+dnl Enable IFXOS support
+AC_ARG_ENABLE(ifxos_drv,
+    AC_HELP_STRING([--enable-ifxos_drv=x],[Enable IFXOS driver support]),
+    [
+        echo Set IFXOS driver Enable = $enableval
+        case $enableval in
+        0|no)
+         AM_CONDITIONAL(IFXOS_ENABLE, false)
+         AC_SUBST([IFXOS_ENABLE],[no])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_DRV_IFXOS_ENABLE=0"
+            ;;
+        1|yes)
+         AM_CONDITIONAL(IFXOS_ENABLE, true)
+         AC_SUBST([IFXOS_ENABLE],[yes])
+            MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_DRV_IFXOS_ENABLE=1"
+            ;;
+        *)
+         AM_CONDITIONAL(IFXOS_ENABLE, false)
+         AC_SUBST([IFXOS_ENABLE],[no])
+            ;;
+        esac
+    ],
+    [
+        MEI_DRV_TARGET_OPTIONS="$MEI_DRV_TARGET_OPTIONS -DMEI_DRV_IFXOS_ENABLE=1"
+        AM_CONDITIONAL(IFXOS_ENABLE, true)
+        AC_SUBST([IFXOS_ENABLE],[yes])
+    ]
+)
+
+dnl set libifxos.a library path
+DEFAULT_IFXOS_LIBRARY_PATH='.'
+AC_ARG_ENABLE(ifxos-library,
+   AS_HELP_STRING([--enable-ifxos-library=/path/to/your/lib_ifxos/src] , [Set the lib_ifxos library path. In this location the libifxos.a should be found]),
+   [
+    if test -n "$enableval"; then
+       echo Set the libifxos.a library path to $enableval
+       AC_SUBST([IFXOS_LIBRARY_PATH],[$enableval])
+    else
+       echo Set the lib_board_config library path $DEFAULT_IFXOS_LIBRARY_PATH
+       AC_SUBST([IFXOS_LIBRARY_PATH],[$DEFAULT_IFXOS_LIBRARY_PATH])
+    fi
+   ],
+   [
+      echo Set the libifxos.a library path $DEFAULT_IFXOS_LIBRARY_PATH
+      AC_SUBST([IFXOS_LIBRARY_PATH],[$DEFAULT_IFXOS_LIBRARY_PATH])
+   ]
+)
+
+dnl set lib_ifxos include path
+DEFAULT_IFXOS_INCLUDE_PATH='-I./lib_ifxos/src/include'
+AC_ARG_ENABLE(ifxos-include,
+   AC_HELP_STRING([--enable-ifxos-include=-I/path/to/your/lib_ifxos/src/include], [Set the lib_ifxos include path.]),
+   [
+    if test -n "$enableval"; then
+       echo Set the lib_ifxos include path $enableval
+       AC_SUBST([IFXOS_INCLUDE_PATH],[$enableval])
+    else
+       echo -e Set the default lib_ifxos include path $DEFAULT_IFXOS_INCLUDE_PATH
+       AC_SUBST([IFXOS_INCLUDE_PATH],[$DEFAULT_IFXOS_INCLUDE_PATH])
+    fi
+   ],
+   [
+      echo -e Set the default lib_ifxos include path $DEFAULT_IFXOS_INCLUDE_PATH
+      AC_SUBST([IFXOS_INCLUDE_PATH],[$DEFAULT_IFXOS_INCLUDE_PATH])
+   ]
+)
+
+AM_CONDITIONAL(ENABLE_ECOS, false)
+AM_CONDITIONAL(ENABLE_NUCLEUS, false)
+AM_CONDITIONAL(ENABLE_LINUX, true)
+
+dnl Enable the eCos operating system
+AC_ARG_ENABLE(ecos,
+   AS_HELP_STRING(
+      [--enable-ecos],
+      [Enable eCos]
+   ),
+   [
+      if test "$enableval" = yes; then
+         echo Enable eCos operating system
+         AM_CONDITIONAL(ENABLE_ECOS, true)
+         AM_CONDITIONAL(ENABLE_LINUX, false)
+      fi
+   ]
+)
+
+dnl Enable the Nucleus operating system
+AC_ARG_ENABLE(nucleus,
+   AS_HELP_STRING(
+      [--enable-nucleus],
+      [Enable Nucleus]
+   ),
+   [
+      if test "$enableval" = yes; then
+         echo Enable Nucleus operating system
+         AM_CONDITIONAL(ENABLE_NUCLEUS, true)
+         AM_CONDITIONAL(ENABLE_LINUX, false)
+      fi
+   ]
+)
+
+# dnl export target options
+AC_SUBST([MEI_DRV_TARGET_OPTIONS],[$MEI_DRV_TARGET_OPTIONS])
+
+echo \
+"-------------------------------------------------------------------------------
+Configuration for drv_mei_cpe:
+  DSL device                  :     ${DSL_DEVICE_NAME}
+  Source code location        :     `cd ${srcdir};pwd`
+  Compiler                    :     ${CC}
+  Compiler flags              :     ${CFLAGS}
+  External compiler c-flags   :     ${MEI_ADD_EXT_DRV_CFLAGS}
+  Host System Type            :     ${host}
+  Install path                :     ${prefix}
+  Linux LKM                   :     ${MEI_DRV_LKM_ENABLE}
+  PCI Slave                   :     ${MEI_SUPPORT_PCI_SLAVE_FW_DOWNLOAD}
+  PCI Slave address range     :     ${MEI_PCI_SLAVE_ADDR_RANGE}
+  Linux kernel include path   :     ${KERNEL_INCL_PATH}
+  Linux kernel build path     :     ${KERNEL_BUILD_PATH}
+  Linux kernel architecture   :     ${KERNEL_ARCH}
+  MEI CPE Test Application    :     ${MEI_TEST_APPL_ENABLE}
+  IFXOS driver support        :     ${IFXOS_ENABLE}
+  IFXOS library path          :     ${IFXOS_LIBRARY_PATH}
+  IFXOS include path          :     ${IFXOS_INCLUDE_PATH}
+  Enable debug prints         :     ${DSL_ENABLE_DEBUG_PRINTS}
+  Enable error prints         :     ${DSL_ENABLE_ERROR_PRINTS}
+  Enable BAR debug support    :     ${CONFIG_MEI_PREDEF_DBG_BAR}
+  Enable Debug Stream support :     ${CONFIG_SUPPORT_DEBUG_STREAMS}
+  Enable Debug Logger support :     ${CONFIG_SUPPORT_DEBUG_LOGGER}
+  Enable Emulation Config     :     ${CONFIG_MEI_EMULATION_CONFIGURATION}
+  Netlink ID                  :     $[DSL_DBG_MSG_NETLINK_ID]
+  Use TC callbacks to PPA     :     ${MEI_PPA_SUPPORTS_TC_CALLBACKS}
+  Use callbacks to PPA        :     ${MEI_PPA_SUPPORTS_CALLBACKS}
+
+Settings:
+  Configure options:              ${CONFIGURE_OPTIONS}
+
+  Target options:                 ${MEI_DRV_TARGET_OPTIONS}
+--------------------------------------------------------------------------------"
+
+AC_CONFIG_FILES([Makefile src/Makefile])
+AC_OUTPUT
+

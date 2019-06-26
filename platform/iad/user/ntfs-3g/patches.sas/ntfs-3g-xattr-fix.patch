@@ -1,0 +1,68 @@
+---
+ config.h.in           |    3 ---
+ libntfs-3g/efs.c      |    3 +++
+ libntfs-3g/inode.c    |    3 +++
+ libntfs-3g/reparse.c  |    3 +++
+ libntfs-3g/security.c |    3 +++
+ 5 files changed, 12 insertions(+), 3 deletions(-)
+
+--- a/libntfs-3g/efs.c
++++ b/libntfs-3g/efs.c
+@@ -41,6 +41,9 @@
+ 
+ #ifdef HAVE_SETXATTR
+ #include <sys/xattr.h>
++#else
++/* ugly, for XATTR_REPLACE */
++#include <linux/xattr.h>
+ #endif
+ 
+ #ifdef HAVE_SYS_SYSMACROS_H
+--- a/libntfs-3g/inode.c
++++ b/libntfs-3g/inode.c
+@@ -37,6 +37,9 @@
+ #endif
+ #ifdef HAVE_SETXATTR
+ #include <sys/xattr.h>
++#else
++/* ugly, for XATTR_CREATE */
++#include <linux/xattr.h>
+ #endif
+ 
+ #include "compat.h"
+--- a/libntfs-3g/reparse.c
++++ b/libntfs-3g/reparse.c
+@@ -41,6 +41,9 @@
+ 
+ #ifdef HAVE_SETXATTR
+ #include <sys/xattr.h>
++#else
++/* ugly, for XATTR_CREATE and XATTR_REPLACE */
++#include <linux/xattr.h>
+ #endif
+ 
+ #ifdef HAVE_SYS_SYSMACROS_H
+--- a/libntfs-3g/security.c
++++ b/libntfs-3g/security.c
+@@ -43,6 +43,9 @@
+ #endif
+ #ifdef HAVE_SETXATTR
+ #include <sys/xattr.h>
++#else
++/* ugly, for XATTR_CREATE */
++#include <linux/xattr.h>
+ #endif
+ 
+ #include <unistd.h>
+--- a/config.h.in
++++ b/config.h.in
+@@ -120,9 +120,6 @@
+ /* Define to 1 if you have the `setlocale' function. */
+ #undef HAVE_SETLOCALE
+ 
+-/* Define to 1 if you have the `setxattr' function. */
+-#undef HAVE_SETXATTR
+-
+ /* Define to 1 if `stat' has the bug that it succeeds when given the
+    zero-length file name argument. */
+ #undef HAVE_STAT_EMPTY_STRING_BUG

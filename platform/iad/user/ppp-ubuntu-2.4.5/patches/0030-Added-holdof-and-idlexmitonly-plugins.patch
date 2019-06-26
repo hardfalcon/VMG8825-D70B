@@ -1,0 +1,112 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Mon, 14 Feb 2011 18:05:49 +0100
+Subject: Added holdof and idlexmitonly plugins.
+
+---
+ pppd/plugins/Makefile.linux |  3 ++-
+ pppd/plugins/holdoff_exp.c  | 53 +++++++++++++++++++++++++++++++++++++++++++++
+ pppd/plugins/idlexmitonly.c | 19 ++++++++++++++++
+ 3 files changed, 74 insertions(+), 1 deletion(-)
+ create mode 100644 pppd/plugins/holdoff_exp.c
+ create mode 100644 pppd/plugins/idlexmitonly.c
+
+diff --git a/pppd/plugins/Makefile.linux b/pppd/plugins/Makefile.linux
+index 14eb939..ac54153 100644
+--- a/pppd/plugins/Makefile.linux
++++ b/pppd/plugins/Makefile.linux
+@@ -13,7 +13,8 @@ LIBDIR = $(DESTDIR)/lib/pppd/$(VERSION)
+ SUBDIRS := pppoatm
+ # Uncomment the next line to include the radius authentication plugin
+ #SUBDIRS += radius
+-PLUGINS := minconn.so passprompt.so passwordfd.so winbind.so
++#PLUGINS := minconn.so passprompt.so passwordfd.so winbind.so
++PLUGINS := idlexmitonly.so holdoff_exp.so
+ 
+ # include dependencies if present
+ ifeq (.depend,$(wildcard .depend))
+diff --git a/pppd/plugins/holdoff_exp.c b/pppd/plugins/holdoff_exp.c
+new file mode 100644
+index 0000000..97128c5
+--- /dev/null
++++ b/pppd/plugins/holdoff_exp.c
+@@ -0,0 +1,53 @@
++/*
++ * holdoff_exp.c - pppd plugin to implement a exponential growing holdoff timeout
++ *                 by using holdoff hook. 
++ */
++
++#include <stddef.h>
++#include <time.h>
++#include "pppd.h"
++
++const char pppd_version[] = VERSION;
++
++int next_holdoff;
++
++static int get_exp_holdoff( void )
++{
++	int ret_holdoff;
++
++	ret_holdoff = next_holdoff; // "next" is just now
++
++	// provide an exponential holdoff timeout from 1 to 1024 (wrapping around)
++	// calculate next holdoff timeout
++	next_holdoff *= 2;
++	if( next_holdoff > 1024 ) next_holdoff = 1;
++
++	info("holdoff_exp holdoff hook called (holdoff %ds)", ret_holdoff);
++
++	return ret_holdoff;
++}
++
++void my_ip_up_notifier(void *opaque, int arg)
++{
++
++	info("holdoff_exp ip_up_notifier called, reset next holdoff (%ds) to 1s)", next_holdoff);
++   	next_holdoff = 1;
++
++}
++
++void plugin_init(void)
++{
++	if( holdoff_hook )
++	{
++		error("Plugin holdoff_exp: Could not register holdoff_hook, is already used!");
++
++		return;
++		
++	}
++
++    next_holdoff = 1;
++	holdoff_hook = get_exp_holdoff;
++	add_notifier( &ip_up_notifier, my_ip_up_notifier, 0 );
++
++	info("Plugin holdoff_exp initialized.");
++}
+diff --git a/pppd/plugins/idlexmitonly.c b/pppd/plugins/idlexmitonly.c
+new file mode 100644
+index 0000000..f277241
+--- /dev/null
++++ b/pppd/plugins/idlexmitonly.c
+@@ -0,0 +1,19 @@
++#include <stddef.h>
++#include <time.h>
++#include "pppd.h"
++
++const char pppd_version[] = VERSION;
++
++static int idlexmitonly_get_idle(struct ppp_idle *idle)
++{
++	info("idlexmitonly get_idle hook called (%d)", (idle == NULL) ? idle_time_limit : (idle_time_limit - idle->xmit_idle));
++
++	return (idle == NULL) ? idle_time_limit : (idle_time_limit - idle->xmit_idle);
++}
++
++void plugin_init(void)
++{
++	idle_time_hook = idlexmitonly_get_idle;
++
++	info("Plugin idlexmitonly initialized.");
++}
+--
+

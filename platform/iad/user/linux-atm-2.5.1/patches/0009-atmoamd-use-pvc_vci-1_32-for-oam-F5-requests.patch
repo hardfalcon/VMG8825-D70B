@@ -1,0 +1,23 @@
+From: Maik Dybek <maik.dybek@sphairon.com>
+Date: Wed, 16 Jun 2010 16:31:57 +0200
+Subject: atmoamd: use pvc_vci 1_32 for oam F5 requests
+
+---
+ src/oamd/oam.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/oamd/oam.c b/src/oamd/oam.c
+index 4595ff1..93852e1 100644
+--- a/src/oamd/oam.c
++++ b/src/oamd/oam.c
+@@ -258,7 +258,7 @@ oam_fsm(void)
+ 	case OAM_INIT:
+ 		timer = 0;
+ 		vcc.ctrl.number = 0;
+-		vcc.ctrl.vpi = 8;
++		vcc.ctrl.vpi = 1;
+ 		vcc.ctrl.vci = 32;
+ 		vcc.ctrl.pti = 5;
+ 		vcc.CTag = oam_build_lb_cell(&vcc.ctrl);
+--
+

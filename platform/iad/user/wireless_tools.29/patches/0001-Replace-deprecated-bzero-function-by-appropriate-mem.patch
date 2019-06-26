@@ -1,0 +1,38 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Mon, 22 Aug 2011 17:03:34 +0200
+Subject: Replace deprecated bzero function by appropriate memset calls.
+
+Signed-off-by: Daniel Egger <daniel.egger@sphairon.com>
+---
+ ifrename.c |    2 ++
+ iwlib.c    |    2 ++
+ 2 files changed, 4 insertions(+), 0 deletions(-)
+
+diff --git a/ifrename.c b/ifrename.c
+index 9a29d17..22126db 100644
+--- a/ifrename.c
++++ b/ifrename.c
+@@ -52,6 +52,8 @@
+ 
+ #include "iwlib.h"		/* Wireless Tools library */
+ 
++#define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
++
+ // This would be cool, unfortunately...
+ //#include <linux/ethtool.h>	/* Ethtool stuff -> struct ethtool_drvinfo */
+ 
+diff --git a/iwlib.c b/iwlib.c
+index 0afa8c1..4e7d17b 100644
+--- a/iwlib.c
++++ b/iwlib.c
+@@ -25,6 +25,8 @@
+ #define IW15_MAX_SPY		8
+ #define IW15_MAX_AP		8
+ 
++#define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
++
+ /****************************** TYPES ******************************/
+ 
+ /*
+--
+

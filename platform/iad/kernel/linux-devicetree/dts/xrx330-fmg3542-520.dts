@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2014-2019 Sphairon GmbH (a Zyxel company)
+ */
+
+/dts-v1/;
+
+#include "xrx330-fmg3542.dtsi"
+#if defined(HAS_ETL_DTSI)
+#include "520-ubisqd/typelabel.dtsi"
+#endif
+
+/ {
+	model = "Zyxel fmg3542 series [520]";
+	compatible = "zyxel,fmg3542", "lantiq,grx390", "lantiq,xway";
+	gemini_etl = "1";
+	gemini_etl_merge_clip = "1";
+};

@@ -1,0 +1,88 @@
+#!/bin/sh
+#
+# test script to test the NTFS write support
+#
+# Author: Stefan Seyfried <seife@sphairon.com>
+#
+# * to be run on the target system
+# * tested only on 286524, should work on G3 also (usb-power.srv)
+# * tested only on gamma
+
+FN=random-data.bin
+TN=/tmp/$FN
+
+case "$1" in
+	""|[0-9]*) ;;
+	*)	echo; echo "Benutzung: $(basename $0) [Anzahl]"
+		echo "   Anzahl: Anzahl der Testdurchgaenge (default: 3)"; echo
+		exit 127 ;;
+esac
+
+echo "NTFS Schreibtest..."
+
+# number of loops, default: 3
+LOOPS=${1:-3}
+
+# exit after first match
+eval $(awk '/ fuse / { print "DEV="$1" MP=\""$2"\""; exit }' /proc/mounts)
+
+if [ -z "$DEV" -o -z "$MP" ]; then
+	echo "FUSE Mountpunkt nicht gefunden. Stick gesteckt?"
+	exit 126
+fi
+
+# 1MB file should be big enough
+echo "* erzeuge 1MB Zufallsdaten..."
+dd if=/dev/urandom of=$TN.tmp bs=128k count=1 > /dev/null
+rm -f $TN
+for i in 0 1 2 3 4 5 6 7; do
+	cat $TN.tmp >> $TN
+done
+rm $TN.tmp
+
+ERR=0
+i=0
+while test $i -lt $LOOPS; do
+	i=$(expr $i + 1)
+	echo "*** Testdurchlauf $i von $LOOPS ****"
+	echo "* kopiere Testdatei nach $MP"
+	cp $TN "$MP"/$FN
+	echo "* haenge Dateisystem aus..."
+	if umount $DEV; then
+		echo "  * OK."
+		echo "* haenge Dateisystem wieder ein..."
+		ntfs-3g $DEV "$MP" 2>/dev/null || echo "*** Fehler." # fixme: does this ever happen?
+	else
+		echo "  * Fehlgeschlagen (kein Fehler)."
+		echo "* schalte USB-Strom ab..."
+		# umount can fail if e.g. twonkymedia is active on the medium
+		# just cut the power in this case
+		sync; sync
+		sleep 1
+		usb-power.srv stop >/dev/null # disconnects everything
+		echo "* schalte USB-Strom wieder an..." 
+		usb-power.srv start >/dev/null
+		echo "* warte auf USB-Geraet..."
+		while !grep -q "$MP" /proc/mounts; do
+			echo -n .
+			sleep 1
+		done
+		echo "  * OK."
+		sleep 1
+	fi
+	echo "* vergleiche Dateiinhalt"
+	if cmp $TN "$MP"/$FN; then
+		echo "==> Alles OK."
+	else
+		echo "==> Test fehlgeschlagen!"
+		ERR=$(expr $ERR + 1)
+	fi
+done
+if test $ERR -ne 0; then
+	echo "***********************************************************"
+	echo "Test NICHT bestanden, $ERR Fehler in $LOOPS Testlaeufen"
+	echo "***********************************************************"
+else
+	echo "Test bestanden."
+fi
+exit $ERR

@@ -1,0 +1,46 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Mon, 6 Jun 2011 12:44:39 +0200
+Subject: Remove duplicate setsockopt call.
+
+Signed-off-by: Daniel Egger <daniel.egger@sphairon.com>
+---
+ gsoap/stdsoap2.c   | 6 ------
+ gsoap/stdsoap2.cpp | 6 ------
+ 2 files changed, 12 deletions(-)
+
+diff --git a/gsoap/stdsoap2.c b/gsoap/stdsoap2.c
+index a5856cc..1791507 100644
+--- a/gsoap/stdsoap2.c
++++ b/gsoap/stdsoap2.c
+@@ -3831,12 +3831,6 @@ again:
+ #ifndef IP_MULTICAST_IF
+ #define IP_MULTICAST_IF 2
+ #endif
+-    if (setsockopt(fd, IPPROTO_IP, IP_MULTICAST_IF, (char*)soap->ipv4_multicast_if, sizeof(struct in_addr))) 
+-    { soap->errnum = soap_socket_errno(fd);
+-      soap_set_sender_error(soap, tcp_error(soap), "setsockopt IP_MULTICAST_IF failed in tcp_connect()", SOAP_TCP_ERROR);
+-      soap->fclosesocket(soap, fd);
+-      return SOAP_INVALID_SOCKET;
+-    }
+ #endif
+   }
+ #endif
+diff --git a/gsoap/stdsoap2.cpp b/gsoap/stdsoap2.cpp
+index d41c86e..eeb97ba 100644
+--- a/gsoap/stdsoap2.cpp
++++ b/gsoap/stdsoap2.cpp
+@@ -3831,12 +3831,6 @@ again:
+ #ifndef IP_MULTICAST_IF
+ #define IP_MULTICAST_IF 2
+ #endif
+-    if (setsockopt(fd, IPPROTO_IP, IP_MULTICAST_IF, (char*)soap->ipv4_multicast_if, sizeof(struct in_addr))) 
+-    { soap->errnum = soap_socket_errno(fd);
+-      soap_set_sender_error(soap, tcp_error(soap), "setsockopt IP_MULTICAST_IF failed in tcp_connect()", SOAP_TCP_ERROR);
+-      soap->fclosesocket(soap, fd);
+-      return SOAP_INVALID_SOCKET;
+-    }
+ #endif
+   }
+ #endif
+--
+

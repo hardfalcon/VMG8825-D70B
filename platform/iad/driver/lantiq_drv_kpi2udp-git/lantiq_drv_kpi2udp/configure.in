@@ -1,0 +1,119 @@
+#
+#
+#                            Copyright (c) 2009-2014
+#                            Lantiq Deutschland GmbH
+#                     Am Campeon 3; 85579 Neubiberg, Germany
+#
+#  For licensing information, see the file 'LICENSE' in the root folder of
+#  this software module.
+#
+#
+
+AC_PREREQ(2.59)
+AC_COPYRIGHT([Copyright (C) 2009-2013, Lantiq Deutschland GmbH
+For licensing information please see the file 'LICENSE' in the root folder of
+this software module.])
+
+AC_INIT([KPI2UDP Device Driver],[3.0.5.1],[],[drv_kpi2udp])
+AC_CONFIG_SRCDIR(ifx_udp_redirect.c)
+AM_INIT_AUTOMAKE([-Wno-portability])
+
+m4_pattern_allow([^AM_ACLOCAL_INCLUDE$])
+AM_ACLOCAL_INCLUDE(m4)
+
+# save the configure arguments
+# remove the install dir from the distcheck configure line to avoid that the
+# installed binaries are deleted on distcheck. The regex will remove
+# --prefix and all subsequent "non-space" chars from the configure options
+# as well as the internal features.
+# Note: The escaped \' are important.
+# Note: Don't lin* - it would match also --enable-linux-26 (!)
+CONFIGURE_OPTIONS=''
+for c_arg in $ac_configure_args; do
+   case $c_arg in
+      \'--prefix=*)
+         #echo "skipping configure option for distcheck: $c_arg"
+         ;;
+      *)
+         CONFIGURE_OPTIONS="$CONFIGURE_OPTIONS $c_arg"
+         ;;
+   esac
+done
+AC_SUBST(CONFIGURE_OPTIONS)
+
+AC_CONFIG_HEADER(drv_config.h)
+
+if [[ "$CFLAGS" == "" ]] ; then
+   CFLAGS="-O2"
+fi
+
+AC_PROG_CC
+AM_PROG_CC_C_O
+
+AH_TOP(
+[/******************************************************************************
+
+                            Copyright (c) 2009-2014
+                            Lantiq Deutschland GmbH
+                     Am Campeon 3; 85579 Neubiberg, Germany
+
+  For licensing information, see the file 'LICENSE' in the root folder of
+  this software module.
+
+******************************************************************************/
+#ifndef _DRV_CONFIG_H_
+#define _DRV_CONFIG_H_]
+)
+
+AH_BOTTOM([
+#endif /* _DRV_CONFIG_H_ */
+])
+
+AC_DEFINE_UNQUOTED([KPI2UDP_CONFIGURE_STR], ["$ac_configure_args"], [configure options string])
+
+
+dnl set kernel include and build directories
+dnl enable linux kernel 2.6.x support (Make sure AC_PROG_CC is defined before to set $CC!)
+KERNEL_CHECK_CONFIG
+
+
+dnl Set lib_ifxos include path
+LIBIFXOS_CHECK_CONFIG_INCL
+
+dnl enable compiler warnings
+WARNINGS_CHECK
+
+dnl enable debugging mode
+DEBUG_CHECK
+
+dnl set HL TAPI include path
+DRV_TAPI_INCL_CHECK_FOR_LL_DRV
+
+dnl enable LINUX MODULE support
+KERNEL_MODULE_CHECK
+
+dnl set additional (device specific) CFLAGS
+WITH_CFLAGS_CHECK
+
+AC_DEFINE_UNQUOTED([WITH_CLFAGS_CONFIGURE_OPTION],[$CFLAGS],[environment and device specific CFLAGS passed to configure])
+
+
+AC_CONFIG_FILES([Makefile])
+
+AC_OUTPUT
+
+echo \
+"------------------------------------------------------------------------
+KPI2UDP configuration:
+
+  Source code location: ${srcdir}
+  Compiler:             ${CC}
+  Compiler flags:       ${CFLAGS}
+  Host System Type:     ${host}
+  Install path:         ${prefix}
+
+  TAPI HL include path: ${HL_TAPI_INCL_PATH}
+  IFXOS include path:   ${IFXOS_INCL_PATH}
+  KERNEL_INCL_PATH:     ${KERNEL_INCL_PATH}
+  KERNEL_BUILD_PATH:    ${KERNEL_BUILD_PATH}
+------------------------------------------------------------------------"

@@ -1,0 +1,196 @@
+## Process this file with automake to produce Makefile.in
+
+bin_PROGRAMS = dsl_cpe_control
+
+AM_CPPFLAGS = -I@srcdir@ @DSL_DRIVER_INCL_PATH@ @DSL_DEVICE_DRIVER_INCL_PATH@ @IFXOS_INCLUDE_PATH@ @DTI_INCL_PATH@
+
+
+if DSL_CPE_STATIC_LINKING
+dsl_cpe_control_common_ldflags = -static
+else
+dsl_cpe_control_common_ldflags =
+endif
+
+dsl_cpe_control_LDADD = -lpthread -lrt
+
+if INCLUDE_DSL_CPE_DTI_SUPPORT
+    dsl_cpe_control_LDADD += -ldti_agent
+    dsl_cpe_control_LDADD += -lifxos
+endif
+
+if INCLUDE_DSL_CPE_IFXOS_SUPPORT
+    dsl_cpe_control_LDADD += -lifxos
+endif
+
+
+
+bin_SCRIPTS = ../scripts/alias_dsl_cpe.sh
+
+if DEVICE_VRX
+dsl_cpe_control_bnd_sources = \
+   dsl_cpe_bnd_vrx.c
+endif
+
+dsl_cpe_control_cli_sources = \
+	dsl_cpe_cli.c \
+	dsl_cpe_cli_pipe.c \
+	dsl_cpe_cli_access.c \
+	dsl_cpe_cli_console.c
+
+dsl_cpe_control_cli_autogen_sources = \
+	dsl_cpe_cli_access2.c \
+	dsl_cpe_cli_autogen.c
+
+dsl_cpe_control_cli_danube_sources = \
+	dsl_cpe_cli_danube.c \
+	dsl_cpe_cli_mib.c
+
+dsl_cpe_control_cli_vrx_sources = \
+	dsl_cpe_cli_vrx.c
+
+dsl_cpe_control_debug_danube_sources = \
+	dsl_cpe_debug_danube.c
+
+dsl_cpe_control_debug_vrx_sources = \
+	dsl_cpe_debug_vrx.c
+
+if INCLUDE_DSL_CPE_DTI_SUPPORT
+dsl_cpe_control_dti_sources = \
+	dsl_cpe_dti.c \
+ 	dsl_cpe_dti_vrx.c
+else
+dsl_cpe_control_dti_sources =
+endif
+
+dsl_cpe_control_SOURCES = \
+	dsl_cpe_control.c \
+	dsl_cpe_init_cfg.c \
+	dsl_cpe_linux.c \
+	dsl_cpe_debug.c
+
+dsl_cpe_control_SOURCES += \
+	$(dsl_cpe_control_dti_sources)
+
+if DEVICE_DANUBE
+dsl_cpe_control_SOURCES += \
+	$(dsl_cpe_control_debug_danube_sources)
+endif
+
+if DEVICE_VRX_LAYER
+dsl_cpe_control_SOURCES += \
+	$(dsl_cpe_control_debug_vrx_sources)
+endif
+
+dsl_cpe_control_SOURCES += \
+	$(dsl_cpe_control_bnd_sources)
+
+if INCLUDE_DSL_CPE_CLI_SUPPORT
+dsl_cpe_control_SOURCES += \
+	$(dsl_cpe_control_cli_sources)
+
+if INCLUDE_DSL_CPE_CLI_AUTOGEN_SUPPORT
+dsl_cpe_control_SOURCES += \
+	$(dsl_cpe_control_cli_autogen_sources)
+endif
+
+if DEVICE_DANUBE
+dsl_cpe_control_SOURCES += \
+	$(dsl_cpe_control_cli_danube_sources)
+endif
+
+if DEVICE_VRX
+dsl_cpe_control_SOURCES += \
+	$(dsl_cpe_control_cli_vrx_sources)
+endif
+endif
+
+
+EXTRA_DIST = \
+	../LICENSE \
+	$(dsl_cpe_control_bnd_sources) \
+	$(dsl_cpe_control_cli_sources) \
+	$(dsl_cpe_control_dti_sources) \
+	$(dsl_cpe_control_cli_danube_sources) \
+	$(dsl_cpe_control_cli_vrx_sources) \
+	$(dsl_cpe_control_debug_danube_sources) \
+	$(dsl_cpe_control_debug_vrx_sources) \
+	dsl_cpe_control.h \
+	dsl_cpe_init_cfg.h \
+	dsl_cpe_cli.h \
+	dsl_cpe_dti.h \
+	dsl_cpe_dti_vrx_ctx.h \
+	dsl_cpe_bnd_vrx.h \
+	dsl_cpe_cli_console.h \
+	dsl_cpe_simulator.c \
+	dsl_cpe_simulator.h \
+	dsl_cpe_win32.c \
+	dsl_cpe_win32.h \
+	dsl_cpe_os.h \
+	dsl_cpe_os_lint_map.h \
+	dsl_cpe_linux.h \
+	dsl_cpe_vxworks.c \
+	dsl_cpe_vxworks.h \
+	dsl_cpe_rtems.c \
+	dsl_cpe_rtems.h \
+	dsl_cpe_debug.h \
+	dsl_cpe_debug_danube.h \
+	dsl_cpe_debug_vrx.h \
+	../scripts/alias_dsl_cpe.sh \
+	../scripts/dsl_cpe_pipe.sh \
+	../tools/pipe/dsl_pipe_client.h
+
+if ADD_APPL_CFLAGS_SET
+dsl_cpe_control_cflags = $(ADD_APPL_CFLAGS)
+else
+dsl_cpe_control_cflags =
+endif
+
+if ADD_APPL_LDFLAGS_SET
+dsl_cpe_control_ldflags = $(ADD_APPL_LDFLAGS)
+else
+dsl_cpe_control_ldflags =
+endif
+
+if INCLUDE_DSL_CPE_IFXOS_SUPPORT
+dsl_cpe_control_ifxos_ldflags = @IFXOS_LIBRARY_PATH@
+else
+dsl_cpe_control_ifxos_ldflags =
+endif
+
+if INCLUDE_DSL_CPE_DTI_SUPPORT
+dsl_cpe_control_dti_ldflags = @DTI_LIBRARY_PATH@
+else
+dsl_cpe_control_dti_ldflags =
+endif
+
+dsl_cpe_control_common_cflags = -Wall -Wimplicit -Wreturn-type -Wunused -Wundef \
+	-Wswitch -Wno-format -Wcomment -Wuninitialized -DLINUX -g3 
+
+# compile cflags
+dsl_cpe_control_compile_cflags = $(EXTRA_APP_CFLAGS)
+
+if DSL_CCA_DBG_MAX_LEVEL_SET
+dsl_cpe_control_common_cflags += -DDSL_CCA_DBG_MAX_LEVEL=$(DSL_CCA_DBG_MAX_LEVEL_PRE)
+endif
+
+if CONFIG_USE_DSL_ADD_EXT_APPL_CFLAGS
+dsl_cpe_control_external_cflags= $(DSL_ADD_EXT_APPL_CFLAGS)
+endif
+
+dsl_cpe_control_CFLAGS = $(dsl_cpe_control_common_cflags) \
+                         $(dsl_cpe_control_cflags) \
+                         $(dsl_cpe_control_compile_cflags) \
+                         $(dsl_cpe_control_external_cflags)
+
+dsl_cpe_control_LDFLAGS = $(dsl_cpe_control_common_ldflags) \
+                          $(dsl_cpe_control_ldflags) \
+                          $(dsl_cpe_control_compile_cflags) \
+                          $(dsl_cpe_control_ifxos_ldflags) \
+                          $(dsl_cpe_control_dti_ldflags)
+
+
+lint:
+	@flint +b -vm \
+	-i$(shell dirname `$(CC) -print-file-name=include`)/include \
+	-i@top_srcdir@ std_lx.lnt env-cw6.lnt -i@srcdir@ \
+	$(DEFS) $(AM_CPPFLAGS) $(CFLAGS) -D__LINUX__ -DLINUX $(dsl_cpe_control_SOURCES)

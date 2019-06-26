@@ -1,0 +1,60 @@
+---
+ squashfs-tools/Makefile |   12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+--- a/squashfs-tools/Makefile
++++ b/squashfs-tools/Makefile
+@@ -26,7 +26,7 @@ GZIP_SUPPORT = 1
+ # To build using XZ Utils liblzma - install the library and uncomment
+ # the XZ_SUPPORT line below.
+ #
+-#XZ_SUPPORT = 1
++XZ_SUPPORT = 1
+ 
+ 
+ ############ Building LZO support ##############
+@@ -57,7 +57,7 @@ GZIP_SUPPORT = 1
+ # work) - download and unpack it, uncomment and set LZMA_DIR to unpacked source,
+ # and uncomment the LZMA_SUPPORT line below.
+ #
+-#LZMA_XZ_SUPPORT = 1
++LZMA_XZ_SUPPORT = 1
+ #LZMA_SUPPORT = 1
+ #LZMA_DIR = ../../../../LZMA/lzma465
+ 
+@@ -67,7 +67,7 @@ GZIP_SUPPORT = 1
+ # in Mksquashfs.  Obviously the compression algorithm must have been
+ # selected to be built
+ #
+-COMP_DEFAULT = gzip
++COMP_DEFAULT = xz
+ 
+ ###############################################
+ #  Extended attribute (XATTRs) build options  #
+@@ -78,7 +78,7 @@ COMP_DEFAULT = gzip
+ # If your C library or build/target environment doesn't support XATTRs then
+ # comment out the next line to build Mksquashfs and Unsquashfs without XATTR
+ # support
+-XATTR_SUPPORT = 1
++#XATTR_SUPPORT = 1
+ 
+ # Select whether you wish xattrs to be stored by Mksquashfs and extracted
+ # by Unsquashfs by default.  If selected users can disable xattr support by
+@@ -86,7 +86,7 @@ XATTR_SUPPORT = 1
+ #
+ # If unselected, Mksquashfs/Unsquashfs won't store and extract xattrs by
+ # default.  Users can enable xattrs by using the -xattrs option.
+-XATTR_DEFAULT = 1
++#XATTR_DEFAULT = 1
+ 
+ 
+ ###############################################
+@@ -94,7 +94,7 @@ XATTR_DEFAULT = 1
+ ###############################################
+ 
+ INCLUDEDIR = -I.
+-INSTALL_DIR = /usr/local/bin
++INSTALL_DIR ?= /usr/local/bin
+ 
+ MKSQUASHFS_OBJS = mksquashfs.o read_fs.o sort.o swap.o pseudo.o compressor.o
+ 

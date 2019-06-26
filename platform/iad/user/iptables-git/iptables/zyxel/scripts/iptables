@@ -1,0 +1,12 @@
+#!/bin/sh
+#set -e
+
+IPTABLES_EXEC="/sbin/iptables"
+IPTABLES_ERR_LOG="/tmp/iptables.err"
+LOG_ERROR='shell_log iptables error '
+
+$IPTABLES_EXEC -w $* 2> $IPTABLES_ERR_LOG
+ret=$?
+if [ $ret -ne 0 ]; then
+    $LOG_ERROR "[$ret]: $(cat $IPTABLES_ERR_LOG) :: $IPTABLES_EXEC $*"
+fi

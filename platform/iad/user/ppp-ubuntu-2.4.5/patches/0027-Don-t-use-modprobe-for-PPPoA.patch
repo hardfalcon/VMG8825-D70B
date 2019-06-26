@@ -1,0 +1,24 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Mon, 14 Feb 2011 18:05:49 +0100
+Subject: Don't use modprobe for PPPoA.
+
+Signed-off-by: Olaf.Boettcher@sphairon.com
+---
+ pppd/plugins/pppoatm/pppoatm.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pppd/plugins/pppoatm/pppoatm.c b/pppd/plugins/pppoatm/pppoatm.c
+index e1679cd..db21def 100644
+--- a/pppd/plugins/pppoatm/pppoatm.c
++++ b/pppd/plugins/pppoatm/pppoatm.c
+@@ -133,7 +133,7 @@ static int connect_pppoatm(void)
+ 	int fd;
+ 	struct atm_qos qos;
+ 
+-	system ("/sbin/modprobe -q pppoatm");
++	/*system ("/sbin/modprobe -q pppoatm");*/
+ 
+ 	if (!device_got_set)
+ 		no_device_given_pppoatm();
+--
+

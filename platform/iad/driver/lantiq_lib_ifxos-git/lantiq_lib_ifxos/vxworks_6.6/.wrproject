@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wrxml>
+    <properties platform="VxWorks" platform_name="vxworks-6.6" root="0" type="DownloadableKernelModuleProject"/>
+    <attributes>
+        <mapAttribute>
+            <listAttribute key="BLD::Info|GlobalMacros">
+                <stringAttribute value="PROJECT_TYPE"/>
+                <stringAttribute value="DEFINES"/>
+                <stringAttribute value="EXPAND_DBG"/>
+            </listAttribute>
+            <stringAttribute key="BLD::Info|GlobalMacro|DEFINES" value="-DVXWORKS -DRW_MULTI_THREAD -D_REENTRANT -D__PROTOTYPE_5_0 -DIFXOS_HAVE_GET_OPT=0"/>
+            <stringAttribute key="BLD::Info|GlobalMacro|EXPAND_DBG" value="0"/>
+            <stringAttribute key="BLD::Info|GlobalMacro|PROJECT_TYPE" value="DKM"/>
+            <listAttribute key="BLD::Info|Incl|MIPSI32R2sfgnu">
+                <stringAttribute value="-I$(WIND_BASE)/target/h"/>
+                <stringAttribute value="-I$(WIND_BASE)/target/h/wrn/coreip"/>
+                <stringAttribute value="-I$(PRJ_ROOT_DIR)/src/include"/>
+                <stringAttribute value="-I$(PRJ_ROOT_DIR)/src/include/vxworks"/>
+            </listAttribute>
+            <listAttribute key="BLD::Info|Macros">
+                <stringAttribute value="VX_CPU_FAMILY"/>
+                <stringAttribute value="CPU"/>
+                <stringAttribute value="TOOL_FAMILY"/>
+                <stringAttribute value="TOOL"/>
+                <stringAttribute value="TOOL_PATH"/>
+                <stringAttribute value="CC_ARCH_SPEC"/>
+                <stringAttribute value="LIBPATH"/>
+                <stringAttribute value="LIBS"/>
+            </listAttribute>
+            <stringAttribute key="BLD::Info|Macro|CC_ARCH_SPEC|value|MIPSI32R2sfgnu" value="-G 0 -mno-branch-likely -mips32r2 -mgp32 -EB"/>
+            <stringAttribute key="BLD::Info|Macro|CPU|value|MIPSI32R2sfgnu" value="MIPSI32R2"/>
+            <stringAttribute key="BLD::Info|Macro|LIBPATH|value|MIPSI32R2sfgnu" value=""/>
+            <stringAttribute key="BLD::Info|Macro|LIBS|value|MIPSI32R2sfgnu" value=""/>
+            <stringAttribute key="BLD::Info|Macro|TOOL_FAMILY|value|MIPSI32R2sfgnu" value="gnu"/>
+            <stringAttribute key="BLD::Info|Macro|TOOL_PATH|value|MIPSI32R2sfgnu" value=""/>
+            <stringAttribute key="BLD::Info|Macro|TOOL|value|MIPSI32R2sfgnu" value="sfgnu"/>
+            <stringAttribute key="BLD::Info|Macro|VX_CPU_FAMILY|value|MIPSI32R2sfgnu" value="mips"/>
+            <listAttribute key="BLD::Info|Tools">
+                <stringAttribute value="C-Compiler"/>
+                <stringAttribute value="C++-Compiler"/>
+                <stringAttribute value="Linker"/>
+                <stringAttribute value="Partial Image Linker"/>
+                <stringAttribute value="Librarian"/>
+                <stringAttribute value="Assembler"/>
+            </listAttribute>
+            <stringAttribute key="BLD::Info|Tool|Assembler|cmd|MIPSI32R2sfgnu" value="echo &quot;building $@&quot;;%assemblerprefix% $(TOOL_PATH)ccmips %DebugModeFlags% %ToolFlags% $(ADDED_CFLAGS) %Includes% $(ADDED_INCLUDES) -DCPU=$(CPU) -DTOOL_FAMILY=$(TOOL_FAMILY) -DTOOL=$(TOOL) -D_WRS_KERNEL -DMIPSEB -DSOFT_FLOAT  $(DEFINES) -o %OutFile% -c %InFile%"/>
+            <stringAttribute key="BLD::Info|Tool|Assembler|dbgFlags|MIPSI32R2sfgnu" value="-g"/>
+            <stringAttribute key="BLD::Info|Tool|Assembler|derivedSigs|MIPSI32R2sfgnu" value="*.o"/>
+            <stringAttribute key="BLD::Info|Tool|Assembler|flags|MIPSI32R2sfgnu" value="$(CC_ARCH_SPEC) -ansi -fno-builtin  -xassembler-with-cpp  -MD -MP"/>
+            <stringAttribute key="BLD::Info|Tool|Assembler|nonDbgFlags|MIPSI32R2sfgnu" value="-O2"/>
+            <booleanAttribute key="BLD::Info|Tool|Assembler|object" value="true"/>
+            <booleanAttribute key="BLD::Info|Tool|Assembler|passAble" value="false"/>
+            <stringAttribute key="BLD::Info|Tool|Assembler|sigs" value="*.s"/>
+            <stringAttribute key="BLD::Info|Tool|C++-Compiler|cmd|MIPSI32R2sfgnu" value="echo &quot;building $@&quot;;%cppcompilerprefix% $(TOOL_PATH)ccmips %DebugModeFlags% %ToolFlags% $(ADDED_C++FLAGS) %Includes% $(ADDED_INCLUDES) -DCPU=$(CPU) -DTOOL_FAMILY=$(TOOL_FAMILY) -DTOOL=$(TOOL) -D_WRS_KERNEL -DMIPSEB -DSOFT_FLOAT  $(DEFINES) -o %OutFile% -c %InFile%"/>
+            <stringAttribute key="BLD::Info|Tool|C++-Compiler|dbgFlags|MIPSI32R2sfgnu" value="-g"/>
+            <stringAttribute key="BLD::Info|Tool|C++-Compiler|derivedSigs|MIPSI32R2sfgnu" value="*.o"/>
+            <stringAttribute key="BLD::Info|Tool|C++-Compiler|flags|MIPSI32R2sfgnu" value="$(CC_ARCH_SPEC) -ansi -fno-builtin -Wall -msoft-float  -MD -MP"/>
+            <stringAttribute key="BLD::Info|Tool|C++-Compiler|nonDbgFlags|MIPSI32R2sfgnu" value="-O2"/>
+            <booleanAttribute key="BLD::Info|Tool|C++-Compiler|object" value="true"/>
+            <booleanAttribute key="BLD::Info|Tool|C++-Compiler|passAble" value="false"/>
+            <stringAttribute key="BLD::Info|Tool|C++-Compiler|sigs" value="*.cpp;*.C;*.cxx;*.cc"/>
+            <stringAttribute key="BLD::Info|Tool|C-Compiler|cmd|MIPSI32R2sfgnu" value="echo &quot;building $@&quot;;%ccompilerprefix% $(TOOL_PATH)ccmips %DebugModeFlags% %ToolFlags% $(ADDED_CFLAGS) %Includes% $(ADDED_INCLUDES) -DCPU=$(CPU) -DTOOL_FAMILY=$(TOOL_FAMILY) -DTOOL=$(TOOL) -D_WRS_KERNEL -DMIPSEB -DSOFT_FLOAT  $(DEFINES) -o %OutFile% -c %InFile%"/>
+            <stringAttribute key="BLD::Info|Tool|C-Compiler|dbgFlags|MIPSI32R2sfgnu" value="-g"/>
+            <stringAttribute key="BLD::Info|Tool|C-Compiler|derivedSigs|MIPSI32R2sfgnu" value="*.o"/>
+            <stringAttribute key="BLD::Info|Tool|C-Compiler|flags|MIPSI32R2sfgnu" value="$(CC_ARCH_SPEC) -ansi -fno-builtin -Wall -msoft-float  -MD -MP"/>
+            <stringAttribute key="BLD::Info|Tool|C-Compiler|nonDbgFlags|MIPSI32R2sfgnu" value="-O2"/>
+            <booleanAttribute key="BLD::Info|Tool|C-Compiler|object" value="true"/>
+            <booleanAttribute key="BLD::Info|Tool|C-Compiler|passAble" value="false"/>
+            <stringAttribute key="BLD::Info|Tool|C-Compiler|sigs" value="*.c"/>
+            <stringAttribute key="BLD::Info|Tool|Librarian|cmd|MIPSI32R2sfgnu" value="echo &quot;building $@&quot;;%archiverprefix% $(TOOL_PATH)armips %ToolFlags% %OutFile% %Objects% $(ADDED_OBJECTS)"/>
+            <stringAttribute key="BLD::Info|Tool|Librarian|dbgFlags|MIPSI32R2sfgnu" value=""/>
+            <stringAttribute key="BLD::Info|Tool|Librarian|derivedSigs|MIPSI32R2sfgnu" value="*.a"/>
+            <stringAttribute key="BLD::Info|Tool|Librarian|flags|MIPSI32R2sfgnu" value="crus"/>
+            <stringAttribute key="BLD::Info|Tool|Librarian|nonDbgFlags|MIPSI32R2sfgnu" value=""/>
+            <booleanAttribute key="BLD::Info|Tool|Librarian|object" value="false"/>
+            <booleanAttribute key="BLD::Info|Tool|Librarian|passAble" value="true"/>
+            <stringAttribute key="BLD::Info|Tool|Librarian|sigs" value=""/>
+            <stringAttribute key="BLD::Info|Tool|Linker|cmd|MIPSI32R2sfgnu" value="echo &quot;building $@&quot;;rm -f %OutFile%;nmmips %Objects% %Libraries% | tclsh $(WIND_BASE)/host/resource/hutils/tcl/munch.tcl -c mips &gt; $(OBJ_DIR)/ctdt.c;%ccompilerprefix% $(TOOL_PATH)ccmips %DebugModeFlags% $(CC_ARCH_SPEC) -fdollars-in-identifiers -Wall  $(ADDED_CFLAGS) %Includes% $(ADDED_INCLUDES) -DCPU=$(CPU) -DTOOL_FAMILY=$(TOOL_FAMILY) -DTOOL=$(TOOL) -D_WRS_KERNEL -DMIPSEB -DSOFT_FLOAT  $(DEFINES) -msoft-float -o $(OBJ_DIR)/ctdt.o -c $(OBJ_DIR)/ctdt.c;%linkerprefix% $(TOOL_PATH)ccmips -r -nostdlib -Wl,-EB -Wl,-X %ToolFlags% -o %OutFile% $(OBJ_DIR)/ctdt.o %Objects% %Libraries% $(LIBPATH) $(LIBS) $(ADDED_LIBPATH) $(ADDED_LIBS) &amp;&amp; if [ &quot;$(EXPAND_DBG)&quot; = &quot;1&quot; ]; then plink &quot;$@&quot;;fi"/>
+            <stringAttribute key="BLD::Info|Tool|Linker|dbgFlags|MIPSI32R2sfgnu" value="-g"/>
+            <stringAttribute key="BLD::Info|Tool|Linker|derivedSigs|MIPSI32R2sfgnu" value="*.out"/>
+            <stringAttribute key="BLD::Info|Tool|Linker|flags|MIPSI32R2sfgnu" value="-T $(WIND_BASE)/target/h/tool/gnu/ldscripts/link.OUT"/>
+            <stringAttribute key="BLD::Info|Tool|Linker|nonDbgFlags|MIPSI32R2sfgnu" value="-O2"/>
+            <booleanAttribute key="BLD::Info|Tool|Linker|object" value="false"/>
+            <booleanAttribute key="BLD::Info|Tool|Linker|passAble" value="false"/>
+            <stringAttribute key="BLD::Info|Tool|Linker|sigs" value=""/>
+            <stringAttribute key="BLD::Info|Tool|Partial Image Linker|cmd|MIPSI32R2sfgnu" value="echo &quot;building $@&quot;;%linkerprefix% $(TOOL_PATH)ccmips -r -nostdlib -Wl,-EB -Wl,-X %ToolFlags% -o %OutFile% %Objects% $(ADDED_OBJECTS) %Libraries% $(LIBPATH) $(LIBS) $(ADDED_LIBPATH) $(ADDED_LIBS) &amp;&amp; if [ &quot;$(EXPAND_DBG)&quot; = &quot;1&quot; ]; then plink &quot;$@&quot;;fi"/>
+            <stringAttribute key="BLD::Info|Tool|Partial Image Linker|dbgFlags|MIPSI32R2sfgnu" value=""/>
+            <stringAttribute key="BLD::Info|Tool|Partial Image Linker|derivedSigs|MIPSI32R2sfgnu" value="*.o"/>
+            <stringAttribute key="BLD::Info|Tool|Partial Image Linker|flags|MIPSI32R2sfgnu" value=""/>
+            <stringAttribute key="BLD::Info|Tool|Partial Image Linker|nonDbgFlags|MIPSI32R2sfgnu" value=""/>
+            <booleanAttribute key="BLD::Info|Tool|Partial Image Linker|object" value="false"/>
+            <booleanAttribute key="BLD::Info|Tool|Partial Image Linker|passAble" value="true"/>
+            <stringAttribute key="BLD::Info|Tool|Partial Image Linker|sigs" value=""/>
+            <stringAttribute key="BLD::Info|cmd" value="%makeprefix% make --no-print-directory"/>
+            <stringAttribute key="BLD::Info|defaultSpec" value="MIPSI32R2sfgnu"/>
+            <stringAttribute key="BLD::Info|redirDir|MIPSI32R2sfgnu" value="MIPSI32R2sfgnu"/>
+            <stringAttribute key="BLD::Info|redirRoot" value=""/>
+            <listAttribute key="BLD::Info|specs">
+                <stringAttribute value="MIPSI32R2sfgnu"/>
+            </listAttribute>
+            <intAttribute key="BuildSupportEnabled" value="1"/>
+            <booleanAttribute key="BuildTargetCentric" value="true"/>
+        </mapAttribute>
+    </attributes>
+    <buildtargets>
+        <buildtarget buildtool="Partial Image Linker" name="lib_ifxos_vx66" passed="true" targetname="lib_ifxos_vx66">
+            <attributes>
+                <mapAttribute>
+                    <listAttribute key="BuildSupportForBuildSpecs">
+                        <stringAttribute value="MIPSI32R2sfgnu"/>
+                    </listAttribute>
+                </mapAttribute>
+            </attributes>
+            <contents>
+                <file name="/lib_ifxos_vx66/src/vxworks/ifxos_vxworks_time.c"/>
+                <file name="/lib_ifxos_vx66/src/vxworks/ifxos_vxworks_device_access.c"/>
+                <file name="/lib_ifxos_vx66/src/vxworks/ifxos_vxworks_event.c"/>
+                <file name="/lib_ifxos_vx66/src/vxworks/ifxos_vxworks_file_access.c"/>
+                <file name="/lib_ifxos_vx66/src/vxworks/ifxos_vxworks_lock.c"/>
+                <file name="/lib_ifxos_vx66/src/vxworks/ifxos_vxworks_memory_alloc.c"/>
+                <file name="/lib_ifxos_vx66/src/vxworks/ifxos_vxworks_misc.c"/>
+                <file name="/lib_ifxos_vx66/src/vxworks/ifxos_vxworks_memory_map.c"/>
+                <file name="/lib_ifxos_vx66/src/vxworks/ifxos_vxworks_mutex.c"/>
+                <file name="/lib_ifxos_vx66/src/vxworks/ifxos_vxworks_pipe.c"/>
+                <file name="/lib_ifxos_vx66/src/vxworks/ifxos_vxworks_print.c"/>
+                <file name="/lib_ifxos_vx66/src/vxworks/ifxos_vxworks_print_io.c"/>
+                <file name="/lib_ifxos_vx66/src/vxworks/ifxos_vxworks_select.c"/>
+                <file name="/lib_ifxos_vx66/src/vxworks/ifxos_vxworks_socket.c"/>
+                <file name="/lib_ifxos_vx66/src/vxworks/ifxos_vxworks_termios.c"/>
+                <file name="/lib_ifxos_vx66/src/vxworks/ifxos_vxworks_thread.c"/>
+                <file name="/lib_ifxos_vx66/src/vxworks/ifxos_vxworks_copy_user_space.c"/>
+                <file name="/lib_ifxos_vx66/src/common/ifxos_version.c"/>
+                <file name="/lib_ifxos_vx66/src/common/ifxos_sys_show.c"/>
+                <file name="/lib_ifxos_vx66/src/common/ifxos_debug.c"/>
+                <file name="/lib_ifxos_vx66/src/common/ifx_ini_access.c"/>
+                <file name="/lib_ifxos_vx66/src/common/ifx_fifo.c"/>
+                <file name="/lib_ifxos_vx66/src/common/ifx_getopt_ext.c"/>
+                <file name="/lib_ifxos_vx66/src/common/ifx_getopt.c"/>
+                <file name="/lib_ifxos_vx66/src/common/ifx_crc.c"/>
+            </contents>
+        </buildtarget>
+    </buildtargets>
+</wrxml>

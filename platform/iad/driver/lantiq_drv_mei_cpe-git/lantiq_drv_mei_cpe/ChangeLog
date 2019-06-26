@@ -1,0 +1,1336 @@
+NEXT VERSION
+
+V1.7.2 - 2018-01-15
+common:
+- VRX (DSLCPE_SW-1100) Integration/Bringup of MEI Driver (Kernel 4.9)
+  + MEI driver fully integrated to UGW-8.x/Linux kernel 4.9
+
+V1.7.1 - 2017-12-04
+common:
+- VRX (DSLCPE_SW-1103) Usage of new BAR register for PPE frequency scaling
+  + Setting BAR19 after FW download and both BAR18 & BAR19 right after
+    MODEM READY
+  + Reading and decoding PPE Clock Output Mode Select value (for debug print)
+  + Fixed compilation issues for non debug mode
+  + Fixed printouts for BAR register debug output
+
+V1.7.0 - 2017-10-26
+common:
+- VRX (DSLCPE_SW-1076) Optimization of configuration handling for BAR14/17
+- VRX (DSLCPE_SW-1082) Extension of statistic counters for DSM (vectoring)
+
+V1.6.13 - 2017-04-21
+common:
+- VRX318/VRX518 Fix buffer overflow in DevInfo IOCTL
+- Klocwork rework cycle(s) for UGW-7.2
+
+V1.6.12 - 2017-03-27
+common:
+- VRX (DSLCPE_SW-1050) Bringup of VRX518 together with Atom based EASY750
+  + Cleanup of preprocessor defines for excluding PP interface
+
+V1.6.11 - 2017-03-24
+common:
+- VRX318/518 (DSLCPE_SW-1003) Automatic detection of available VRX devices
+  + Fix x86 device layout detection
+- VRX (DSLCPE_SW-1050) Bringup of VRX518 together with Atom based EASY750
+  + Cleanup of preprocessor defines
+    - for excluding PP interface
+    - for DSM (vectoring) specific implementations
+  + Updated preprocessor definition for x86 target (MEI_TARGET_x86) and
+    related usage
+  + Do not include "xxx_atm.h" header anymore (as definitions are moved to
+    <net/dsl_tc.h>)
+- VRX (DSLCPE_SW-998) Speed-up of debug stream handling
+  + Add loop counter
+- VRX (DSLCPE_SW-1040) Software crash within context of debug (DTI) handling
+  + call EVM_TC callback from work queue context instead of IRQ
+- VRX (DSLCPE_SW-1046) Tracee does not get version information correctly
+  + Control message sending was removed from ConfigSet functionality
+
+V1.6.10 - 2017-03-07
+common:
+- VRX318/518 (DSLCPE_SW-1003) Automatic detection of available VRX devices
+  + Bugfixes within ioctl handling for getting device info and for
+    VRX320 platform configuration
+
+V1.6.9 - 2017-03-02
+common:
+- VRX318/518 (DSLCPE_SW-1003) Automatic detection of available VRX devices
+  + Allocate resources for maximum number of lines (2)
+  + Use number of lines / devices from module initialization instead of defines
+  + CLI working on single / bonding properly
+  + Update to devfs/procfs
+  + Modified module_init to find all pci vrx devices
+- VRX (DSLCPE_SW-1048) Merge missing 518 functionalities to default
+  + DSLCPE_SW-1018 DSL mode specific configuration of PLL_OMCFG
+    register to select DACV35 clock
+  + DSLCPE_SW-1008 Printing of meminfo via procfs results in segmentation
+    fault
+
+V1.6.8 - 2017-02-10
+- VRX (DSLCPE_SW-1040) Software crash within context of debug (DTI) handling
+  + call EVM_TC callback from work queue context instead of IRQ
+- VRX (DSLCPE_SW-1036)Improvement of configuration handling for BAR14/17
+  + Retry ERB data retrieval
+
+V1.6.7 - 2017-01-26
+common:
+- VRX (DSLCPE_SW-998) Speed-up of debug stream handling
+  + Add loop counter
+
+V1.6.6 - 2016-12-07
+common:
+- VRX (DSLCPE_SW-1025) DSL/PP callback interface does not provide correct
+  bonding information
+  + Corrected and added bonding information to printout of MEI_NOTIFICATIONS
+    debug module
+- VRX518 (DSLCPE_SW-1017) Usage of BAR18 for accessing CHIPID_EFUSE
+  + BAR-18 register is configured to PCIe_BAR(bits 31:23)+0x18000
+- VRX518 (DSLCPE_SW-1021) Exclude usage of TC_RESET functionality
+  + Exclude handling for TC_RESET in case of VRX518
+- VRX518 (DSLCPE_SW-1008) Printing of meminfo results in segmentation fault
+  + Corrected
+- VRX (DSLCPE_SW-1006) Extend vectoring configuration with automode
+  + Extended configuration also includes automode
+- VRX518 (DSLCPE_SW-1009) Change implementation of BAR register usage for ERB
+  handling
+  + add support for additional, VRX518 specific, BAR registers
+  + initialize BAR 14 & BAR 17 with values obtained from PPA via new callback
+
+V1.6.5 - 2016-09-22
+common:
+- VRX (DSLCPE_SW-1010) FW download fails within default branches of
+  UGW/DSL Subsystem
+  + Corrected BAR register configurations for ARC access to PDBRAM
+
+V1.6.4 - 2016-09-05
+common:
+- VRX518 (DSLCPE_SW-972) Extend low level (MEI) driver for support of new
+  VRX518 device
+  + Added DSL/PP callback interface to vrx518_tc module
+  + First version of the MEI Driver for VRX518 that successfully reaches
+    MODEM_READY on the emulator
+
+V1.6.3 - 2016-08-11
+common:
+- (UGW_SW-8554) DSL Klockwork issues
+  + Fixed Klockwork warmings
+
+V1.6.2 - 2016-08-05
+common:
+- VRX (DSLCPE_SW-1000) Compilation failure for Debug Stream Dump application
+  + Fix compilation dsl-cpe-mei-vrx package
+
+V1.6.1 - 2016-07-29
+Bug fix(es):
+- VRX (DSLCPE_SW-978) Restarting DSL after Complete Shutdown is not working.
+  + Fix PCIE/bonding/mei platform driver unload.
+common:
+- VRX (DSLCPE_SW-1046) Tracee does not get version information correctly
+  + Control message sending was removed from ConfigSet functionality
+- VRX (UGW_SW-8087) gcc security gardening support fixes for drv_mei_cpe
+   and drv_dsl_cpe_api
+   + delete a CFLAGS from EXTRA_CFLAGS for drv_mei_cpe.ko
+- New option -c introduced for the debug stream dump application to control
+   the numbre of device
+- VRX (DSLCPE_SW-985) Reduce error prints within default UGW usage
+   + Reduce log level of some messages
+       This reduces the log level of these messages:
+         TcReset failed, no PP callback defined!
+         Could not perform reset of TC-Layer!"
+       The TcReset functionality is currently not implemented in the PP system,
+       when DSLCPE_SW-803 is fully implemented this should be an error again.
+- VRX (DSLCPE_SW-967) [Debug] Extend Debug-Stream-Dump application with new
+   trigger/buffer size functionality
+  + mei_cpe_drv_dbg_strm_dmp application was extended with the options:
+      -T to switch between start/stop and snapshot mode
+      -I to set interval in milliseconds between two snapshots
+  + FIO_MEI_DEBUG_STREAM_CONFIG_SET/GET extended with filterMode
+      (start/stop or snapshot)
+  + Debug stream config set functionality was extended to be more safe for
+      incorrect input configuration
+  + The buffer flushing added on the stop trigger condition
+  + The buffer flushing added on the every stream data piece >= 512 bytes
+  + The robustness of the buffer readout operation was increased
+
+V1.6.0 - 2016-02-29
+common:
+- VRX (DSLCPE_SW-966) Add config option to build with no PPA, PPA < 3.3, PPA >= 3.3
+  + add configure options --disable-ppa-callbacks-tc and --disable-ppa-callbacks
+- VRX (DSLCPE_SW-961) [Debug] Debug Stream Dump improvement Tracee like trigger
+  + Description for the debug stream dump application was reviewed and extended
+  + Issue with saving of small size files was fixed
+  + cleanup
+- VRX (DSLCPE_SW-938) [Debug] Port Trace-Like trigger changes
+- VRX (DSLCPE_SW-957) Bringup of VRX320 on Cougar Park V2.0 hardware
+  + Changed include path for ATM Driver
+- VRX (UGW_SW-7171) Enable and fix UGW for gcc security hardening support
+  + Update for Werror=format-security
+- VRX (DSLCPE_SW-955) [Debug] Extend Debug-Stream-Dump application with
+  Debug-Stream-Mask configuration possibility
+  + Timestamps are inserted before .bin file extension now
+  + New option introduced (-i x:x:x:x:x)
+  + Message length fixed for CMD_DBG_DEBUG_STREAM_CONFIGURE
+- VRX (DSLCPE_SW-958) Warn about format errors and fix them
+  + do not hide and fix format warnings
+- VRX (DSLCPE_SW-957) Bringup of VRX320 on Cougar Park V2.0 hardware
+  + also allow setting the passive polling mode
+  + activate irq polling mode with IRQ_POLLING_FORCE
+  + make the platform driver be loaded at arbitrary times
+  + use hotplug to create the devices under /dev/
+  + use dma_addr_t type for dma physical address
+  + fix compile warning in IFXOS_DrvSelectQueueWakeUp
+  + only support one Linux platform device
+  + for the VRX320 store parent device
+  + for the VRX320 do not check for device tree entry
+  + fix structures for little endian
+- VRX (DSLCPE_SW-953) [Debug] Usage of netlink ID -29 (NETLINK_DBG_MSG)
+  + DSL_DBG_MSG_NETLINK_ID can be configured via MEI driver configuration of
+    menuconfig (28 used by default)
+- VRX Double definition fixed
+   + extra definition of MEI_DBG_STREAM_MAX_COMPARE_SIZE_IN_WORDS removed
+- VRX (DSLCPE_SW-944) Extensions for VRX318/518 emulation
+  + added configure option for including emulation handling
+  + Initialization of default timeout to wait for MODEM_READY set to 20 minutes
+    in case of emulation is used
+  + added cyclic status printouts for very long MODEM_READY timeout
+- VRX (DSLCPE_SW-872) Problem with 32-bit oriented WinHost messages that
+  exceeds 256 bytes total message length
+  + Extended 32-bit messages constant definitions
+- VRX (DSLCPE_SW-915) Take care to be able to build both RELEASE as well
+  as DEBUG images
+  + Fixed debug macro definitions to avoid build issues
+- VRX (DSLCPE_SW-941) Unexpected initialization of unused BAR registers
+  + Extended unused BAR registers handling
+- VRX (DSLCPE_SW-946) Evaluate and change IRQ configuration within MEI Driver
+  + Extended interrupt handling (IRQ level trigger for VR9,
+    default for other platforms)
+  + Added debug check for unexpected interrupts within polling mode
+- VRX (DSLCPE_SW-859) US-ReTx: Make usage of Reset functionality provided by PP Subsystem
+  + extended compile time handling to also exclude TcReset functionality by
+    '-DMEI_DRV_ATM_PTM_INTERFACE_ENABLE=0' c-flag usage (required for debug & test)
+
+V1.5.18 - 2015-12-01
+- Branch-off point for development only (no tarball)
+
+V1.5.17 - 2015-11-19
+common:
+- Re-create the tarball with different automake version (1.11.3)
+
+V1.5.16 - 2015-11-17
+common:
+- VRX (DSLCPE_SW-938) [Debug] Port Trace-Like trigger changes
+- VRX (DSLCPE_SW-912) Change back default configuration for DSM (vectoring)
+  feature enable
+  + Default for AppType "6" is that vectoring is friendly
+
+
+V1.5.15 - 2015-10-09
+- VRX (DSLCPE_SW-859) US-ReTx: Make usage of Reset functionality provided
+  by PP Subsystem
+  + applied TC layer reset after MODEM_READY received
+- (DSLCPE_SW-914) Remove SOAP implementation
+  + Excluded SOAP related functionality
+- (DSLCPE_SW-927) Klocwork rework cycle(s) for  UGW-7.1 (W7.2 release)
+  + Fixed warnings
+
+V1.5.14 - 2015-09-03
+Bug fix(es):
+- VRX (DSLCPE_SW-915) Take care to be able to build both RELEASE as well as
+  DEBUG images
+  + Corrected debug macro PRN_DBG_USR_RAW to be empty for release build
+common:
+- VRX (DSLCPE_SW-903) [Debug] Stream dump data should be written to files with max. size
+  + -l option added into debug stream dump application to restrict maximum output
+    file size, 1Mbyte by default
+- VRX (DSLCPE_SW-887) [Debug] Include support for handling of debug strings
+  wrt UGW-6.5 definitions/requirements
+  + logger support added
+  + DBG_LOGGER entry added to /proc/driver/mei_cpe/config to control
+    the debug output (0 - console, 1 - logger, 0 by default)
+
+
+V1.5.13 - 2015-08-07
+common:
+- (DSLCPE_SW-901) Rework open topics from interagtion within SL
+  + Fixed Klocwork warnings
+
+V1.5.12 - 2015-07-17
+common:
+- VRX (DSLCPE_SW-894) [Debug] Configuration and build problem with stream dump
+  functionality
+  + Fifo buffer implementation added to fix build in the kernel build-in mode
+  + new configuration option added --enable-debug-stream-support=yes | no
+- VRX (DSLCPE_SW-893) [Debug] Documentation for the Debug-Stream-Dump
+  functionality
+  + doxygen comments fixed
+- VRX (DSLCPE_SW-892) [Debug] Extension of the existing stream dump application
+  by startup options to get access to all configurations
+  + stdout dump output supported
+  + help info logic modified
+  + the following options added:
+    --operation - debug stream buffer operation mode
+    --buffer - buffer size in bytes
+    --stream - start and stop stream ID for the filter
+    --event - start and stop event ID for the filter
+    --mask - start and stop masks for the filter
+    --pattern - start and stop patterns the for filter
+    --text - ASCII text output format is used for the output file
+- VRX (DSLCPE_SW-878) [Debug] MEI driver extensions for debug-stream-dump
+  functionality
+  + buffer fill level notification mechanism introduced
+
+V1.5.11 - 2015-06-30
+common:
+- VRX (DSLCPE_SW-878) [Debug] MEI driver extensions for debug-stream-dump
+  functionality
+  + adapted to DTI standalone agent
+  + mailbox payload size increased to 260 bytes
+- VRX (DSLCPE_SW-858) Implementation for DSL/PPE TC switchover extensions
+  + Included fix for DSL FW msg processing (was introduced with V1.5.10)
+- Cleaned up some minor code format issues (beatification only)
+
+V1.5.10 - 2015-06-26
+common:
+- VRX (DSLCPE_SW-858) Implementation for DSL/PPE TC switchover extensions
+  + Included and use complete defintions for EVT_TC_StatusGet_t from MCAT
+- Updated copyright header and "LICENSE" file
+
+V1.5.9 - 2015-06-19
+common:
+- VRX (DSLCPE_SW-878) [Debug] MEI driver extensions for debug-stream-dump
+  functionality:
+  + debug stream dump application added
+  + FIO_MEI_DEBUG_STREAM_CONFIG_GET
+  + FIO_MEI_DEBUG_STREAM_CONFIG_SET
+  + FIO_MEI_DEBUG_STREAM_RELEASE
+  + FIO_MEI_DEBUG_STREAM_CONTROL
+  + FIO_MEI_DEBUG_STREAM_STATISTIC_GET
+  + FIO_MEI_DEBUG_STREAM_DATA_GET
+  + FIO_MEI_DEBUG_STREAM_MASK_SET
+- VRX (DSLCPE_SW-867) D7800/VRX320: DCT Tool not working: as soon as the DCT is
+  connected, DSL showtime is lost.
+  + extensions to avoid firmware messages transmitting within firmware download
+  + excluded driver access lock for active polling to prevent SMP race conditions
+- VRX (DSLCPE_SW-858) Implementation for DSL/PPE TC switchover extensions
+  + added autonomous message EVT_TC_StatusGet handling
+  + extended PP subsystem signaling functionality (added TC layer request/reset)
+
+V1.5.8 - 2015-03-16
+common:
+- VRX (DSLCPE_SW-853) Get rid of KSEG1 usage
+  + extended memory allocation to use consecutive non cached memory blocks
+  + extended RCU module handling (RCU virtiual address use)
+  + cleaned up KSEG1 usage
+- VRX320 (DSLCPE_SW-816) Merge changes from "vrx320_qca" to "default" branch
+  + merged branches
+  + added vrx320 device support
+  + extended endianess macro names
+- VRX (DSLCPE_SW-855) Get rid of further bringup related temporary extensions
+  + removed MEI_GRX500_BRINGUP flag support
+  + extended device probe function
+
+V1.5.7 - 2015-02-10
+common:
+- VRX (DSLCPE_SW-850) Hybrid detection is not working correctly
+  + extended hybrid type detection handling
+- VRX (DSLCPE_SW-848) Interrupt handling of VDSL MEI Driver does not work
+  + extended IRQ flags set for interrupt handler function
+
+V1.5.6 - 2015-01-23
+common:
+- VRX - Initial version that supports GRX500
+  + Included possibility to use external driver c-flags
+Bug fix(es):
+- VRX (DSLCPE_SW-846) Printout of meminfo is not correct
+  + fixed BAR registers base address handling for /proc/driver/mei_cpe/meminfo
+
+V1.5.5 - 2015-01-20
+common:
+- VRX - Initial version that supports GRX500
+  Included under temporary preprocessor condition (MEI_GRX500_BRINGUP) only
+  + Changed event handling from IRQ to polling mode because of problems with MSI
+  + Adapted outbound address for programming BAR registers
+  + Excluded PP interface functions for independent bringup of DSL/MEI
+Bug fix(es):
+- VRX - Initial version that supports GRX500
+  + Corrected RCU access to use virtual instead of physical address
+
+V1.5.4 - 2015-01-09
+common:
+- VRX (DSLCPE_SW-770) Klocwork reworks/fixes for UGW-6.1(.x)
+- VRX (DSLCPE_SW-838) Message header files update to VRX FWMCAT Rev2.5.1
+  + extended PLL clock offset handling for CMD_PLL_ClockSet fw message
+- VRX (DSLCPE_SW-845) Debug Feature for MEI Driver to not take ARC out
+  of halt after FW download
+  + extended proc implementation with debug flag DBG_FLAGS
+
+V1.5.3 - 2014-12-05
+common:
+- VRX (DSLCPE_SW-803) Problem resulting in VRx FW downloading failed situation
+  + added debug print for MODEM_READY wait timeout
+  + added internal control structures dump for MODEM_READY wait timeout
+- VRX (DSLCPE_SW-833) Segmentation fault while uninstall MEI VRX driver
+  + Fixed ERB buffer address noncashed modification
+  + Modified clock disable handling for 3.10 linux kernel
+- VRX (DSLCPE_SW-818) New statistic counter for successfully performed
+  optimized FW downloads
+  + Extended fw download statistics handling
+
+V1.5.2 - 2014-10-24
+common:
+- VRX (DSLCPE_SW-817) Extend interface of DSL Subsystem to configure PLL offset value
+  + implemented PLL offset handling (transmit fw config after MODEM_READY and at reset)
+  + extended DSM handling with possibility to transmit config to the fw at reset state
+  + extended mei test application with new options '-P' and '-O'
+- VRX (DSLCPE_SW-799) Add debug functionality to set "unused" BAR registers to
+  special values
+  + extended proc entries meminfo and bar_usr_dbg functionality (remove handler)
+
+V1.5.1 - 2014-08-12
+common:
+- VRX (DSLCPE_SW-811) Bug fixes related to endianess handling
+  + Fixed wrong MAC address firmware message payload format
+
+V1.5.0 - 2014-08-04
+common:
+- VRX (DSLCPE_SW-799) Add debug functionality to set "unused" BAR registers to
+  special values
+  + added proc entry meminfo (get BAR config) and bar_usr_dbg (set BAR config)
+- VRX (DSLCPE_SW-794) Optimize DSL Firmware download from performance point of view.
+  + added chunks reuse mode for empty fw by save/check CRC of allocated chunks
+  + added MEI_SUPPORT_OPTIMIZED_FW_DL to enable/disable chunks reuse mode
+
+V1.4.9 - 2014-03-12
+common:
+- Removed line number from DSL/PP interface in case of bonding
+- VRX (DSLCPE_SW-770) Klocwork reworks/fixes for UGW-6.1
+- (DSLSPE_SW-771) Extend debugging functionality and take care that it is
+  working completely
+  + extended showtime enter/exit debug prints with new debug level
+- (DSLCPE_SW-785) Extend interface between DSL and PP subsystem to use line number.
+  + extended parameters list of showtime enter/exit/check functions.
+- VRX (DSLCPE_SW-788) Rework implementation for LIF detection of the GPIO handling
+  + excluded common GPIO framework added with DSLCPE_SW-705
+
+V1.4.8 - 2014-01-10
+common:
+- Updated copyright header (year 2014)
+
+V1.4.7 - 2014-01-09
+common:
+- VRX (DSLCPE_SW-762) Extend VDSL MEI driver with device tree support
+  + Extended source files according to the CRDSLCPESW-40 review.
+  + Excluded MEI_SUPPORT_DEVICE_VRx (VR9/VR10) macro for platform handling.
+  + Added run time platform handling based at device tree files configuration.
+
+V1.4.6 - 2013-12-20
+common:
+-VRX (DSLCPE_SW-753) Take care that DSL Subsystem is fully functional with
+ Linux kernel 3.10
+  + Fixed DFE module enabling
+  + Fixed irq handling for VR10
+- VRX (DSLCPE_SW-646) VDSL MEI driver should be usable as loadable module.
+  + Fixed build issues (external ppa driver names), use ppa driver callback
+    functions.
+  + Supported module unload.
+- VRX Updated license type ("Dual BSD/GPL" -> "GPL").
+- VRX (DSLCPE_SW-705) Add GPIO configuration for LIF detection handling in case
+  of AnnexB FW
+  + linux general gpio framework for 3.10
+- VRX (DSLCPE_SW-762) Extend VDSL MEI driver with device tree support
+  + Extended handling for VR9 & VR10 for kernel 3.10 & device tree
+
+V1.4.5 - 2013-09-23
+common:
+-VRX (DSLCPE_SW-753) Take care that DSL Subsystem is fully functional with
+ Linux kernel 3.10
+
+V1.4.4 - 2013-09-13
+common:
+- VRX (DSLCPE_SW-723) Rework the VDSL MEI driver to optimize the BAR register usage.
+  Updated source files according to the CRDSLCPESW-21 review.
+Bug fix(es):
+- VRX (DSLCPE_SW-737) Switching FW from (i/f-Rev-0 + FML-Type-0) to
+  (i/f-Rev-1 + FML-Type-1) has problems.
+  + Fixed BAR registers handling for ERB block.
+- VRX ([DSLCPE_SW-678) API for FW R6 Release - Handling for new FW application type
+  (which supports G.Vector).
+  + Fixed MEI driver test application XDSL moded check (-e option).
+
+V1.4.3 - 2013-08-22
+Bug fix(es):
+- VRX (DSLCPE_SW-734) Take care that DSLSubsystem is fully functional with
+  Linux kernel 3.8
+  + Fixed wrong ioctl handler parameters list caused segmentation fault.
+
+V1.4.2 - 2013-08-09
+common:
+- VRX (DSLCPE_SW-734) Take care that DSLSubsystem is fully functional with
+  Linux kernel 3.8
+  + Extended source code to be compilable with linux kernel 3.8
+
+V1.4.1 - 2013-07-29
+common:
+- VRX (DSLCPE_SW-742) Change default configuration for DSM (vectoring) feature
+  enable
+  Default for AppType "6" is that vectoring is disabled (not vectoring friendly
+  anymore) - partly revert from DSLCPE_SW-735
+
+V1.4.0 - 2013-07-10
+common:
+- VRX (DSLCPE_SW-735) Default configuration for DSM (vectoring) feature enable
+- VRX (DSLCPE_SW-706) Include support for G.Vector within MEI driver.
+  Removed DSM only for VR9 preprocessor restriction.
+  Added PP driver callback function access mutex.
+- Klocwork issues/warnings fixes.
+- VRX318 (DSLCPE_SW-705) Add GPIO configuration for LIF detection handling in
+  case of AnnexB FW.
+  Added P0_ALSEL0, P0_ALSEL1 configuration set within initialisation phase.
+- VRX (DSLCPE_SW-716) Error Prints on the console from MEI Driver.
+  Extended fw vectoring support for not support/partly support/full support.
+- Allow vectoring friendly mode config also for firmware binaries with
+  AppType "6"
+- VRX (DSLCPE_SW-723) Rework the VDSL MEI driver to optimize the BAR register usage.
+  Added revision 1 (new) support. Added fw layout type 2 support.
+Bug fix(es):
+- VRX (DSLCPE_SW-725) G.993.5 DS Vectoring status is not working via "dsmsg"
+  command
+  Fixed mapping within MEI_VRX_DSM_StatusGet function.
+
+V1.3.10 - 2013-04-05
+common:
+- Changed empty bootloader size debug message level to warning.
+- VRX (DSLCPE_SW-632) build issue: WARNING: drivers/char/builtin.o(.init.text+0x1794):
+  Section mismatch in reference from the function MEI_module_init().
+  Fixed build warnings.
+
+V1.3.9 - 2013-03-22
+- (DSLCPE_SW-694) Message header files update to VRX FWMCAT Rev2.0
+
+V1.3.8 - 2013-02-27
+User interface definition change(s):
+- (DSLCPE_SW-678) [VRX] API for FW R6 Release - Handling for new FW application
+  type (which supports G.Vector)
+  Reduced vectoring related parameters within ioctl's FIO_MEI_DSM_CONFIG_SET
+  and FIO_MEI_DSM_CONFIG_GET
+common:
+- (DSLCPE_SW-678) [VRX] API for FW R6 Release - Handling for new FW application
+  type (which supports G.Vector).
+  Added Fw vectoring support handling, added new error code
+  e_MEI_ERR_NOT_SUPPORTED_BY_FIRMWARE.
+- Fix compile warnings for mei_test_application for mac address handling.
+- (DSLCPE_SW-680) [VRX] API for FW R6 Release - Include API formated message
+  dump within MEI. Added debug prints at DSL CPE style. Added new option 'G'
+  for mei_test_application (debug level set).
+
+V1.3.7 - 2013-01-25
+common:
+- (DSLCPE_SW-649) Updates MEI driver common parts for VRX200 and VRX318,
+  added new prefix MEI_VRX.
+- (DSLCPE_SW-666) [VRX318] Changed implementation for shared PDBRAM usage.
+Bug fix(es):
+- [VRX318] Fixed uncorrect PDBRAM share control bits access.
+
+V1.3.6 - 2012-12-03
+Bug fix(es):
+- (DSLCPE_SW-658) [VRX318] In case of bonding the second line gets stuck
+  Corrected reset handling for VRX318 in bonding mode.
+
+V1.3.5 - 2012-11-26
+common:
+- (DSLCPE_SW-622) [VRX200] G.Vector - Extend MEI driver to support error vector
+  handling
+  + Updated Vectoring status ioctls handling
+  + Updated ERB event handler (n_mei_dropped_no_pp_cb counter added)
+- Added new error code "e_MEI_ERR_INCOMPLETE_RETURN_VALUES" (returned in case of
+  requesting DSM status values in case of link is not in showtime)
+
+V1.3.4 - 2012-11-23
+common:
+- Added debug and test functionality for timing profiling of DSM (vectoring)
+  related L2 backchannel handling
+
+V1.3.3 - 2012-11-16
+common:
+- (DSLCPE_SW-647) [VRX318] Make usage of flexible Bootloader size in VRx318
+  firmware binary. Added passing bootloader size from firmware image header.
+- (DSLCPE_SW-622) [VRX200] G.Vector - Extend MEI driver to support error vector
+  handling.
+Bug fix(es):
+- (DSLCPE_SW-645) [VRX200] Reboot command results in system hang
+  Added signal handling for active polling thread.
+- Fixed empty (always zero) debug print (PDBRAM address at device init).
+
+V1.3.2 - 2012-09-21
+common:
+- (DSLCPE_SW-644) [VRX318] Extension for Annex hybrid type detection.
+   Updated LIF bits passing to PortModeControlStructure.
+- (DSLCPE_SW-643) [VRX318] Add support for shared PDBRAM usage.
+   Added MEI_VR10_PDBRAM_AccessGet function.
+
+V1.3.1 - 2012-08-30
+common:
+- (DSLCPE_SW-631) [VRX318] Usage of PCIe driver for generation of virtual addresses.
+   Optimised for several lines use.
+
+V1.3.0 - 2012-08-27
+common:
+- Reduce changelog up to V0.1.0
+- (DSLCPE_SW-611) Remove unnecessary preprocessor options
+- (DSLCPE_SW-609) Updated bonding_external definition
+- (DSLCPE_SW-618 )Extend low level (MEI) driver for support of new SMART PHY.
+   Added VR10 device;
+   Updated mei driver for VR10 (PDBRAM handling);
+   Updated mei test application (new options -P, -e);
+   Disable ifx_pmu_pg_dsl_dfe_enable function for VR10;
+   Updated chip version handling for VR10;
+   Updated RCU address fro VR10;
+   Updated debug printouts;
+   Updated BAR0, BAR1, BAR2 init;
+   Added BARx (x < 3) PDBRAM address translation for VR10;
+   Added BARx (x >=3) SDRAM address translation for VR10;
+   Renamed *vr9 files to *vrx
+- Updated Lantiq license
+- Added debug function (MEI_DBG_CECK_BOOTLOADER_START) to check successful
+  bootloader start
+
+V1.2.0 - 2012-01-20
+new configuration option(s) added:
+ + --enable-pci-slave=yes | no
+ + --enable-pci-slave-addr=bonding | bonding_external
+common:
+- DSLCPE_SW-580 Use install-process and dir to copy header files to the staging dir.
+  src/Makefile.am extended as specified.
+- PCI slave address range selection added (BONDING_EXTERNAL and Offchip bonding)
+merge from the bonding branch (dsl_cpe_api_maint_4_10_1):
+   VRX:
+   - On-chip SLAVE port FW download handling updated.
+
+V1.1.2 - 2011-08-18
+common:
+- Driver version handling changed: configure.in version is used everywhere in the code.
+
+V1.1.1 - 2011-06-17
+common:
+- Klocwork issues crosschecked/fixed.
+
+V1.1.0 - 2011-01-20
+Bug fix(es):
+- VRx (DSLCPE_SW-525) Implementation of function "MEI_DRVOS_EventWait_timeout"
+  needs to be changed.
+  Event handling routines replaced with the once from IFXOS library for
+  Linux environment.
+
+V1.0.3 - 2010-09-17
+common:
+- shared IRQ flags handling added
+- PCI slave VRx device FW download handling added.
+
+V1.0.2 - 2010-08-03
+Bug fix(es):
+- VRx (DSLCPE_SW-478) Clock and power gating control / Usage of PMU macros and
+  functions.
+  Implementation extended to use PMU module API on the MEI module Init and
+  Exit only.
+
+V1.0.1 - 2010-06-18
+- VRx (DSLCPE_SW-465) Change reset sequence and rework important parts.
+  Reset sequence changed, related parts reworked according to the provided
+  reference code.
+  ARC registers definitions added to drv_mei_cpe_mei_vr9.h.
+  Internal configuration  option INCLUDE_VR9_NOT_DOCUMENTED_FEATURES removed.
+  Removed several MEI_DRVOS_Wait_ms'es marked for removing.
+  All tabs replaced with three spaces and  all trailing blanks removed from
+  *.c and *.h sources.
+  Test application help changed for key -R.
+
+V1.0.0 - 2010-06-11
+Bug fix(es):
+- Common (SMS01519222) Correct debug printout within driver test application
+  context. MEI driver test application: fixed address representation in debug
+  output.
+- VRx (DSLCPE_SW-461) Change reset handling within MEI_ResetDfeBlocks.
+  VR9 reset sequence corrected, 20ms sleep added after halting ARC and before
+  resetting device.
+
+V0.2.0 - 2010-05-26
+Bug fix(es):
+- VRx (SMS01456067) Adaptations to follow concept for using macros for global
+  register access.
+  PMU register access via PMU driver API added.
+
+V0.1.12 - 2010-03-05
+common:
+- Security check added for the "MEI_MAX_DFE_INSTANCE_PER_ENTITY" configuration
+  definition.
+
+V0.1.11 - 2010-02-19
+common:
+- VRx implementation extended for the dual-port mode support.
+- VRx firmware chunks access changed for using non-cached Linux Kernel memory.
+
+V0.1.10 - 2010-01-29
+common:
+- VRx firmware chunks allocation optimized.
+- Unused BARx registers fill added with the BAR0 content.
+
+V0.1.9 - 2010-01-21
+common:
+- VRx Port Mode Control Structure extended for using several default fields
+  from the firmware binary header.
+
+V0.1.8 - 2009-12-29
+common:
+- VRx firmware download timeout changed to 10 sec (required for the ADSL
+  firmware).
+
+V0.1.7 - 2009-12-03
+common:
+- Trace and log outputs are switched off by default
+
+V0.1.6 - 2009-11-20
+common:
+- Linux Kernel ver.2.6.30 check added to the procfs handling.
+
+V0.1.5 - 2009-11-12
+common:
+- Changed copyright header to Lantiq version
+
+V0.1.4 - 2009-11-03
+common:
+- Kernel export added for:
+  + MEI_InternalFwModeCtrlSet
+  + MEI_InternalFwModeStatGet
+
+V0.1.3 - 2009-10-23
+common:
+- VRx firmware download sequence optimized: temporary 8K size page handling
+  removed.
+- VRx ATM/PTM Linux kernel internal interface added.
+- new file(s) added:
+  + drv_mei_cpe_api_atm_ptm_intern.c
+  + drv_mei_cpe_api_atm_ptm_intern.h
+
+V0.1.2 - 2009-10-14
+common:
+- Minor adaptations for the Linux Kernel built-in build support
+- New configuration option(s) added:
+  + "--enable-lkm"
+
+V0.1.1 - 2009-10-12
+common:
+- Linux OS abstarction layer added
+- New configuration option(s) added:
+  + "--enable-ifxos"
+  + "--enable-drv_test"
+
+V0.1.1 - 2009-10-09
+common:
+- Added install scripts to distribution package
+
+V0.1.0 - 2009-10-02
+common:
+- VR9 implementation added:
+  + MEI_FW_PORT_MODE_CONTROL_T structure extended with additional fields
+  + 100 msec delay added before releasing ARC from the HALT state (workaround
+    for the VR9 firmware download sequence)
+- MODEM_READY wait timeout changed to 4 sec
+IOCTL:
+- New IOCTL(s) added:
+  + FIO_MEI_FW_MODE_CTRL_SET (VR9 device specific)
+  + FIO_MEI_FW_MODE_STAT_GET (VR9 device specific)
+- New error code(s) added
+  + e_MEI_ERR_INVAL_FW_IMAGE
+
+
+V1.6.0 - 2016-02-29
+common:
+- VRX (DSLCPE_SW-966) Add config option to build with no PPA, PPA < 3.3, PPA >= 3.3
+  + add configure options --disable-ppa-callbacks-tc and --disable-ppa-callbacks
+- VRX (DSLCPE_SW-961) [Debug] Debug Stream Dump improvement Tracee like trigger
+  + Description for the debug stream dump application was reviewed and extended
+  + Issue with saving of small size files was fixed
+  + cleanup
+- VRX (DSLCPE_SW-938) [Debug] Port Trace-Like trigger changes
+- DSLCPE_SW-957: [VRX] Bringup of VRX320 on Cougar Park V2.0 hardware
+  + Changed include path for ATM Driver
+- VRX (UGW_SW-7171) Enable and fix UGW for gcc security hardening support
+  + Update for Werror=format-security
+- VRX (DSLCPE_SW-955) [Debug] Extend Debug-Stream-Dump application with
+  Debug-Stream-Mask configuration possibility
+  + Timestamps are inserted before .bin file extension now
+  + New option introduced (-i x:x:x:x:x)
+  + Message length fixed for CMD_DBG_DEBUG_STREAM_CONFIGURE
+- VRX DSLCPE_SW-958: warn about format errors and fix them
+  + do not hide and fix format warnings
+- VRX (DSLCPE_SW-957) Bringup of VRX320 on Cougar Park V2.0 hardware
+  + also allow setting the passive polling mode
+  + activate irq polling mode with IRQ_POLLING_FORCE
+  + make the platform driver be loaded at arbitrary times
+  + use hotplug to create the devices under /dev/
+  + use dma_addr_t type for dma physical address
+  + fix compile warning in IFXOS_DrvSelectQueueWakeUp
+  + only support one Linux platform device
+  + for the VRX320 store parent device
+  + for the VRX320 do not check for device tree entry
+  + fix structures for little endian
+- VRX (DSLCPE_SW-953) [Debug] Usage of netlink ID -29 (NETLINK_DBG_MSG)
+  + DSL_DBG_MSG_NETLINK_ID can be configured via MEI driver configuration of
+    menuconfig (28 used by default)
+- VRX Double definition fixed
+   + extra definition of MEI_DBG_STREAM_MAX_COMPARE_SIZE_IN_WORDS removed
+- VRX (DSLCPE_SW-944) Extensions for VRX318/518 emulation
+  + added configure option for including emulation handling
+  + Initialization of default timeout to wait for MODEM_READY set to 20 minutes
+    in case of emulation is used
+  + added cyclic status printouts for very long MODEM_READY timeout
+- VRX (DSLCPE_SW-872) Problem with 32-bit oriented WinHost messages that
+  exceeds 256 bytes total message length
+  + Extended 32-bit messages constant definitions
+- VRX (DSLCPE_SW-915) Take care to be able to build both RELEASE as well
+  as DEBUG images
+  + Fixed debug macro definitions to avoid build issues
+- VRX (DSLCPE_SW-941) Unexpected initialization of unused BAR registers
+  + Extended unused BAR registers handling
+- VRX (DSLCPE_SW-946) Evaluate and change IRQ configuration within MEI Driver
+  + Extended interrupt handling (IRQ level trigger for VR9,
+    default for other platforms)
+  + Added debug check for unexpected interrupts within polling mode
+- VRX (DSLCPE_SW-859) US-ReTx: Make usage of Reset functionality provided by PP Subsystem
+  + extended compile time handling to also exclude TcReset functionality by
+    '-DMEI_DRV_ATM_PTM_INTERFACE_ENABLE=0' c-flag usage (required for debug & test)
+
+V1.5.18 - 2015-12-01
+- Branch-off point for development only (no tarball)
+
+V1.5.17 - 2015-11-19
+common:
+- Re-create the tarball with different automake version (1.11.3)
+
+V1.5.16 - 2015-11-17
+common:
+- VRX (DSLCPE_SW-938) [Debug] Port Trace-Like trigger changes
+- VRX (DSLCPE_SW-912) Change back default configuration for DSM (vectoring)
+  feature enable
+  + Default for AppType "6" is that vectoring is friendly
+
+
+V1.5.15 - 2015-10-09
+- VRX (DSLCPE_SW-859) US-ReTx: Make usage of Reset functionality provided
+  by PP Subsystem
+  + applied TC layer reset after MODEM_READY received
+- (DSLCPE_SW-914) Remove SOAP implementation
+  + Excluded SOAP related functionality
+- DSLCPE_SW-927: Klocwork rework cycle(s) for  UGW-7.1 (W7.2 release)
+  + Fixed warnings
+
+V1.5.14 - 2015-09-03
+Bug fix(es):
+- VRX (DSLCPE_SW-915) Take care to be able to build both RELEASE as well as
+  DEBUG images
+  + Corrected debug macro PRN_DBG_USR_RAW to be empty for release build
+common:
+- VRX (DSLCPE_SW-903) [Debug] Stream dump data should be written to files with max. size
+  + -l option added into debug stream dump application to restrict maximum output
+    file size, 1Mbyte by default
+- VRX (DSLCPE_SW-887) [Debug] Include support for handling of debug strings
+  wrt UGW-6.5 definitions/requirements
+  + logger support added
+  + DBG_LOGGER entry added to /proc/driver/mei_cpe/config to control
+    the debug output (0 - console, 1 - logger, 0 by default)
+
+
+V1.5.13 - 2015-08-07
+common:
+- DSLCPE_SW-901 Rework open topics from interagtion within SL
+  + Fixed Klocwork warnings
+
+V1.5.12 - 2015-07-17
+common:
+- VRX (DSLCPE_SW-894) [Debug] Configuration and build problem with stream dump
+  functionality
+  + Fifo buffer implementation added to fix build in the kernel build-in mode
+  + new configuration option added --enable-debug-stream-support=yes | no
+- VRX (DSLCPE_SW-893) [Debug] Documentation for the Debug-Stream-Dump
+  functionality
+  + doxygen comments fixed
+- VRX (DSLCPE_SW-892) [Debug] Extension of the existing stream dump application
+  by startup options to get access to all configurations
+  + stdout dump output supported
+  + help info logic modified
+  + the following options added:
+    --operation - debug stream buffer operation mode
+    --buffer - buffer size in bytes
+    --stream - start and stop stream ID for the filter
+    --event - start and stop event ID for the filter
+    --mask - start and stop masks for the filter
+    --pattern - start and stop patterns the for filter
+    --text - ASCII text output format is used for the output file
+- VRX (DSLCPE_SW-878) [Debug] MEI driver extensions for debug-stream-dump
+  functionality
+  + buffer fill level notification mechanism introduced
+
+V1.5.11 - 2015-06-30
+common:
+- VRX (DSLCPE_SW-878) [Debug] MEI driver extensions for debug-stream-dump
+  functionality
+  + adapted to DTI standalone agent
+  + mailbox payload size increased to 260 bytes
+- VRX (DSLCPE_SW-858) Implementation for DSL/PPE TC switchover extensions
+  + Included fix for DSL FW msg processing (was introduced with V1.5.10)
+- Cleaned up some minor code format issues (beatification only)
+
+V1.5.10 - 2015-06-26
+common:
+- VRX (DSLCPE_SW-858) Implementation for DSL/PPE TC switchover extensions
+  + Included and use complete defintions for EVT_TC_StatusGet_t from MCAT
+- Updated copyright header and "LICENSE" file
+
+V1.5.9 - 2015-06-19
+common:
+- VRX (DSLCPE_SW-878) [Debug] MEI driver extensions for debug-stream-dump
+  functionality:
+  + debug stream dump application added
+  + FIO_MEI_DEBUG_STREAM_CONFIG_GET
+  + FIO_MEI_DEBUG_STREAM_CONFIG_SET
+  + FIO_MEI_DEBUG_STREAM_RELEASE
+  + FIO_MEI_DEBUG_STREAM_CONTROL
+  + FIO_MEI_DEBUG_STREAM_STATISTIC_GET
+  + FIO_MEI_DEBUG_STREAM_DATA_GET
+  + FIO_MEI_DEBUG_STREAM_MASK_SET
+- VRX (DSLCPE_SW-867) D7800/VRX320: DCT Tool not working: as soon as the DCT is
+  connected, DSL showtime is lost.
+  + extensions to avoid firmware messages transmitting within firmware download
+  + excluded driver access lock for active polling to prevent SMP race conditions
+- VRX (DSLCPE_SW-858) Implementation for DSL/PPE TC switchover extensions
+  + added autonomous message EVT_TC_StatusGet handling
+  + extended PP subsystem signaling functionality (added TC layer request/reset)
+
+V1.5.8 - 2015-03-16
+common:
+- VRX (DSLCPE_SW-853) Get rid of KSEG1 usage
+  + extended memory allocation to use consecutive non cached memory blocks
+  + extended RCU module handling (RCU virtiual address use)
+  + cleaned up KSEG1 usage
+- VRX320 (DSLCPE_SW-816) Merge changes from "vrx320_qca" to "default" branch
+  + merged branches
+  + added vrx320 device support
+  + extended endianess macro names
+- VRX (DSLCPE_SW-855) Get rid of further bringup related temporary extensions
+  + removed MEI_GRX500_BRINGUP flag support
+  + extended device probe function
+
+V1.5.7 - 2015-02-10
+common:
+- VRX (DSLCPE_SW-850) Hybrid detection is not working correctly
+  + extended hybrid type detection handling
+- VRX (DSLCPE_SW-848) Interrupt handling of VDSL MEI Driver does not work
+  + extended IRQ flags set for interrupt handler function
+
+V1.5.6 - 2015-01-23
+common:
+- VRX - Initial version that supports GRX500
+  + Included possibility to use external driver c-flags
+Bug fix(es):
+- VRX (DSLCPE_SW-846) Printout of meminfo is not correct
+  + fixed BAR registers base address handling for /proc/driver/mei_cpe/meminfo
+
+V1.5.5 - 2015-01-20
+common:
+- VRX - Initial version that supports GRX500
+  Included under temporary preprocessor condition (MEI_GRX500_BRINGUP) only
+  + Changed event handling from IRQ to polling mode because of problems with MSI
+  + Adapted outbound address for programming BAR registers
+  + Excluded PP interface functions for independent bringup of DSL/MEI
+Bug fix(es):
+- VRX - Initial version that supports GRX500
+  + Corrected RCU access to use virtual instead of physical address
+
+V1.5.4 - 2015-01-09
+common:
+- VRX (DSLCPE_SW-770) Klocwork reworks/fixes for UGW-6.1(.x)
+- VRX (DSLCPE_SW-838) Message header files update to VRX FWMCAT Rev2.5.1
+  + extended PLL clock offset handling for CMD_PLL_ClockSet fw message
+- VRX (DSLCPE_SW-845) Debug Feature for MEI Driver to not take ARC out
+  of halt after FW download
+  + extended proc implementation with debug flag DBG_FLAGS
+
+V1.5.3 - 2014-12-05
+common:
+- VRX (DSLCPE_SW-803) Problem resulting in VRx FW downloading failed situation
+  + added debug print for MODEM_READY wait timeout
+  + added internal control structures dump for MODEM_READY wait timeout
+- VRX (DSLCPE_SW-833) Segmentation fault while uninstall MEI VRX driver
+  + Fixed ERB buffer address noncashed modification
+  + Modified clock disable handling for 3.10 linux kernel
+- VRX (DSLCPE_SW-818) New statistic counter for successfully performed
+  optimized FW downloads
+  + Extended fw download statistics handling
+
+V1.5.2 - 2014-10-24
+common:
+- VRX (DSLCPE_SW-817) Extend interface of DSL Subsystem to configure PLL offset value
+  + implemented PLL offset handling (transmit fw config after MODEM_READY and at reset)
+  + extended DSM handling with possibility to transmit config to the fw at reset state
+  + extended mei test application with new options '-P' and '-O'
+- VRX (DSLCPE_SW-799) Add debug functionality to set "unused" BAR registers to
+  special values
+  + extended proc entries meminfo and bar_usr_dbg functionality (remove handler)
+
+V1.5.1 - 2014-08-12
+common:
+- VRX (DSLCPE_SW-811) Bug fixes related to endianess handling
+  + Fixed wrong MAC address firmware message payload format
+
+V1.5.0 - 2014-08-04
+common:
+- VRX (DSLCPE_SW-799) Add debug functionality to set "unused" BAR registers to
+  special values
+  + added proc entry meminfo (get BAR config) and bar_usr_dbg (set BAR config)
+- VRX (DSLCPE_SW-794) Optimize DSL Firmware download from performance point of view.
+  + added chunks reuse mode for empty fw by save/check CRC of allocated chunks
+  + added MEI_SUPPORT_OPTIMIZED_FW_DL to enable/disable chunks reuse mode
+
+V1.4.9 - 2014-03-12
+common:
+- Removed line number from DSL/PP interface in case of bonding
+- VRX (DSLCPE_SW-770) Klocwork reworks/fixes for UGW-6.1
+- (DSLSPE_SW-771) Extend debugging functionality and take care that it is
+  working completely
+  + extended showtime enter/exit debug prints with new debug level
+- (DSLCPE_SW-785) Extend interface between DSL and PP subsystem to use line number.
+  + extended parameters list of showtime enter/exit/check functions.
+- VRX (DSLCPE_SW-788) Rework implementation for LIF detection of the GPIO handling
+  + excluded common GPIO framework added with DSLCPE_SW-705
+
+V1.4.8 - 2014-01-10
+common:
+- Updated copyright header (year 2014)
+
+V1.4.7 - 2014-01-09
+common:
+- VRX (DSLCPE_SW-762) Extend VDSL MEI driver with device tree support
+  + Extended source files according to the CRDSLCPESW-40 review.
+  + Excluded MEI_SUPPORT_DEVICE_VRx (VR9/VR10) macro for platform handling.
+  + Added run time platform handling based at device tree files configuration.
+
+V1.4.6 - 2013-12-20
+common:
+-VRX (DSLCPE_SW-753) Take care that DSL Subsystem is fully functional with
+ Linux kernel 3.10
+  + Fixed DFE module enabling
+  + Fixed irq handling for VR10
+- VRX (DSLCPE_SW-646) VDSL MEI driver should be usable as loadable module.
+  + Fixed build issues (external ppa driver names), use ppa driver callback
+    functions.
+  + Supported module unload.
+- VRX Updated license type ("Dual BSD/GPL" -> "GPL").
+- VRX (DSLCPE_SW-705) Add GPIO configuration for LIF detection handling in case
+  of AnnexB FW
+  + linux general gpio framework for 3.10
+- VRX (DSLCPE_SW-762) Extend VDSL MEI driver with device tree support
+  + Extended handling for VR9 & VR10 for kernel 3.10 & device tree
+
+V1.4.5 - 2013-09-23
+common:
+-VRX (DSLCPE_SW-753) Take care that DSL Subsystem is fully functional with
+ Linux kernel 3.10
+
+V1.4.4 - 2013-09-13
+common:
+- VRX (DSLCPE_SW-723) Rework the VDSL MEI driver to optimize the BAR register usage.
+  Updated source files according to the CRDSLCPESW-21 review.
+Bug fix(es):
+- VRX (DSLCPE_SW-737) Switching FW from (i/f-Rev-0 + FML-Type-0) to
+  (i/f-Rev-1 + FML-Type-1) has problems.
+  + Fixed BAR registers handling for ERB block.
+- VRX ([DSLCPE_SW-678) API for FW R6 Release - Handling for new FW application type
+  (which supports G.Vector).
+  + Fixed MEI driver test application XDSL moded check (-e option).
+
+V1.4.3 - 2013-08-22
+Bug fix(es):
+- VRX (DSLCPE_SW-734) Take care that DSLSubsystem is fully functional with
+  Linux kernel 3.8
+  + Fixed wrong ioctl handler parameters list caused segmentation fault.
+
+V1.4.2 - 2013-08-09
+common:
+- VRX (DSLCPE_SW-734) Take care that DSLSubsystem is fully functional with
+  Linux kernel 3.8
+  + Extended source code to be compilable with linux kernel 3.8
+
+V1.4.1 - 2013-07-29
+common:
+- VRX (DSLCPE_SW-742) Change default configuration for DSM (vectoring) feature
+  enable
+  Default for AppType "6" is that vectoring is disabled (not vectoring friendly
+  anymore) - partly revert from DSLCPE_SW-735
+
+V1.4.0 - 2013-07-10
+common:
+- VRX (DSLCPE_SW-735) Default configuration for DSM (vectoring) feature enable
+- VRX (DSLCPE_SW-706) Include support for G.Vector within MEI driver.
+  Removed DSM only for VR9 preprocessor restriction.
+  Added PP driver callback function access mutex.
+- Klocwork issues/warnings fixes.
+- VRX318 (DSLCPE_SW-705) Add GPIO configuration for LIF detection handling in
+  case of AnnexB FW.
+  Added P0_ALSEL0, P0_ALSEL1 configuration set within initialisation phase.
+- VRX (DSLCPE_SW-716) Error Prints on the console from MEI Driver.
+  Extended fw vectoring support for not support/partly support/full support.
+- Allow vectoring friendly mode config also for firmware binaries with
+  AppType "6"
+- VRX (DSLCPE_SW-723) Rework the VDSL MEI driver to optimize the BAR register usage.
+  Added revision 1 (new) support. Added fw layout type 2 support.
+Bug fix(es):
+- VRX (DSLCPE_SW-725) G.993.5 DS Vectoring status is not working via "dsmsg"
+  command
+  Fixed mapping within MEI_VRX_DSM_StatusGet function.
+
+V1.3.10 - 2013-04-05
+common:
+- Changed empty bootloader size debug message level to warning.
+- VRX (DSLCPE_SW-632) build issue: WARNING: drivers/char/builtin.o(.init.text+0x1794):
+  Section mismatch in reference from the function MEI_module_init().
+  Fixed build warnings.
+
+V1.3.9 - 2013-03-22
+- (DSLCPE_SW-694) Message header files update to VRX FWMCAT Rev2.0
+
+V1.3.8 - 2013-02-27
+User interface definition change(s):
+- (DSLCPE_SW-678) [VRX] API for FW R6 Release - Handling for new FW application
+  type (which supports G.Vector)
+  Reduced vectoring related parameters within ioctl's FIO_MEI_DSM_CONFIG_SET
+  and FIO_MEI_DSM_CONFIG_GET
+common:
+- (DSLCPE_SW-678) [VRX] API for FW R6 Release - Handling for new FW application
+  type (which supports G.Vector).
+  Added Fw vectoring support handling, added new error code
+  e_MEI_ERR_NOT_SUPPORTED_BY_FIRMWARE.
+- Fix compile warnings for mei_test_application for mac address handling.
+- (DSLCPE_SW-680) [VRX] API for FW R6 Release - Include API formated message
+  dump within MEI. Added debug prints at DSL CPE style. Added new option 'G'
+  for mei_test_application (debug level set).
+
+V1.3.7 - 2013-01-25
+common:
+- (DSLCPE_SW-649) Updates MEI driver common parts for VRX200 and VRX318,
+  added new prefix MEI_VRX.
+- (DSLCPE_SW-666) [VRX318] Changed implementation for shared PDBRAM usage.
+Bug fix(es):
+- [VRX318] Fixed uncorrect PDBRAM share control bits access.
+
+V1.3.6 - 2012-12-03
+Bug fix(es):
+- (DSLCPE_SW-658) [VRX318] In case of bonding the second line gets stuck
+  Corrected reset handling for VRX318 in bonding mode.
+
+V1.3.5 - 2012-11-26
+common:
+- (DSLCPE_SW-622) [VRX200] G.Vector - Extend MEI driver to support error vector
+  handling
+  + Updated Vectoring status ioctls handling
+  + Updated ERB event handler (n_mei_dropped_no_pp_cb counter added)
+- Added new error code "e_MEI_ERR_INCOMPLETE_RETURN_VALUES" (returned in case of
+  requesting DSM status values in case of link is not in showtime)
+
+V1.3.4 - 2012-11-23
+common:
+- Added debug and test functionality for timing profiling of DSM (vectoring)
+  related L2 backchannel handling
+
+V1.3.3 - 2012-11-16
+common:
+- (DSLCPE_SW-647) [VRX318] Make usage of flexible Bootloader size in VRx318
+  firmware binary. Added passing bootloader size from firmware image header.
+- (DSLCPE_SW-622) [VRX200] G.Vector - Extend MEI driver to support error vector
+  handling.
+Bug fix(es):
+- (DSLCPE_SW-645) [VRX200] Reboot command results in system hang
+  Added signal handling for active polling thread.
+- Fixed empty (always zero) debug print (PDBRAM address at device init).
+
+V1.3.2 - 2012-09-21
+common:
+- (DSLCPE_SW-644) [VRX318] Extension for Annex hybrid type detection.
+   Updated LIF bits passing to PortModeControlStructure.
+- (DSLCPE_SW-643) [VRX318] Add support for shared PDBRAM usage.
+   Added MEI_VR10_PDBRAM_AccessGet function.
+
+V1.3.1 - 2012-08-30
+common:
+- (DSLCPE_SW-631) [VRX318] Usage of PCIe driver for generation of virtual addresses.
+   Optimised for several lines use.
+
+V1.3.0 - 2012-08-27
+common:
+- Reduce changelog up to V0.1.0
+- (DSLCPE_SW-611) Remove unnecessary preprocessor options
+- (DSLCPE_SW-609) Updated bonding_external definition
+- (DSLCPE_SW-618 )Extend low level (MEI) driver for support of new SMART PHY.
+   Added VR10 device;
+   Updated mei driver for VR10 (PDBRAM handling);
+   Updated mei test application (new options -P, -e);
+   Disable ifx_pmu_pg_dsl_dfe_enable function for VR10;
+   Updated chip version handling for VR10;
+   Updated RCU address fro VR10;
+   Updated debug printouts;
+   Updated BAR0, BAR1, BAR2 init;
+   Added BARx (x < 3) PDBRAM address translation for VR10;
+   Added BARx (x >=3) SDRAM address translation for VR10;
+   Renamed *vr9 files to *vrx
+- Updated Lantiq license
+- Added debug function (MEI_DBG_CECK_BOOTLOADER_START) to check successful
+  bootloader start
+
+V1.2.0 - 2012-01-20
+new configuration option(s) added:
+ + --enable-pci-slave=yes | no
+ + --enable-pci-slave-addr=bonding | bonding_external
+common:
+- DSLCPE_SW-580 Use install-process and dir to copy header files to the staging dir.
+  src/Makefile.am extended as specified.
+- PCI slave address range selection added (BONDING_EXTERNAL and Offchip bonding)
+merge from the bonding branch (dsl_cpe_api_maint_4_10_1):
+   VRX:
+   - On-chip SLAVE port FW download handling updated.
+
+V1.1.2 - 2011-08-18
+common:
+- Driver version handling changed: configure.in version is used everywhere in the code.
+
+V1.1.1 - 2011-06-17
+common:
+- Klocwork issues crosschecked/fixed.
+
+V1.1.0 - 2011-01-20
+Bug fix(es):
+- VRx (DSLCPE_SW-525) Implementation of function "MEI_DRVOS_EventWait_timeout"
+  needs to be changed.
+  Event handling routines replaced with the once from IFXOS library for
+  Linux environment.
+
+V1.0.3 - 2010-09-17
+common:
+- shared IRQ flags handling added
+- PCI slave VRx device FW download handling added.
+
+V1.0.2 - 2010-08-03
+Bug fix(es):
+- VRx (DSLCPE_SW-478) Clock and power gating control / Usage of PMU macros and
+  functions.
+  Implementation extended to use PMU module API on the MEI module Init and
+  Exit only.
+
+V1.0.1 - 2010-06-18
+- VRx (DSLCPE_SW-465) Change reset sequence and rework important parts.
+  Reset sequence changed, related parts reworked according to the provided
+  reference code.
+  ARC registers definitions added to drv_mei_cpe_mei_vr9.h.
+  Internal configuration  option INCLUDE_VR9_NOT_DOCUMENTED_FEATURES removed.
+  Removed several MEI_DRVOS_Wait_ms'es marked for removing.
+  All tabs replaced with three spaces and  all trailing blanks removed from
+  *.c and *.h sources.
+  Test application help changed for key -R.
+
+V1.0.0 - 2010-06-11
+Bug fix(es):
+- Common (SMS01519222) Correct debug printout within driver test application
+  context. MEI driver test application: fixed address representation in debug
+  output.
+- VRx (DSLCPE_SW-461) Change reset handling within MEI_ResetDfeBlocks.
+  VR9 reset sequence corrected, 20ms sleep added after halting ARC and before
+  resetting device.
+
+V0.2.0 - 2010-05-26
+Bug fix(es):
+- VRx (SMS01456067) Adaptations to follow concept for using macros for global
+  register access.
+  PMU register access via PMU driver API added.
+
+V0.1.12 - 2010-03-05
+common:
+- Security check added for the "MEI_MAX_DFE_INSTANCE_PER_ENTITY" configuration
+  definition.
+
+V0.1.11 - 2010-02-19
+common:
+- VRx implementation extended for the dual-port mode support.
+- VRx firmware chunks access changed for using non-cached Linux Kernel memory.
+
+V0.1.10 - 2010-01-29
+common:
+- VRx firmware chunks allocation optimized.
+- Unused BARx registers fill added with the BAR0 content.
+
+V0.1.9 - 2010-01-21
+common:
+- VRx Port Mode Control Structure extended for using several default fields
+  from the firmware binary header.
+
+V0.1.8 - 2009-12-29
+common:
+- VRx firmware download timeout changed to 10 sec (required for the ADSL
+  firmware).
+
+V0.1.7 - 2009-12-03
+common:
+- Trace and log outputs are switched off by default
+
+V0.1.6 - 2009-11-20
+common:
+- Linux Kernel ver.2.6.30 check added to the procfs handling.
+
+V0.1.5 - 2009-11-12
+common:
+- Changed copyright header to Lantiq version
+
+V0.1.4 - 2009-11-03
+common:
+- Kernel export added for:
+  + MEI_InternalFwModeCtrlSet
+  + MEI_InternalFwModeStatGet
+
+V0.1.3 - 2009-10-23
+common:
+- VRx firmware download sequence optimized: temporary 8K size page handling
+  removed.
+- VRx ATM/PTM Linux kernel internal interface added.
+- new file(s) added:
+  + drv_mei_cpe_api_atm_ptm_intern.c
+  + drv_mei_cpe_api_atm_ptm_intern.h
+
+V0.1.2 - 2009-10-14
+common:
+- Minor adaptations for the Linux Kernel built-in build support
+- New configuration option(s) added:
+  + "--enable-lkm"
+
+V0.1.1 - 2009-10-12
+common:
+- Linux OS abstarction layer added
+- New configuration option(s) added:
+  + "--enable-ifxos"
+  + "--enable-drv_test"
+
+V0.1.1 - 2009-10-09
+common:
+- Added install scripts to distribution package
+
+V0.1.0 - 2009-10-02
+common:
+- VR9 implementation added:
+  + MEI_FW_PORT_MODE_CONTROL_T structure extended with additional fields
+  + 100 msec delay added before releasing ARC from the HALT state (workaround
+    for the VR9 firmware download sequence)
+- MODEM_READY wait timeout changed to 4 sec
+IOCTL:
+- New IOCTL(s) added:
+  + FIO_MEI_FW_MODE_CTRL_SET (VR9 device specific)
+  + FIO_MEI_FW_MODE_STAT_GET (VR9 device specific)
+- New error code(s) added
+  + e_MEI_ERR_INVAL_FW_IMAGE

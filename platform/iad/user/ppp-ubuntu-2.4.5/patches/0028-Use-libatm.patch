@@ -1,0 +1,24 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Mon, 14 Feb 2011 18:05:49 +0100
+Subject: Use libatm.
+
+Signed-off-by: Olaf.Boettcher@sphairon.com
+---
+ pppd/plugins/pppoatm/Makefile.linux | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pppd/plugins/pppoatm/Makefile.linux b/pppd/plugins/pppoatm/Makefile.linux
+index 83edf3c..544fae1 100644
+--- a/pppd/plugins/pppoatm/Makefile.linux
++++ b/pppd/plugins/pppoatm/Makefile.linux
+@@ -19,7 +19,7 @@ PLUGIN_OBJS := pppoatm.o
+ # or leave it unset to build the few routines we actually _use_ into
+ # the plugin directly.
+ #
+-#HAVE_LIBATM=yes
++HAVE_LIBATM=yes
+ 
+ ifdef HAVE_LIBATM
+ LIBS := -latm
+--
+

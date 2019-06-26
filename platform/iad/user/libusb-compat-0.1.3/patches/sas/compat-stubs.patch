@@ -1,0 +1,43 @@
+---
+ libusb/core.c |   10 ++++++++++
+ libusb/usb.h  |    3 +++
+ 2 files changed, 13 insertions(+)
+
+--- a/libusb/core.c
++++ b/libusb/core.c
+@@ -742,6 +742,16 @@ API_EXPORTED int usb_reset(usb_dev_handl
+ 	return compat_err(libusb_reset_device(dev->handle));
+ }
+ 
++API_EXPORTED int usb_ioctl(usb_dev_handle *dev, int code, void* data)
++{
++	return 0;
++}
++
++API_EXPORTED void usb_cleanup(void)
++{
++	return;
++}
++
+ static int usb_bulk_io(usb_dev_handle *dev, int ep, char *bytes,
+ 	int size, int timeout)
+ {
+--- a/libusb/usb.h
++++ b/libusb/usb.h
+@@ -267,6 +267,7 @@ struct usb_bus {
+ 
+   struct usb_device *devices;
+   u_int32_t location;
++  u_int8_t  busnum;
+ 
+   struct usb_device *root_dev;
+ };
+@@ -315,6 +316,8 @@ int usb_set_altinterface(usb_dev_handle 
+ int usb_resetep(usb_dev_handle *dev, unsigned int ep);
+ int usb_clear_halt(usb_dev_handle *dev, unsigned int ep);
+ int usb_reset(usb_dev_handle *dev);
++int usb_ioctl(usb_dev_handle *dev, int code, void* data);
++void usb_cleanup(void);
+ 
+ #define LIBUSB_HAS_GET_DRIVER_NP 1
+ int usb_get_driver_np(usb_dev_handle *dev, int interface, char *name,

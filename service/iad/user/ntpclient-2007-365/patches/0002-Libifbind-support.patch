@@ -1,0 +1,35 @@
+From d0f562daf2c15e430cd43a9152d6837ef3d58e11 Mon Sep 17 00:00:00 2001
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Mon, 22 Aug 2011 21:37:59 +0200
+Subject: [PATCH 2/4] Libifbind support.
+
+---
+ ntpclient.h |   11 +++++++++++
+ 1 files changed, 11 insertions(+), 0 deletions(-)
+
+diff --git a/ntpclient.h b/ntpclient.h
+index be4e185..3f2d60f 100644
+--- a/ntpclient.h
++++ b/ntpclient.h
+@@ -1,3 +1,13 @@
++#ifndef ___NTPCLIENT_H___
++#define ___NTPCLIENT_H___
++
++#ifndef DISABLE_LIBIFBIND
++#include "sas_lib_ifbind.h"
++
++#define socket ntpclient_socket
++#define gethostbyname ntpclient_gethostbyname
++#endif
++
+ /* when present, debug is a true global */
+ #ifdef ENABLE_DEBUG
+ extern int debug;
+@@ -10,3 +20,4 @@ extern double min_delay;
+ 
+ /* prototype for function defined in phaselock.c */
+ int contemplate_data(unsigned int absolute, double skew, double errorbar, int freq);
++#endif /* ___NTPCLIENT_H___ */
+-- 
+1.7.4.1
+

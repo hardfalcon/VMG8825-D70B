@@ -1,0 +1,69 @@
+From: Norbert Urban <norbert.urban@sphairon.com>
+Date: Mon, 18 Jul 2011 11:29:13 +0200
+Subject: disconnect-chat
+
+problem with disconnect chat script.
+pppd exclusive occupies physical interface /dev/ttyUSB<x> and bind to interface ppp<y>.
+The connect script runs before this association, connect-chat to /dev/ttyUSB<x> works fine.
+Disconnect is called from pppd if he ist triggered by signal to terminate.
+pppd enqueues(fork) disconnect script and later he send all his subprocesses the SIGHUP.
+At this time the scriptcode to interact with the terminal will be rejectet if /dev/ttyUSB<x>
+isn't always availabel.
+
+signed-off-by: Norbert.Urban@sphairon.com
+---
+ pppd/auth.c | 2 +-
+ pppd/main.c | 8 ++++----
+ 2 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/pppd/auth.c b/pppd/auth.c
+index 0c57d8b..011c1c5 100644
+--- a/pppd/auth.c
++++ b/pppd/auth.c
+@@ -630,7 +630,7 @@ link_terminated(unit)
+         if (read_pppd_status() != 3)
+           write_pppd_status(0);
+        
+-	notice("Connection terminated.");
++	notice("Connection terminated.(a)");
+ 	print_link_stats();
+     } else
+ 	notice("Link terminated.");
+diff --git a/pppd/main.c b/pppd/main.c
+index b9fb454..248b98a 100644
+--- a/pppd/main.c
++++ b/pppd/main.c
+@@ -1756,8 +1756,6 @@ run_program(prog, args, must_exist, done, arg, wait)
+ 	return -1;
+     }
+     if (pid != 0) {
+-	if (debug)
+-	    dbglog("Script %s started (pid %d)", prog, pid);
+ 	record_child(pid, prog, done, arg, 0);
+ 	if (wait) {
+ 	    while (waitpid(pid, &status, 0) < 0) {
+@@ -1809,6 +1807,8 @@ record_child(pid, prog, done, arg, killable)
+     int killable;
+ {
+     struct subprocess *chp;
++	if (debug)
++	    dbglog("Script %s started (pid %d) %d", prog, pid, killable);
+ 
+     ++n_children;
+ 
+@@ -2233,11 +2233,11 @@ void write_pppd_status(int status)
+ end_ifunit_status:
+ 
+     /* boeo 30.09.2009: see comment above write_offline() function */
+-    if(demand && (0 == status))
++    if(demand && (PHASE_DEAD == status))
+     {
+         write_offline();
+     }
+-    else if ( demand && (4 == status) )
++    else if ( demand && (PHASE_ESTABLISH == status) )
+     {
+         /* schwierd 22.10.09: remove offline file if link is up and auth succeeded */
+         remove_offline();
+--
+

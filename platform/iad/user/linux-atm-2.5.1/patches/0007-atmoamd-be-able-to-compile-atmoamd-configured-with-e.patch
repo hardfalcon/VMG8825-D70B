@@ -1,0 +1,23 @@
+From: Maik Dybek <maik.dybek@sphairon.com>
+Date: Wed, 16 Jun 2010 16:24:00 +0200
+Subject: atmoamd: be able to compile atmoamd configured with --enable-oamd
+
+---
+ configure.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configure.in b/configure.in
+index bcf69db..0e7b7c1 100644
+--- a/configure.in
++++ b/configure.in
+@@ -190,7 +190,7 @@ AC_ARG_ENABLE(multipoint,
+ 	[AC_MSG_WARN([*** Multipoint signalling was not enabled.  Missing kernel support?])])]
+ )
+ 
+-atmoamd=""
++atmoamd="atmoamd"
+ AC_SUBST(atmoamd)
+ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([AC_INCLUDES_DEFAULT
+ #include <stdint.h>
+--
+

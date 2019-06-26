@@ -1,0 +1,351 @@
+From 0fccfe9351ffcb13b3c3a81507a40027c334e8e3 Mon Sep 17 00:00:00 2001
+From: Kide Chen <kide.chen@zyxel.com.tw>
+Date: Fri, 31 Jul 2015 17:23:22 +0800
+Subject: [PATCH] rdnssd: support multi-interfaces reading from conf file
+
+---
+ rdnssd.c  | 236 +-
+  1 file changed, 226 insertions(+), 10 deletions(-)
+
+diff -Naur a/rdnssd/rdnssd.c b/rdnssd/rdnssd.c
+--- a/rdnssd/rdnssd.c	2015-07-31 17:16:12.874741024 +0800
++++ b/rdnssd/rdnssd.c	2015-07-31 17:23:48.774107359 +0800
+@@ -64,16 +64,153 @@
+ 	time_t          expiry;
+ } rdnss_t;
+ 
+-#define MAX_RDNSS MAXNS
++#define MAX_IFACES  10
++#define MAX_RDNSS   MAXNS
+ 
+-static struct
++static struct servers_t
+ {
+ 	size_t  count;
+ 	rdnss_t list[MAX_RDNSS];
+ } servers = { .count = 0 };
+ 
++static struct
++{
++    unsigned char   used;       /* 0: unused, 1: used, 2: deleted */
++    char            ifname[IFNAMSIZ];
++    char            resolvpath[512];
++    unsigned char   refresh;
++
++    struct servers_t servers;
++} interfaces[MAX_IFACES];
++
++static unsigned char *ifaces_confpath = NULL;
++
+ /* The code */
+ 
++static int ifaces_lookup(unsigned int ifindex, unsigned char create)
++{
++    size_t  i;
++    int     unused = -1;
++    char ifname[IFNAMSIZ];
++
++    if (if_indextoname(ifindex, ifname) == NULL) {
++        syslog(LOG_ERR, "unknown ifindex %d", ifindex);
++        return (-1);
++    }
++
++    for (i = 0; i < MAX_IFACES; i++) {
++        if (!interfaces[i].used || !strlen(interfaces[i].ifname)) {
++            unused = (unused == -1) ? i : unused;
++            continue;
++        }
++        
++        if (strcmp(ifname, interfaces[i].ifname) == 0)
++            return i;
++    }
++    return (create) ? unused : (-1);
++}
++
++static int readin_config(const char *fname, unsigned char reconf)
++{
++    FILE *fp;
++    char *line = NULL;
++    size_t len = 0;
++    ssize_t read;
++    int i = 0;
++
++    if (NULL == fname || (fp = fopen(fname, "r")) == NULL) {
++        syslog(LOG_ERR, "can't open %s: %s", fname, strerror(errno));
++        ifaces_confpath = NULL;
++        return (-1);
++    }
++    
++    if (reconf) {
++        for (i=0; i < MAX_IFACES; i++)
++            interfaces[i].used = interfaces[i].used ? 2 : 0;
++    } else {
++        /* reset all */
++        memset(interfaces, 0x0, sizeof(interfaces));
++    }
++
++    while ((read = getline(&line, &len, fp)) != -1) {
++        char    ifname[IFNAMSIZ];
++        char    resolvfile[512];
++
++        /* skip the comment */
++        if (read > 0 && line[0] == '#')
++            continue;
++
++        memset(ifname, 0x0, sizeof(ifname));
++        memset(resolvfile, 0x0, sizeof(resolvfile));
++
++        i = sscanf(line, "%s %s", ifname, resolvfile); 
++        if (!strlen(ifname) || !strlen(resolvfile)) {
++            syslog(LOG_ERR, "unknown format: %s", line);
++            continue;
++        }
++        /* lookup existed or create new one */
++        if ((i = ifaces_lookup(if_nametoindex(ifname), 1)) == -1) {
++            syslog(LOG_ERR, "interface exceeds the maximum limitation(%d) for %s", MAX_IFACES, ifname);
++            break;
++        }
++
++        strcpy(interfaces[i].ifname, ifname);
++        strcpy(interfaces[i].resolvpath, resolvfile);
++        interfaces[i].used = 1;
++        interfaces[i].refresh = 1;
++        syslog(LOG_INFO, "add interface[%d] binding on %s, and writing rdnss to %s", i, interfaces[i].ifname, interfaces[i].resolvpath);
++    }
++
++    /* remove deleted interface from database */
++    for (i=0; i < MAX_IFACES; i++) {
++        if (interfaces[i].used == 2) {
++            syslog(LOG_INFO, "delete interface[%d] binding on %s", i, interfaces[i].ifname);
++            interfaces[i].used = 0;
++            interfaces[i].refresh = 1;
++            memset(&interfaces[i].servers, 0x0, sizeof(struct servers_t));
++        }
++    }
++
++    free(line);
++    fclose(fp);
++    return (0);
++}
++
++static void ifaces_write_resolv(void)
++{
++    for (size_t i = 0; i < MAX_IFACES; i++) {
++        if (interfaces[i].refresh) {    
++            FILE *fp;
++            int rval;
++            char tmpfile[strlen(interfaces[i].resolvpath) + sizeof(".tmp")];
++            
++            /* reset refresh flag first */
++            interfaces[i].refresh = 0;
++
++            sprintf(tmpfile, "%s.tmp", interfaces[i].resolvpath);
++            fp = fopen(tmpfile, "w");
++            if (!fp) {
++                syslog (LOG_ERR, _("Cannot write %s: %m"), tmpfile);
++                continue;
++            }
++            
++            for (size_t n = 0; n < interfaces[i].servers.count; n++) {
++                char addr[INET6_ADDRSTRLEN];
++                inet_ntop(AF_INET6, &interfaces[i].servers.list[n].addr, addr, INET6_ADDRSTRLEN);
++
++                if (IN6_IS_ADDR_LINKLOCAL(&interfaces[i].servers.list[n].addr))
++                    fprintf(fp, "nameserver %s%%%s\n", addr, interfaces[i].ifname);
++                else
++                    fprintf(fp, "nameserver %s\n", addr);
++            }
++            fclose(fp);
++            rval = rename(tmpfile, interfaces[i].resolvpath);
++            if (rval == -1)
++                syslog(LOG_ERR, _("Cannot write %s: %m"), tmpfile);
++        } /* interfaces[i].refresh */
++    } /* ifaces loop */
++}
++
+ static void write_resolv(const char *resolvpath)
+ {
+ 	FILE *resolv;
+@@ -93,7 +230,7 @@
+ 		char addr[INET6_ADDRSTRLEN];
+ 		inet_ntop(AF_INET6, &servers.list[i].addr, addr, INET6_ADDRSTRLEN);
+ 
+-		if (IN6_IS_ADDR_LINKLOCAL(&servers.list[i].addr)) {
++        if (IN6_IS_ADDR_LINKLOCAL(&servers.list[i].addr)) {
+ 			char iface[IFNAMSIZ];
+ 			if (if_indextoname(servers.list[i].ifindex, iface) != NULL)
+ 				fprintf(resolv, "nameserver %s%%%s\n", addr, iface);
+@@ -112,9 +249,33 @@
+ 
+ static void trim_expired (void)
+ {
+-	while (servers.count > 0
+-	       && servers.list[servers.count - 1].expiry <= now)
++    if (ifaces_confpath) {
++        int pop=0;
++
++        for (size_t i=0; i < MAX_IFACES; i++) {
++            while (interfaces[i].servers.count > 0
++                    && interfaces[i].servers.list[interfaces[i].servers.count-1].expiry <= now) {
++                interfaces[i].refresh = 1;
++                interfaces[i].servers.count--;
++            }
++            /* pop out mininum server's expiry to compute event deadline */
++            if (interfaces[i].servers.count) {
++                if (pop) {
++                    if (interfaces[i].servers.list[interfaces[i].servers.count-1].expiry < servers.list[servers.count-1].expiry)
++                        memcpy(&servers, &interfaces[i].servers, sizeof(struct servers_t));
++                } else {
++                    memcpy(&servers, &interfaces[i].servers, sizeof(struct servers_t));
++                    pop = 1;
++                }
++            }
++        }
++        return;
++    }
++
++    while (servers.count > 0
++	       && servers.list[servers.count - 1].expiry <= now) {
+ 		servers.count--;
++    }
+ }
+ 
+ static int rdnss_older (const void *a, const void *b)
+@@ -132,6 +293,15 @@
+ static void rdnss_update (const struct in6_addr *addr, unsigned int ifindex, time_t expiry)
+ {
+ 	size_t i;
++    int tid;
++
++    if (ifaces_confpath) {
++        /* skip it from the interface we are not interested. */
++        if ((tid = ifaces_lookup(ifindex, 0)) < 0)
++            return;
++        /* pop out from our database to update */
++        memcpy(&servers, &interfaces[tid].servers, sizeof(struct servers_t));
++    }
+ 
+ 	/* Does this entry already exist? */
+ 	for (i = 0; i < servers.count; i++)
+@@ -174,6 +344,13 @@
+ 		        (unsigned)servers.list[i].expiry);
+ 	}
+ #endif
++
++    if (ifaces_confpath) {
++        /* write back to our interfaces database */
++        memcpy(&interfaces[tid].servers, &servers, sizeof(struct servers_t));
++        memset(&servers, 0x0, sizeof(struct servers_t));
++        interfaces[tid].refresh = 1;
++    }
+ }
+ 
+ int parse_nd_opts (const struct nd_opt_hdr *opt, size_t opts_len, unsigned int ifindex)
+@@ -267,6 +444,14 @@
+ 	(void)signum;
+ }
+ 
++static volatile int reloadsig = 0;
++static void reload_handler (int signum)
++{
++    syslog(LOG_INFO, "got reload signal...");
++    if (ifaces_confpath)
++        reloadsig = signum;
++}
++
+ static int worker (int pipe, const char *resolvpath, const char *username)
+ {
+ 	sigset_t emptyset;
+@@ -307,12 +492,22 @@
+ 		mono_gettime (&ts);
+ 		now = ts.tv_sec;
+ 
++        if (reloadsig)
++        {
++            /* reload ifaces conf file */
++            readin_config(ifaces_confpath, 1);
++            reloadsig = 0;
++        }
++
+ 		if (ready)
+ 		{
+ 			/* Flush out expired entries */
+ 			trim_expired ();
+-			/* Update resolv.conf */
+-			write_resolv (resolvpath);
++            /* Update resolv.conf */
++            if (ifaces_confpath)
++                ifaces_write_resolv();
++		    else
++			    write_resolv (resolvpath);
+ 			/* Notify manager process */
+ 			write (pipe, &buf, sizeof(buf));
+ 		}
+@@ -424,7 +619,7 @@
+ 	sigemptyset (&handled);
+ 
+ 	memset (&act, 0, sizeof (struct sigaction));
+-	act.sa_handler = term_handler;
++    act.sa_handler = term_handler;
+ 
+ 	act.sa_handler = term_handler;
+ 	sigaction (SIGTERM, &act, NULL);
+@@ -438,7 +633,22 @@
+ 	sigaction (SIGPIPE, &act, NULL);
+ 	sigaddset (&handled, SIGPIPE);
+ 
+-	/* TODO: HUP handling */
++    if (ifaces_confpath) {
++        /* load conf file */
++        if (readin_config(ifaces_confpath, 0) < 0) {
++            perror("readin_config failed!");
++            return -1;
++        }
++        /* register conf reload handler */
++        memset(&act, 0, sizeof(act));
++        act.sa_sigaction = &reload_handler;
++        sigemptyset(&act.sa_mask);
++        act.sa_flags = 0;
++
++        if (sigaction(SIGUSR1, &act, NULL) < 0)
++            perror("failed to install intr");
++    }
++    /* TODO: HUP handling */
+ 
+ 	sigprocmask (SIG_SETMASK, &handled, NULL);
+ 
+@@ -538,6 +748,7 @@
+ "  -h, --help        display this help and exit\n"
+ "  -p, --pidfile     override the location of the PID file\n"
+ "  -r, --resolv-file set the path to the generated resolv.conf file\n"
++"  -c, --config      set the config file to generated resolv.conf file for multi-interfaces\n"
+ "  -u, --user        override the user to set UID to\n"
+ "  -V, --version     display program version and exit\n"), path);
+ 	return 0;
+@@ -579,12 +790,13 @@
+ 		{ "help",			no_argument,		NULL, 'h' },
+ 		{ "pidfile",		required_argument,	NULL, 'p' },
+ 		{ "resolv-file",	required_argument,	NULL, 'r' },
++        { "config",         required_argument,  NULL, 'c' },
+ 		{ "user",			required_argument,	NULL, 'u' },
+ 		{ "username",		required_argument,	NULL, 'u' },
+ 		{ "version",		no_argument,		NULL, 'V' },
+ 		{ NULL,				no_argument,		NULL, '\0'}
+ 	};
+-	static const char optstring[] = "fH:hp:r:u:V";
++	static const char optstring[] = "fH:hp:rc:u:V";
+ 
+ 	setlocale (LC_ALL, "");
+ 	bindtextdomain (PACKAGE, LOCALEDIR);
+@@ -613,6 +825,10 @@
+ 				resolvpath = optarg;
+ 				break;
+ 
++            case 'c':
++                ifaces_confpath = optarg;
++                break;
++
+ 			case 'u':
+ 				username = optarg;
+ 				break;
+--

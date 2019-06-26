@@ -1,0 +1,74 @@
+diff --git a/adig.c b/adig.c
+index 4fc363229faf28b6ab68054a69a03d60fb235a26..af20dc42d19aee9853696075a4bdf31d577adae2 100644
+--- a/adig.c
++++ b/adig.c
+@@ -188,6 +188,7 @@ int main(int argc, char **argv)
+   fd_set read_fds, write_fds;
+   struct timeval *tvp, tv;
+   struct ares_addr_node *srvr, *servers = NULL;
++  char bind_interface[32] = {0};
+ 
+ #ifdef USE_WINSOCK
+   WORD wVersionRequested = MAKEWORD(USE_WINSOCK,USE_WINSOCK);
+@@ -205,7 +206,7 @@ int main(int argc, char **argv)
+   options.flags = ARES_FLAG_NOCHECKRESP;
+   options.servers = NULL;
+   options.nservers = 0;
+-  while ((c = ares_getopt(argc, argv, "df:s:c:t:T:U:P:")) != -1)
++  while ((c = ares_getopt(argc, argv, "df:s:c:t:T:U:P:i:")) != -1)
+     {
+       switch (c)
+         {
+@@ -330,6 +331,11 @@ int main(int argc, char **argv)
+           options.socket_send_priority = strtol(optarg, NULL, 0);
+           optmask |= ARES_OPT_SOCK_PRIO;
+           break;
++      case 'i':
++          /* Set the interface to make the dns resolving */
++          strncpy(bind_interface, optarg, sizeof(bind_interface));
++          bind_interface[31] = 0;
++          break;
+       }
+     }
+   argc -= optind;
+@@ -346,7 +352,7 @@ int main(int argc, char **argv)
+       return 1;
+     }
+ 
+-  if(servers)
++  if (servers)
+     {
+       status = ares_set_servers(channel, servers);
+       destroy_addr_list(servers);
+@@ -358,6 +364,9 @@ int main(int argc, char **argv)
+         }
+     }
+ 
++  if (strlen(bind_interface) > 0) {
++    ares_set_local_dev(channel, bind_interface);
++  }
+   /* Initiate the queries, one per command-line argument.  If there is
+    * only one query to do, supply NULL as the callback argument;
+    * otherwise, supply the query name as an argument so we can
+@@ -803,7 +812,7 @@ static const char *class_name(int dnsclass)
+ static void usage(void)
+ {
+   fprintf(stderr, "usage: adig [-f flag] [-s server] [-c class] "
+-          "[-t type] [-T tcp-port] [-U udp-port] [-P Priority] name ...\n");
++          "[-t type] [-T tcp-port] [-U udp-port] [-P priority] [-i intf]  name ...\n");
+   exit(1);
+ }
+ 
+diff --git a/ares_version.h b/ares_version.h
+index 7246e76a5aa9ecd37db3281937525067251f6c12..f1f49e86028d2bc004fce596337704994835075d 100644
+--- a/ares_version.h
++++ b/ares_version.h
+@@ -11,7 +11,7 @@
+ #define ARES_VERSION ((ARES_VERSION_MAJOR<<16)|\
+                        (ARES_VERSION_MINOR<<8)|\
+                        (ARES_VERSION_PATCH))
+-#define ARES_VERSION_STR "1.10.0-sph-1.1"
++#define ARES_VERSION_STR "1.10.0-sph-1.2"
+ 
+ #if (ARES_VERSION >= 0x010700)
+ #  define CARES_HAVE_ARES_LIBRARY_INIT 1

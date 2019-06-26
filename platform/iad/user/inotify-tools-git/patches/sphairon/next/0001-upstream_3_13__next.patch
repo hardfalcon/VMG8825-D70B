@@ -1,0 +1,240 @@
+diff --git a/configure.ac b/configure.ac
+index 47b4df17f2f881084861c099f5083345c0171af6..3ddc4e3671308f32fb96f23e59c5e602cfc83bf8 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -2,7 +2,7 @@
+ # Process this file with autoconf to produce a configure script.
+ 
+ AC_PREREQ(2.59)
+-AC_INIT([inotify-tools], [3.13], [rohan@mcgovern.id.au])
++AC_INIT([inotify-tools], [3.13-sphairon2], [rohan@mcgovern.id.au])
+ AM_INIT_AUTOMAKE
+ AC_CONFIG_SRCDIR([src/inotifywait.c])
+ AM_CONFIG_HEADER([config.h])
+@@ -45,7 +45,7 @@ AM_CONDITIONAL([DOXYGEN_ENABLE], test x$DOXYGEN != xNO_DOXYGEN )
+ AC_CHECK_HEADERS([sys/inotify.h mcheck.h])
+ AC_LANG(C)
+ AC_MSG_CHECKING([whether sys/inotify.h actually works])
+-AC_RUN_IFELSE(
++AC_COMPILE_IFELSE(
+   AC_LANG_PROGRAM([[#include <sys/inotify.h>]],
+                   [[return (-1 == inotify_init());]]
+   ),
+diff --git a/libinotifytools/src/test.c b/libinotifytools/src/test.c
+index 7c5fc074185bbdcbe2d5de96966853dfb01750ec..ef2401f6f3ae0b0330d98cb66550eae64cf77ec3 100644
+--- a/libinotifytools/src/test.c
++++ b/libinotifytools/src/test.c
+@@ -170,12 +170,12 @@ ENTER
+ 	compare( inotifytools_wd_from_filename( "/" ), -1 );
+ 	compare( inotifytools_filename_from_wd( 1 ), 0 );
+ 	verify( inotifytools_watch_file( "/", IN_CLOSE ) );
+-	compare( inotifytools_wd_from_filename( "/" ), 2 );
++        int new = inotifytools_wd_from_filename( "/" );
+ 	compare( inotifytools_wd_from_filename( "foobar" ), -1 );
+-	verify( !strcmp( inotifytools_filename_from_wd(2), "/" ) );
+-	verify( inotifytools_remove_watch_by_wd( 2 ) );
++	verify( !strcmp( inotifytools_filename_from_wd(new), "/" ) );
++	verify( inotifytools_remove_watch_by_wd( new ) );
+ 	compare( inotifytools_wd_from_filename( "/" ), -1 );
+-	compare( inotifytools_filename_from_wd( 2 ), 0 );
++	compare( inotifytools_filename_from_wd( new ), 0 );
+ EXIT
+ }
+ 
+diff --git a/man/inotifywait.1 b/man/inotifywait.1
+index 71c10a7d950abaad3d9495fea6f09a0c84b0bb93..5c61ff4a4c78c633dd0353f1fe3fa0e12fd7ea2c 100644
+--- a/man/inotifywait.1
++++ b/man/inotifywait.1
+@@ -112,8 +112,8 @@ regular expression, case insensitive.
+ 
+ .TP
+ .B \-t <seconds>, \-\-timeout <seconds>
+-Listen for an event for the specified amount of seconds, exiting if an event
+-has not occurred in that time.
++Exit if an appropriate event has not occurred within <seconds> seconds. If
++<seconds> is zero (the default), wait indefinitely for an event.
+ 
+ .TP
+ .B \-e <event>, \-\-event <event>
+@@ -248,6 +248,11 @@ hence all close events received will be output as one or both of these, not
+ .B MOVE.
+ 
+ .TP
++.B move_self
++A watched file or directory was moved. After this event, the file or directory
++is no longer being watched.
++
++.TP
+ .B create
+ A file or directory was created within a watched directory.
+ 
+@@ -288,9 +293,9 @@ do something appropriate.
+ 
+ .nf
+ #!/bin/sh
+-while inotifywait -e modify /var/log/messages; do
+-  if tail -n1 /var/log/messages | grep httpd; then
+-    kdialog --msgbox "Apache needs love!"
++while inotifywait \-e modify /var/log/messages; do
++  if tail \-n1 /var/log/messages | grep httpd; then
++    kdialog \-\-msgbox "Apache needs love!"
+   fi
+ done
+ .fi
+@@ -301,8 +306,8 @@ A custom output format is used to watch `~/test'.  Meanwhile, someone runs
+ console.
+ 
+ .nf
+-% inotifywait -m -r --format '%:e %f' ~/test
+-Setting up watches.  Beware: since -r was given, this may take a while!
++% inotifywait \-m \-r \-\-format '%:e %f' ~/test
++Setting up watches.  Beware: since \-r was given, this may take a while!
+ Watches established.
+ CREATE badfile
+ OPEN badfile
+diff --git a/man/inotifywatch.1 b/man/inotifywatch.1
+index 72483df1ba98e6382fb5523a1b9045c83d1d91b4..3e0440f96f6affdb9ad94e5155622581526e1a54 100644
+--- a/man/inotifywatch.1
++++ b/man/inotifywatch.1
+@@ -201,6 +201,11 @@ hence all close events received will be output as one or both of these, not
+ .B MOVE.
+ 
+ .TP
++.B move_self
++A watched file or directory was moved. After this event, the file or directory
++is no longer being watched.
++
++.TP
+ .B create
+ A file or directory was created within a watched directory.
+ 
+@@ -226,7 +231,7 @@ this event can occur even if it is not explicitly being listened to.
+ Watching the `~/.beagle' directory for 60 seconds:
+ 
+ .nf
+-% inotifywatch -v -e access -e modify -t 60 -r ~/.beagle
++% inotifywatch \-v \-e access \-e modify \-t 60 \-r ~/.beagle
+ Establishing watches...
+ Setting up watch(es) on /home/rohan/.beagle
+ OK, /home/rohan/.beagle is now being watched.
+diff --git a/src/inotifywait.c b/src/inotifywait.c
+index 9c031bc88f0bda670e08c5b083998a70be755fed..a7715877ecd814bcf8439ebb3cd8283836e07b49 100644
+--- a/src/inotifywait.c
++++ b/src/inotifywait.c
+@@ -16,8 +16,8 @@
+ #include <assert.h>
+ #include <regex.h>
+ 
+-#include <inotifytools/inotifytools.h>
+-#include <inotifytools/inotify.h>
++#include <../libinotifytools/src/inotifytools/inotifytools.h>
++#include <../libinotifytools/src/inotifytools/inotify.h>
+ 
+ #include <getopt.h>
+ 
+@@ -58,6 +58,10 @@ char * csv_escape( char * string ) {
+ 	static char csv[MAX_STRLEN+1];
+ 	static unsigned int i, ind;
+ 
++        if ( string == 0 ) {
++            return NULL;
++        }
++
+ 	if ( strlen(string) > MAX_STRLEN ) {
+ 		return NULL;
+ 	}
+@@ -129,6 +133,7 @@ void output_event_csv( struct inotify_event * event ) {
+ int main(int argc, char ** argv)
+ {
+ 	int events = 0;
++        int orig_events;
+ 	bool monitor = false;
+ 	int quiet = 0;
+ 	unsigned long int timeout = 0;
+@@ -175,6 +180,10 @@ int main(int argc, char ** argv)
+ 	// If events is still 0, make it all events.
+ 	if (events == 0)
+ 		events = IN_ALL_EVENTS;
++        orig_events = events;
++        if ( monitor && recursive ) {
++                events = events | IN_CREATE | IN_MOVED_TO | IN_MOVED_FROM;
++        }
+ 
+ 	FileList list = construct_path_list( argc, argv, fromfile );
+ 
+@@ -235,7 +244,7 @@ int main(int argc, char ** argv)
+ 			}
+ 		}
+ 
+-		if ( quiet < 2 ) {
++		if ( quiet < 2 && (event->mask & orig_events) ) {
+ 			if ( csv ) {
+ 				output_event_csv( event );
+ 			}
+diff --git a/src/inotifywatch.c b/src/inotifywatch.c
+index fe0d7387b902713e949c8fecd50a9bf017acc3ea..14ae9aef1a6d22b82f78febe9809c1a445f705c5 100644
+--- a/src/inotifywatch.c
++++ b/src/inotifywatch.c
+@@ -21,8 +21,8 @@
+ #include <assert.h>
+ #include <regex.h>
+ 
+-#include <inotifytools/inotifytools.h>
+-#include <inotifytools/inotify.h>
++#include <../libinotifytools/src/inotifytools/inotifytools.h>
++#include <../libinotifytools/src/inotifytools/inotify.h>
+ 
+ #define _GNU_SOURCE
+ #include <getopt.h>
+@@ -75,15 +75,26 @@ void handle_signal( int signal __attribute__((unused)) ) {
+ 	done = true;
+ }
+ 
++int print_info();
++
++void print_info_now( int signal __attribute__((unused)) ) {
++    print_info();
++    printf("\n");
++}
++
++int events;
++int sort;
++int zero;
++
+ int main(int argc, char ** argv)
+ {
+-	int events = 0;
++	events = 0;
+ 	int timeout = 0;
+ 	int verbose = 0;
+-	int zero = 0;
++	zero = 0;
+ 	int recursive = 0;
+ 	char * fromfile = 0;
+-	int sort = -1;
++	sort = -1;
+ 	done = false;
+ 	char * regex = NULL;
+ 	char * iregex = NULL;
+@@ -183,6 +194,7 @@ int main(int argc, char ** argv)
+ 		signal( SIGALRM, handle_signal );
+ 		alarm( timeout );
+ 	}
++        signal( SIGUSR1, print_info_now );
+ 
+ 	inotifytools_initialize_stats();
+ 	// Now wait till we get event
+@@ -256,8 +268,12 @@ int main(int argc, char ** argv)
+ 		}
+ 
+ 	} while ( !done );
++        return print_info();
++}
+ 
+-	num_watches = inotifytools_get_num_watches();
++int print_info() {
++        unsigned int num_watches = 0;
++        num_watches = inotifytools_get_num_watches();
+ 
+ 	if ( !inotifytools_get_stat_total( 0 ) ) {
+ 		fprintf( stderr, "No events occurred.\n" );

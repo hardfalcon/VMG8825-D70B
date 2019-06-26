@@ -1,0 +1,1 @@
+../default/generate.mk

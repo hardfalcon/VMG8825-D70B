@@ -1,0 +1,29 @@
+From: Daniel Steglich <daniel.steglich@sphairon.com>
+Date: Wed, 2 Apr 2014 14:59:20 +0200
+Subject: fixed mtu handling: do not simply set the mtu and forget the
+ calculated value but store the value within the mtu variable so
+ ppp_send_config function will also get the correct value
+
+---
+ pppd/lcp.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/pppd/lcp.c b/pppd/lcp.c
+index 5c77490..36d555d 100644
+--- a/pppd/lcp.c
++++ b/pppd/lcp.c
+@@ -1906,10 +1906,11 @@ lcp_up(f)
+      */
+     mtu = ho->neg_mru? ho->mru: PPP_MRU;
+     mru = go->neg_mru? MAX(wo->mru, go->mru): PPP_MRU;
++    mtu = MIN(MIN(mtu, mru), ao->mru);
+ #ifdef HAVE_MULTILINK
+     if (!(multilink && go->neg_mrru && ho->neg_mrru))
+ #endif /* HAVE_MULTILINK */
+-	netif_set_mtu(f->unit, MIN(MIN(mtu, mru), ao->mru));
++       netif_set_mtu(f->unit, mtu);
+     ppp_send_config(f->unit, mtu,
+ 		    (ho->neg_asyncmap? ho->asyncmap: 0xffffffff),
+ 		    ho->neg_pcompression, ho->neg_accompression);
+--
+

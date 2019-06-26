@@ -1,0 +1,1345 @@
+--------------------------------------------------------------------------------
+version 1.21.2.0  |  2016-06-29  |  Voice System Package 4.44 RC4
+--------------------------------------------------------------------------------
+NEW Added new file "lantiq,mps-xrx100.txt" which contains the description of
+    the needed devicetree node to the doc subdirectory. [VOICECPE_SW-1244]
+FIX Cleanup warnings from code analysis tools. [VOICECPE_SW-1177]
+FIX Corrected range check which due to an recent type change in RC2 caused AMR
+    coders to fail. [VOICECPE_SW-1240] [VOICECPE_SW-1177]
+FIX Corrected content of EXTRA_CFLAGS in src/Makefile.am. [VOICECPE_SW-1237]
+
+--------------------------------------------------------------------------------
+version 1.21.1.0  |  2016-06-03  |  Voice System Package 4.44 RC2
+--------------------------------------------------------------------------------
+FIX Cleanup warnings from code analysis tools. [VOICECPE_SW-1177]
+FIX Improved check for channel resources in GR909 functions. [VOICECPE_SW-1181]
+--- Merged Version 1.19.0.2 from SP_4.40 branch into default branch
+    without any changes
+
+--------------------------------------------------------------------------------
+version 1.21.0.0  |  2016-04-20  |  Voice System Package 4.44 RC1
+--------------------------------------------------------------------------------
+FIX Removed unused debug print function to resolve warning. [VOICECPE_SW-1076]
+FIX Restored original behaviour of reordering SIG inputs for the automatic data
+    channel mapping case. [VOICECPE_SW-1069]
+FIX Internal cleanup of output designations on the SIG module. [VOICECPE_SW-969]
+--- Merged Version 1.19.0.0 from SP_4.40 branch into default branch
+    without any changes
+--- Increased version 1.21.x.x for default branch
+--- Created branch for SP4.40 reserving versions 1.19.x.x
+FIX For combined DC/DC converters execute the automatic calibration after BBD
+    download also on the channel which was not addressed. [VOICECPE_SW-1047]
+FIX Corrected cases where configuring a PCM channel to wideband had no effect.
+    [VOICECPE_SW-1020]
+FIX Added protection to the sampling rate matching function. [VOICECPE_SW-1011]
+--- Merged Version 1.17.0.6 from SP_4.36 branch into default branch
+CHG Remove usage of the waitqueue in this driver. [VOICECPE_SW-1003]
+--- Increased version 1.19.x.x for default branch
+FIX Corrected failing compilation of new procfs "mapping" code when DECT or PCM
+    is disabled. [VOICECPE_SW-996]
+
+--------------------------------------------------------------------------------
+version 1.17.0.5  |  2015-08-13  |  Voice System Package 4.36 RC10
+--------------------------------------------------------------------------------
+CHG Updated MPS part to version 4.0.4.0
+CHG Required firmware version on XRX300: 2.1.0, XRX200: 3.5.0
+
+--------------------------------------------------------------------------------
+version 1.17.0.4  |  2015-07-03  |  Voice System Package 4.36 RC9
+--------------------------------------------------------------------------------
+NEW Added Linux procfs node named "mapping" to show the connections in between
+    the channels.
+CHG Revert back to require xRX300 FW version 1.4.0.
+FIX Corrected registration of the last voice channel callback. [VOICECPE_SW-967]
+
+--------------------------------------------------------------------------------
+version 1.17.0.3  |  2015-06-19  |  Voice System Package 4.36 RC7
+--------------------------------------------------------------------------------
+CHG Require xRX300 FW version 2.0.0.
+CHG Increased the default number of channels to 16. [VOICECPE_SW-922]
+NEW Fill the new field BurstNumber in the jitter buffer statistics report IOCTL
+    if the firmware version provides this value. [VOICECPE_SW-887]
+CHG New configuration option to disable the automatic connection between data
+    channels which are connected to the same Phone, DECT or PCM module.
+    The option --disable-automatic-datachannel-mapping disables the automatic
+    mapping which is enabled by default. When the automatic mapping is disabled
+    the IOCTLs IFX_TAPI_MAP_DATA_ADD and IFX_TAPI_MAP_DATA_REMOVE can be used
+    to create data channel to data channel mappings. This allows to create
+    direct data channel connections without using a Phone, DECT or PCM module.
+    [VOICECPE_SW-953]
+CHG Improved return codes for the connection IOCTLs:
+    - IFX_TAPI_MAP_PHONE_ADD, IFX_TAPI_MAP_PHONE_REMOVE
+    - IFX_TAPI_MAP_DATA_ADD, IFX_TAPI_MAP_DATA_REMOVE
+    - IFX_TAPI_MAP_PCM_ADD, IFX_TAPI_MAP_PCM_REMOVE
+    - IFX_TAPI_MAP_DECT_ADD, IFX_TAPI_MAP_DECT_REMOVE [VOICECPE_SW-954]
+
+--------------------------------------------------------------------------------
+version 1.17.0.2  |  2015-06-01  |  Voice System Package 4.36 RC6
+--------------------------------------------------------------------------------
+FIX When starting voice prevent possible stall during communication with the
+    clock frequency control. [COCCPE_SW-110]
+
+--------------------------------------------------------------------------------
+version 1.17.0.1  |  2015-04-27  |  Voice System Package 4.36 RC4
+--------------------------------------------------------------------------------
+FIX Prevent the initialisation of FAX resources exceeding the number that the
+    driver can support. [VOICECPE_SW-925]
+CHG Support driver without any SLIC functions. With the configure option
+    --disable-slic the driver will not initialise the SmartSLIC. Note that not
+    all services based on the SLIC are blocked in the driver. [VOICECPE_SW-798]
+FIX Resolved problem that no more than one metering burst could be sent after
+    setting the linefeed to active. [VOICECPE_SW-671]
+FIX Reset the flag preventing clock scaling after FW boot has completed.
+    [VOICECPE_SW-924]
+CHG Extend the tone generator code to support up to 28 UTGs depending on the FW
+    capabilities. [VOICECPE_SW-922]
+CHG Extend the connection handling to support up to 14 COD/SIG modules depending
+    on the FW capabilities. [VOICECPE_SW-922]
+
+--------------------------------------------------------------------------------
+version 1.17.0.0  |  2015-04-01  |  Voice System Package 4.36 RC3
+--------------------------------------------------------------------------------
+
+--- Reserved version 1.16.x.x for xrx500 branch
+
+--------------------------------------------------------------------------------
+version 1.16.0.0  |  2014-07-14  |
+--------------------------------------------------------------------------------
+CHG Removed support of legacy API of the Linux procfs. Support only seqfile for
+    all procfs output. [VOICECPE_SW-744]
+FIX Adaptions due to the change of the internal fifo implementation.
+    [VOICECPE_SW-574]
+FIX Fixed lockup of GR909 test after a capacitance measurement was done.
+    [VOICECPE_SW-731]
+FIX Fixed possible memory leak in BBD download. [VOICECPE_SW-734]
+CHG Adapted to changed MPS driver API with only event mailbox support.
+    [VOICECPE_SW-720]
+NEW Support compilation as Linux platform driver with configuration via device
+    tree. Unified driver to support all XRX200 and XRX300 devices with just a
+    single binary. [VOICECPE_SW-723][VOICECPE_SW-673]
+CHG Adapted to changes in MPS driver to remove the support for FW without
+    event mailbox. [VOICECPE_SW-720]
+FIX Corrected denying of system clock frequency reduction which did sometimes
+    not work in the new CPU frequency implementation. [VOICECPE_SW-715]
+NEW Added configure option --enable-pmc-if=X to select the type of interface
+    to use towards the PMC module. Using this also make will detect what needs
+    to be recompiled. [VOICECPE_SW-551]
+CHG Required firmware version on XRX300: 1.4.0, XRX200: 3.4.0
+NEW The elapsed time since the last hook which is reported in every hook event
+    is now taken from the firmware event message if the FW supports this.
+    [VOICECPE_SW-534] [VOICECPE_SW-712]
+FIX Separated the preprocessor defines for the clock frequency change feature.
+    [VOICECPE_SW-704]
+FIX Added compile switches around RTCP-XR implementation. [VOICECPE_SW-599]
+FIX Corrected mutual protection of code reported by klocwork. [VOICECPE_SW-706]
+CHG Adaptions to changed API of the clock frequency change mechanism in UGW6.1.
+    Report when full clock frequency is no longer needed. Get function reports
+    the last set system state. Moved the clock handling from the device into
+    the driver context. The registration with the PMCU is now already done when
+    the driver is started. Prevent clock frequency reduction while the FW is
+    started. [VOICECPE_SW-704] [VOICECPE_SW-705]
+CHG Deactivated the previous PMU interface for UGW6.1 as this is done
+    differently there. [VOICECPE_SW-673]
+CHG Adaptions to UGW 6.1 including support of Linux kernel up to 3.10.12.
+    [VOICECPE_SW-673]
+NEW Configuration of PCM to wideband with split time slots if supported by FW.
+    [VOICECPE_SW-729]
+NEW Added display of the PCM timeslot allocation map to the "statistics" node of
+    the linux proc filesystem.
+
+--------------------------------------------------------------------------------
+version 1.15.1.x  |  2013-11-22  |  Voice System Package 4.33 branch
+--------------------------------------------------------------------------------
+CHG Required firmware version on XRX300: 1.3.0, XRX200: 3.3.0
+CHG Allowed direct change of linefeeding from disabled to active.
+NEW Added autonomous recovery for short SSI bus faults due to ESD events on
+    the hardware. [VOICECPE_SW-635] [VOICECPE_SW-650]
+CHG Renamed the Linux /proc filesystem node "statistics" into "status".
+CHG Adapted to changed include filenames of drivers in UGW6.1. [VOICECPE_SW-666]
+CHG Remove obsolete use of the Linux big kernel lock from TAPI_OS_ThreadKill()
+    function. [VOICECPE_SW-668]
+CHG Adapt to changes of IFXOS from 1.5.17 to 1.5.19. [VOICECPE_SW-667]
+FIX Corrected several compiler warnings. [VOICECPE_SW-571]
+NEW The first BBD download now automatically does an analog line calibration
+    to find individual correction values. This prevents clipping and noise in
+    all analog operations but specifically with the combined DC/DC converter.
+    As a sideeffect the BBD download now takes about half a second per channel.
+    [VOICECPE_SW-658]
+FIX Removed reporting an timeout error when a linefeed change is not confirmed
+    by the firmware because no change actually occured. [VOICECPE_SW-657]
+FIX Removed solution in driver to prevent SSI crash when setting both lines
+    to IFX_TAPI_LINE_FEED_PHONE_DETECT at the same time. The root cause was
+    found and fixed in the voice-FW. [VOICECPE_SW-639]
+FIX Further improved the waiting for linefeeding changes. [VOICECPE_SW-634]
+    [VOICECPE_SW-400]
+FIX Changed the waiting for linefeeding changes. Now blocking only occurs when
+    the previous linefeed change has not yet completed. With this the cadenced
+    ringing does not get delayed waiting for a change to happen. Also times for
+    CID in association with ringing are back to normal. [VOICECPE_SW-634]
+    [VOICECPE_SW-654] [VOICECPE_SW-400]
+FIX Added check for allowed values of the redundancy parameter of the encoder
+    setting message. Values not applicable for the selected encoder will be
+    silently ignored while incorrect values will result in an error.
+    [VOICECPE_SW-653]
+NEW Added debugging support for printing details of an SSI crash.
+    [VOICECPE_SW-650]
+FIX Report error when AMR-NB or AMR-WB encoder are requested but not supported
+    by the firmware. [VOICECPE_SW-649]
+FIX Corrected reporting of AMR-WB codec for Decoder Change event.
+    [VOICECPE_SW-626]
+FIX Corrected reporting of SSI activity status on systems with SLIC120 so that
+    during sleep clock lowering is possible. [VOICECPE_SW-646]
+FIX For IFX_TAPI_CAP_CHECK added missing capabilities IFX_TAPI_CAP_TYPE_FXO and
+    IFX_TAPI_CAP_TYPE_DCDC. [VOICECPE_SW-645]
+FIX Corrected recording of the CPTD activation for the power state reporting
+    when more than one CPTD is used on one channel. [VOICECPE_SW-644]
+NEW Added IFX_TAPI_CAP_TYPE_DCDC to the capability list so that the application
+    can choose the BBD file matching the connected DC/DC type. Require also the
+    BBD download for all connected DC/DC converters which are not the default
+    inverting buck-boost type. Added reporting of the connected DC/DC converter
+    and the configured DC/DC configuration to the Linux /proc filesystem.
+    [VOICECPE_SW-636]
+CHG Adapted to the changed API of the PMCU that resolves a lockup of the driver
+    when clock changes are disabled by administration. [VOICECPE_SW-641]
+FIX Removed additional code made obsolete by the OPC event. Regardless of the
+    reported linefeed allow setting the line to disabled. [VOICECPE_SW-400]
+CHG When reloading the FW with FIO_MPS_DOWNLOAD without a IFX_TAPI_DEV_STOP
+    first an implicit stop is done. [VOICECPE_SW-640]
+FIX Prevent SSI crash when setting both lines to IFX_TAPI_LINE_FEED_PHONE_DETECT
+    at the same time. [VOICECPE_SW-639]
+FIX Fixed crash occuring several seconds after DevStop while any of the phones
+    was off-hook at that time. [VOICECPE_SW-652]
+
+--------------------------------------------------------------------------------
+version 1.15.0.x  |  2013-06-04  |  Voice System Package 4.32 branch
+--------------------------------------------------------------------------------
+NEW Support combined DC/DC converter for SmartSLIC. [VOICECPE_SW-636]
+NEW Support for voice system clock frequencies below 200MHz when all FXS ports
+    are either standby or disabled and a possible FXO port is on-hook.
+    [VOICECPE_SW-470] [VOICECPE_SYS-267]
+CHG Support for AMR was changed as follows:
+    - AMR is selected with IFX_TAPI_ENC_TYPE_AMR_NB or IFX_TAPI_ENC_TYPE_AMR_WB
+      and addtionally the encoder bitrate. Please check in the system package
+      release note which codecs are actually supported.
+    - Removed IOCTL for AMR specific settings VMMC_TAPI_LL_COD_AMR_Set.
+      AMR redundancy is now set with IOCTL VMMC_TAPI_LL_COD_ENC_Cfg_Set.
+    [VOICECPE_SW-626]
+CHG Added check of supported codec to the announcement feature.
+NEW Partial support od RTCP-XR. [VOICECPE_SW-599]
+CHG On the DECT channel the UTG generated tone is now mixed with the voice
+    signal instead of blocking it. [VOICECPE_SW-606]
+CHG SDD firmware commands are moved to a separate header file. [VOICECPE_SW-334]
+CHG Added waiting for OPC event after opmode change. [VOICECPE_SW-400]
+CHG Removed Danube (SLIC-DC) support. [VOICECPE_SW-572]
+FIX Issue with GR909 measurements not being executed when both channels
+    in standby mode. [VOICECPE_SW-590]
+
+--------------------------------------------------------------------------------
+version 1.14.0.x  |  2013-02-04  |  sdd-split branch
+--------------------------------------------------------------------------------
+NEW For Linux added printout of debug level to the proc filesystem node
+    "debug_level". By writing a digit to the file the debug level can be set.
+CHG Support of Linux versions from 3.x onwards. [VOICECPE_SW-594]
+CHG Added AMR codec specific parameter configuration
+CHG On FXO port allow a wider range of frequencies for the ring signal. Now
+    ringing signals up to 50Hz can be detected. [VOICECPE_SW-538]
+FIX Improved phone detection to detect phones which first power their internal
+    electronics from the line before going off-hook. [VOICECPE_SW-495]
+CHG With every hook event report the elapsed time since the last hook event.
+    This is required for the changed pulse and flashhook detection state
+    machines in TAPI high-level driver. [VOICECPE_SW-534]
+
+--------------------------------------------------------------------------------
+version 1.12.0.2  |  2012-08-21  |  Voice System Package 4.28 RC1 / UGW 5.3 W6
+--------------------------------------------------------------------------------
+CHG Added support for Linux cpufreq kernel driver in addition to the existing
+    PMCU support. [VOICECPE_SW-453]
+FIX Set unused values in the analog line calibration results to 0 instead of
+    IFX_TAPI_CALIBRATION_UNUSED.
+CHG Removed Line Testing library files. [VOICECPE_SW-497]
+NEW Added two new version fields to the struct VMMC_IO_VERSION that is the
+    parameter of FIO_GET_VERS. Field nEDSPTimestamp contains the time and date
+    the FW was build and field nEDSPVariant contains the last digit of the FW
+    version. The complete firmware version number is the sequence from these
+    fields: "nEdspVers.nEdspIntern.nEDSPHotFix.nType.nEDSPVariant".
+    [VOICECPE_SW-301]
+FIX Corrected capacitance measurement - IFX_TAPI_Event_Dispatch() was protected
+    by semaphor when capacitance measurement result was read. This caused
+    system hung up.
+NEW Added support for Line Testing library - capacitance measurement.
+CHG Added support for extended linetesting as it is supported by the DUSLIC-xT
+    device driver to lib_lt. [VOICECPE_SW-450]
+FIX Avoid blocking of voice data downstream traffic while IOCTLs are executed.
+    [VOICECPE_SW-476]
+FIX Reset internal error flags on FW download to allow a start of the FW also
+    in the case of previous errors. [VOICECPE_SW-424]
+NEW Added printout of the SSI bus condition to the linux proc node "statistic".
+    [VOICECPE_SW-422]
+CHG New dependency table for PMCU.
+CHG Updated recommended FW versions for Danube, AR9, VR9 and FALC ON-V.
+CHG Cleaned double doxygen documentation and unused symbol definitions from
+    voice-FW interface file.
+CHG Removed legacy code that supported the no longer used event signalling via
+    bitfields of the voice-FW. Refactored registration of the event callback
+    handlers. [VOICECPE_SW-399]
+FIX Added reporting of SLIC temperature to the continuous measurement dataset.
+    [VOICECPE_SW-404]
+FIX Previously not set direction fields of the CPTD event are now set according
+    to the direction from which the tone was detected. [VOICECPE_SW-402]
+FIX Changed sequence in device stop to disable interrupts right after stopping
+    the algorithms on the channels. Explicitly mask all interrupts on MPS level
+    when the first callback is deregistered. [VOICECPE_SW-342]
+
+--------------------------------------------------------------------------------
+version 1.12.0.1  |  2011-11-24  |
+--------------------------------------------------------------------------------
+NEW Added configure option --disable-pcm to disable PCM support and keep the
+    code out of the driver. By default PCM support is enabled. [VOICECPE_SW-387]
+FIX Fixed possible protection problem when starting encoder while FAX T38 is
+    running. [VOICECPE_SW-386]
+FIX The xRX300 family does not have a DFEV/TDM power domain so do not call the
+    PMU trying to switch it. [VOICECPE_SW-370]
+NEW Added support for XWAY(TM) xRX300 family. [VOICECPE_SW-370]
+    XRX300 firmware version check added. BBD-file family identifier added.
+    Reworked feature defines and SYSTEM_ defines in all the driver.
+    Updated the pin reservation for the TDM bus.
+
+--------------------------------------------------------------------------------
+version 1.10.3.2  |  2011-11-16  |          Voice SP 4.24 W7
+--------------------------------------------------------------------------------
+FIX Cleanup faulty parameter check in metering start.
+CHG Stoping CPTD returns success when CPTD for given tone is not enabled.
+FIX Cleanup automake from warnings reported by "autoreconf -Wall"
+    JIRA_RND [VOICECPE_SW-328]
+
+--------------------------------------------------------------------------------
+version 1.10.3.0  |  2011-09-27  |          Voice SP 4.24 W6
+--------------------------------------------------------------------------------
+CHG Reworked FSK generator code to fix statemachine lockup after data underflow.
+    [VOICECPE_SW-345]
+CHG MPS for xRX platforms: reservation of all GPIO lines used by SmartSLIC.
+    See the MPS submodule CHANGELOG. [VOICECPE_SW-187]
+CHG Default major number changed to 0 for dynamic allocation within TAPI HL.
+    The default value 0 can be overriden by passing a 'major=' parameter to
+    insmod.
+NEW Support multiple CPTDs for single channel.
+FIX Prevent crash during ioctl IFX_TAPI_DEV_STOP or unloading the driver.
+    [VOICECPE_SW-341]
+FIX Correctly reset frozen LEC coefficients on first usage of a LEC resource.
+    [VOICECPE_SW-335]
+FIX Do not dispatch IFX_TAPI_EVENT_FAXMODEM_NONE events. [VOICECPE_SW-331]
+CHG VMMC device starts to number modules from '1' when registers to Power Managenet
+    Control Unit.
+CHG Patches from Falcon project: FALCON system support and linux-2.6.39
+    adaptation [VOICECPE_SW-300]
+FIX Prevent crash when trying to play tones on channels without tone resources.
+    [VOICECPE_SW-322]
+CHG Removed outdated configure option --enable-voice. [VOICECPE_SW-320]
+CHG Removed outdated configure option --enable-bufferhandling. [VOICECPE_SW-319]
+FIX DTMF auto suppression was inadvertently deactivated when changing the signal
+    input from local to network and back. [VOICECPE_SW-315]
+FIX Prevent error that occured when trying to set OOB-only transmission for the
+    DTMF detector while not both encoder and decoder of the channel are active.
+    [VOICECPE_SW-318]
+
+--------------------------------------------------------------------------------
+version 1.10.2.0  |  2011-07-05  |          Voice SP 4.21 W6
+--------------------------------------------------------------------------------
+CHG Unified configure arguments across all voice drivers. Options to specify
+    include pathes now follow this template: --with-xxx-incl=<path>.
+    Changed options are listed below. The old options can still be used but
+    are deprecated from now on.
+    --with-kernel-incl (previously: --enable-kernelincl)
+    --with-kernel-build (previously: --enable-kernelbuild)
+    --with-tapi-incl (previously: --enable-tapiincl=val)
+    --with-mps-incl (previously: --enable-mpsincl)
+NEW TTX Metering feature.
+CHG Added DCCtrl HotFix number to VMMC_IO_VERSION structure.
+FIX Extended error checking that prevents the DTMF detector from being used
+    in both directions at the same time. [VOICECPE_SW-247]
+
+--------------------------------------------------------------------------------
+version 1.10.1.4  |  2011-04-18  |            Voice SP 4.20
+--------------------------------------------------------------------------------
+CHG Updated recommended FW versions for AR9 and VR9.
+
+--------------------------------------------------------------------------------
+version 1.10.1.3  |  2011-04-15  |
+--------------------------------------------------------------------------------
+CHG Apply improvements from voice quality taskforce to the coefficients of
+    the jitter buffer and echo suppressor. [VOICECPE_SW-288]
+FIX added parameter sanity check for FAX_FDP_Cfg_Set and FAX_Start services.
+
+--------------------------------------------------------------------------------
+version 1.10.1.2  |  2011-03-28  |            Engineering snapshot
+--------------------------------------------------------------------------------
+CHG Rollback to initial single threaded PMC solution [VOICECPE_SW-271].
+    CmdRead sync with voice cpu is removed. Multithreaded solution code is kept
+    in drv_vmmc_pmc.c and covered by "#ifdef EVALUATION" preprocessor switch.
+FIX Corrected entry check in MOS_CFG_SET handling that prevented execution
+    of the IOCTL IFX_TAPI_COD_MOS_CFG_SET. [VOICECPE_SW-282]
+
+--------------------------------------------------------------------------------
+version 1.10.1.1  |  2011-03-21  |            Voice SP 4.20 W7 RC1
+--------------------------------------------------------------------------------
+FIX Compiler warnings
+
+--------------------------------------------------------------------------------
+version 1.10.1.0  |  2011-03-18  |
+--------------------------------------------------------------------------------
+FIX Crash when FW is idle and then CID is played out or DTMF generator is being
+    started. [VOICECPE_SW-271]
+
+--------------------------------------------------------------------------------
+version 1.10.0.4  |  2011-03-09  |
+--------------------------------------------------------------------------------
+CHG Added default MWI lamp configuration at startup. The default configuration
+    can be overridden by BBD file.
+
+--------------------------------------------------------------------------------
+version 1.10.0.3  |  2011-02-25  |   TAPI 4.6.0 (aka 3.14.0) release
+--------------------------------------------------------------------------------
+FIX Corrected coder channel number usage in announcement start FW message.
+FIX Removed NULL pointer usage warning during cleanup procedure for
+    announcement resources.
+
+--------------------------------------------------------------------------------
+version 1.10.0.2  |  2011-02-24  |   TAPI 4.6.0 RC3
+--------------------------------------------------------------------------------
+FIX Abort with error message when the DTMF detector should be activated in both
+    direction at the same time. [VOICECPE_SW-247]
+FIX Wrong resource reference for PCM channel ES parameter set. [VOICECPE_SW-258]
+FIX Fixed kernel crash during driver unloading while announcement in progress.
+    [VOICECPE_SW-228]
+CHG Store announcements separately per device.
+    And allowed to run several announcements on single device. As limitation
+    used only one announcement per channel. [VOICECPE_SW-261]
+
+--------------------------------------------------------------------------------
+version 1.10.0.1  |  2011-02-18  |   TAPI 4.6.0 RC2
+--------------------------------------------------------------------------------
+NEW Message Waiting Lamp feature.
+NEW MOS-CQE feature.
+
+--------------------------------------------------------------------------------
+version 1.10.0.0  |  2011-02-16  |   TAPI 4.6.0 RC1
+--------------------------------------------------------------------------------
+CHG Removed Audio feaure
+CHG Removed Linear channel feature
+NEW Automatic LEC coefficient freeze on ALM channels when supported by the FW.
+    [VOICECPE_SW-252]
+CHG Allow the use of tone detectors on one FXO channel even with scaled down
+    core frequency to support incomming CID reception. [VOICECPE_SW-254]
+FIX Return error when DTMF detector is enabled for both directions instead of
+    the previous enable just on local direction. [VOICECPE_SW-247]
+FIX Prevent command error when using DTMF detector with voice path delay for
+    detection of signals from the network side. [VOICECPE_SW-246]
+FIX interrupt callback function registration is ensured for all channels defined
+    by the MPS driver; previously the number of channel callbacks was limited by
+    VMMC MPS_CH_VALID macro
+CHG SDD_FxoConfig firmware command definition aligned with changed firmware spec
+CHG Linux 2.6.32.11 adaptations for UGW5.1
+
+--------------------------------------------------------------------------------
+version 1.9.0.4  |  2010-12-23  |   TAPI 3.13.0 maintenance release
+--------------------------------------------------------------------------------
+FIX Corrected protection in drv_vmmc_cod.c and drv_vmmc_sig.c that could cause
+    ENC_START to block indefinitely on a mutex in other OS than Linux.
+
+--------------------------------------------------------------------------------
+version 1.9.0.3  |  2010-11-03  |   TAPI 3.13.0 release
+--------------------------------------------------------------------------------
+CHG FXS Capacitance Measurement stability workaround - 1 ms delay is introduced
+    on Capacitance Measurement Start to ensure that previous opmode state
+    transition within DCCTRL is finished.
+FIX Kernel crash if IFX_TAPI_DEV_STOP called during running coder -
+    a consequence of not disabling the ES bit in SIG channel control before
+    switching off the COD channel in Exit_Dev LL API.
+
+--------------------------------------------------------------------------------
+version 1.9.0.2  |  2010-10-29  |   TAPI 3.13.0 RC2 update
+--------------------------------------------------------------------------------
+CHG FXS Capacitance Measurement configuration syncronized with FW by DC Opmode
+    change events - GR909 mode is started only after confirmation of PDH mode.
+
+--------------------------------------------------------------------------------
+version 1.9.0.1  |  2010-10-21  |   TAPI 3.13.0 RC2
+--------------------------------------------------------------------------------
+FIX Fax Data Pump error codes brought to conformity with FW specification.
+FIX Added Fax Channel Error firmware event support (T.38 in EDSP firmware).
+FIX Switching off the DECT channel now implicitly turns off the UTG, otherwise
+    FW command error will occur.
+CHG Return code of DECT Encoder Set LL handler is changed from IFX_return_t
+    to IFX_int32_t.
+FIX Switching of DECT encoder between NB and WB modes on the fly while tone
+    generator is active is now disallowed to avoid FW command error. New
+    LL error code is introduced.
+
+--------------------------------------------------------------------------------
+version 1.9.0.0  |  2010-10-15  |   TAPI 3.13.0 RC1
+--------------------------------------------------------------------------------
+CHG Use DTMF generator auto deactivation feature and stop generator immediately
+    when stop is called.
+CHG BBD block handling for FXO line changed to skip all blocks having tags
+    other than FXO_CRAM (0x1010) and TRANSPARENT (0x1200).
+CHG Jitter adaptation during silence is enabled by default.
+NEW LL interface for FXS line capacitance measurement.
+NEW LL interface for DECT channel echo canceller.
+NEW Configurable HDLC inter frame idle pattern.
+CHG Changed CID end of data transmission reporting to TAPI high-layer.
+CHG MPS: Reactivated code optimisation of the cache operations after correcting
+    the memory access in the FW. Requires FW 4.2.0 for ARX and 2.1.0 for VRX.
+
+--------------------------------------------------------------------------------
+version 1.8.0.10 |  2010-10-01  |   TAPI 3.12.0 maintenance release for UGW 4.3
+--------------------------------------------------------------------------------
+CHG MPS driver updated to v2.2.2.4.
+CHG MPS: Removed again one of the code optimisation of the cache operations to
+    workaround a missalignment between voice FW and MPS driver.
+
+--------------------------------------------------------------------------------
+version 1.8.0.9  |  2010-08-27  |        TAPI 3.12.0 maintenance release
+--------------------------------------------------------------------------------
+CHG message log level of BBD CRAM block mismatch with line type changed to
+    "low".
+CHG new BBD tag for VR9.
+
+--------------------------------------------------------------------------------
+version 1.8.0.8  |  2010-08-10  |        TAPI 3.12.0 maintenance release RC2
+--------------------------------------------------------------------------------
+CHG FXO line is now activated implicitly upon DEV_START on SmartSLIC systems if
+    configure option --enable-fxo-act was set. Previously the line type had to
+    be changed to FXO explicitly via TAPI even if the only line type FXO was
+    ensured by hardware (e.g. SmartSLIC).
+CHG MPS driver updated to v2.2.2.3 - see the MPS driver change log.
+
+--------------------------------------------------------------------------------
+version 1.8.0.7  |  2010-08-04  |        TAPI 3.12.0 maintenance release RC1
+--------------------------------------------------------------------------------
+CHG Cache operations API updated in the MPS driver.
+CHG RTP event support is only enabled when encoder and decoder are both active.
+FIX Corrected PMU support - SLIC_TDM power domain is switched on when driver
+    is installed and switched off when it is removed.
+
+--------------------------------------------------------------------------------
+version 1.8.0.6  |  2010-07-21  |        TAPI 3.12.0 AR9 maintenance release
+--------------------------------------------------------------------------------
+FIX Corrected dependency list for the PMCU.
+
+--------------------------------------------------------------------------------
+version 1.8.0.5  |  2010-07-13  |        TAPI 3.12.0 AR9 maintenance release
+--------------------------------------------------------------------------------
+FIX Compile errors when using gcc 4.3.3 toolchain with CodeSourcery enhancements
+FIX Corrected mask for fax data pump demodulator std2
+
+--------------------------------------------------------------------------------
+version 1.8.0.4  |  2010-07-02  |        TAPI 3.12.0 AR9 maintenance release
+--------------------------------------------------------------------------------
+FIX Corrected power management dependency table.
+
+--------------------------------------------------------------------------------
+version 1.8.0.3  |  2010-06-24  |        TAPI 3.12.0 AR9 release for UGW 4.3
+--------------------------------------------------------------------------------
+NEW Power Management Control Unit ver. 2 support.
+FIX Pre callback function for the PMCU checks if module Id is set to VE.
+FIX Added parameter to the event IFX_TAPI_EVENT_FXO_POLARITY to indicate the
+    polarity.
+FIX IFX_TAPI_LINE_LEVEL_SET no longer changes the linemode in cases when an
+    off-hook occured on the line since the last setting of the linemode.
+
+--------------------------------------------------------------------------------
+version 1.8.0.2  |  2010-06-22  |        TAPI 3.12.0 RC3
+--------------------------------------------------------------------------------
+NEW LL interface for IFX_TAPI_FXO_LINE_MODE_SET TAPI HL ioctl
+NEW Power Management Unit support.
+
+--------------------------------------------------------------------------------
+version 1.8.0.1  |  2010-06-19  |        TAPI 3.12.0 RC2
+--------------------------------------------------------------------------------
+FIX Compile warnings
+FIX Added protection from calling on non-FXO line for IFX_TAPI_FXO_..._GET
+    TAPI ioctl LL handler
+FIX Added FXO_POLARITY bit initialization in ALM context
+FIX Added line type change blocking for SmartSLIC which has fixed line types
+CHG Removed workaround of setting IdleExt bit (SDD_BasicConfig) to 1 for FXO
+    lines prior to BBD download
+
+--------------------------------------------------------------------------------
+version 1.8.0.0  |  2010-06-17  |        TAPI 3.12.0 RC1
+--------------------------------------------------------------------------------
+NEW Clare LITELINK PLI support on AR9 (requires firmware 4.1.x.x.x)
+FIX Disable announcement when the encoder is disabled.
+NEW FXO CRAM block handling during BBD download.
+
+FIX Preset the DTMF digits generated in CID sequences and DTMF digits generated
+    for dialing on FXO lines to have a twist of 2dB.
+
+--------------------------------------------------------------------------------
+version 1.7.2.0  |  2010-06-02  |        TAPI 3.11.1 preAlpha for UGW 4.3
+--------------------------------------------------------------------------------
+NEW Announcements implemented.
+CHG On AR9 and VR9 only the number of FXS lines is reported as
+    IFX_TAPI_CAP_TYPE_PHONES capability to TAPI, the number of natively
+    supported FXO lines is reported as IFX_TAPI_CAP_TYPE_FXO capability.
+    Important for 3-channel SLIC devices.
+CHG VAD configuration for G.722 codec
+FIX Channel field of ALM test loop command for AR9
+NEW Analog line continuous measurement.
+CHG Code aligned with new TAPI CID LL interface
+
+--------------------------------------------------------------------------------
+version 1.7.1.0  |  2010-04-07  |        TAPI 3.11.0 for UGW 4.2
+--------------------------------------------------------------------------------
+FIX MPS: removed disabling inerrupts before functions that may sleep
+CHG Changed name of PMCU driver include to UGW name.
+NEW 3-channel SLIC support
+CHG MPS: Invalidate cache of each memory segment provided to firmware as
+    Address Pointer Message.
+NEW MPS: Firmware platform verification based on image metadata
+FIX lib_bufferpool crash caused by owner ID handling
+CHG SLIC ensured not to be in a sleep mode during BBD download
+FIX MPS: KSEG0 cast in buffer owner accounting
+NEW Added CRLF check on make distcheck
+FIX Prevent possible crash on owner ID handling
+
+--------------------------------------------------------------------------------
+version 1.7.0.6  |  2010-02-24  |        TAPI 3.11.0 preAlpha for UGW 4.2
+--------------------------------------------------------------------------------
+FIX compiler warning on DanubeV3 BSP
+FIX PMCUv1 include path
+
+--------------------------------------------------------------------------------
+version 1.7.0.5  |  2009-12-16  |        TAPI 3.11.0 preAlpha for UGW 4.2
+--------------------------------------------------------------------------------
+NEW Added owner ID handling for voice buffers (debug feature)
+
+--------------------------------------------------------------------------------
+version 1.7.0.4  |  2009-12-14  |        TAPI 3.11.0 preAlpha for UGW 4.2
+--------------------------------------------------------------------------------
+CHG Removed pushing of VMMC_ERR_MBXWRITE code to the device error stack
+CHG Set linemode to disabled upon IFX_TAPI_DEV_STOP to prevent infinite ringing
+FIX important MPS driver fix - see MPS driver CHANGELOG
+
+--------------------------------------------------------------------------------
+version 1.7.0.3  |  2009-11-26  |        TAPI 3.11.0 preAlpha for UGW 4.2
+--------------------------------------------------------------------------------
+CHG displayed copyrights to Lantiq
+CHG MPS adaptations for new FW image format with footer and CRC32 checksum
+    calculation
+CHG Renamed the IFXOS_ names to VMMC_OS_.  The VMMC_OS_ names are mapped in
+    drv_tapi_osmap.h to the IFXOS_ names from the IFXOS library.
+
+--------------------------------------------------------------------------------
+version 1.7.0.2  |  2009-11-20  |        TAPI 3.11.0 internal
+--------------------------------------------------------------------------------
+CHG During CID2 sequences use enhanced DTMF receiver coefficients to improve
+    the reception of the ACK-tone sent by the telephone.
+FIX issue introduced in 1.7.0.1 with new ifxos in the resource allocation
+    which could result in a kernel crash
+
+--------------------------------------------------------------------------------
+version 1.7.0.1  |  2009-11-12  |        TAPI 3.11.0 internal
+--------------------------------------------------------------------------------
+NEW Integrated IFXOS library. Use --with-ifxos-include=<path> to specify the
+    path to the library includes (option is mandatory)
+CHG Use improved coefficents (from 5th ETSI SQTE) for echo cancellation when
+    LEC with NLP and echo suppressor work together on the same channel
+CHG Removed all little-endian sections from the structs as they are unsupported
+FIX Removed conditional check for HDLC frames with odd length in LL Write
+    routine.
+
+--------------------------------------------------------------------------------
+version 1.7.0.0  |  2009-11-03  |        TAPI 3.11.0 internal
+--------------------------------------------------------------------------------
+NEW Support for configurable number of stop bits in FSK transmissions
+CHG UEIP patch applied
+CHG MPS update for AR9/VR9: EDSP firmware checksum calculation and exception
+    dump on a console in case of FW ready timeout, FW watchdog or FW version
+    read timout
+CHG Support of new IOCTLs IFX_TAPI_DEV_START and IFX_TAPI_DEV_STOP
+CHG compile switch for VR9 platform
+CHG get T.38 protocol capabilities interface (HL ioctl IFX_TAPI_T38_CAP_GET)
+    is now applicable to device context instead of channel context
+--------------------------------------------------------------------------------
+version 1.6.1.3  |  2009-07-29  |        TAPI 3.10.1 release
+--------------------------------------------------------------------------------
+NEW Added /proc/driver/vmmc/statistics entry
+
+--------------------------------------------------------------------------------
+version 1.6.1.2  |  2009-07-16  |        TAPI 3.10.1 RC2
+--------------------------------------------------------------------------------
+CHG AR9 default GPIOs for TDM changed
+        TDM_DCL changed to GPIO 41 (AR9 ref board JP80 1-2)
+        TDM_DI changed to GPIO40 (AR9 ref board JP81 1-2)
+NEW Added /proc/driver/vmmc/res_hdlc entry
+
+--------------------------------------------------------------------------------
+version 1.6.1.1  |  2009-07-13  |        TAPI 3.10.1 RC1
+--------------------------------------------------------------------------------
+FIX fixed event logger messages for voice/data packets (internal)
+NEW Limit the access to analog channels to the number supported by the
+    SLIC, support for SLIC 110 (AR9 only)
+NEW G.726 NB codec support for PCM channel
+CHG Optimise Jitter Buffer behaviour for modem transmissions, e.g. minimise
+    the number of over-/underflows (due to jitter) by resetting the JB to it's
+    initial value whenever an over- or underflow event occurs. Enabled when
+    JB_IFX_TAPI_JB_PKT_ADAPT_DATA or IFX_TAPI_JB_PKT_ADAPT_DATA_NO_REP is used.
+CHG set PCM DS bit always to one (change only for AR9 platform, FW 3.0.0)
+CHG Added HDLC to the power management monitoring
+FIX Corrected crash that happened when reading the linux /proc filesystem node
+    "power" before opening any file descriptor of the driver
+
+--------------------------------------------------------------------------------
+version 1.6.1.0  |  2009-07-02  |        TAPI 3.10.1 internal
+--------------------------------------------------------------------------------
+CHG improved DD_MBX interrupt usage
+
+--------------------------------------------------------------------------------
+version 1.6.0.3  |  2009-06-04  |        TAPI 3.10 Danube release
+--------------------------------------------------------------------------------
+no changes
+
+--------------------------------------------------------------------------------
+version 1.6.0.3  |  2009-06-04  |        TAPI 3.10 Danube RC4
+--------------------------------------------------------------------------------
+CHG internal error code in VMMC_LL_Write_Unprot for HDLC,
+    error codes are now forwarded as negative numbers; positive return codes
+    still indicate the number of transmitted bytes
+CHG renamed D_CH to HDLC for consistency (continued)
+CHG report HDLC resource count to TAPI
+FIX removed RETURN_DEVSTATUS in VMMC_RES_HDLC_Write and VMMC_PCM_HDLC_Write
+    (which aren't called in ioctl context)
+
+--------------------------------------------------------------------------------
+version 1.6.0.2  |  2009-06-03  |        TAPI 3.10 Danube RC3
+--------------------------------------------------------------------------------
+CHG renamed D_CH to HDLC for consistency (continued)
+
+--------------------------------------------------------------------------------
+version 1.6.0.1  |  2009-05-28  |        TAPI 3.10 Danube RC2
+--------------------------------------------------------------------------------
+CHG TAPI event in case of firmware watchdog timeout on Danube
+FIX added capability check in configuration of PCM G.722 codec
+CHG from now on calibration needs to be enabled with --enable-calibration
+FIX corrected error strings in drv_vmmc_strerrno that were truncated
+CHG renamed D_CH to HDLC for consistency
+
+--------------------------------------------------------------------------------
+version 1.6.0.0  |  2009-05-11  |        TAPI 3.10 Danube RC1
+--------------------------------------------------------------------------------
+NEW G.722 WB codec support for PCM channel
+NEW Added support for PCM loop
+NEW Added support for HDLC framing
+CHG Changed checks for RTP configuration setting. The encoder and decoder do
+    not have to be disabled first and the timestamp is now set unconditionally.
+FIX Setting the RTP SSRC with the same value twice works now.
+
+--------------------------------------------------------------------------------
+version 1.5.0.3  |  2009-04-01  |        TAPI 3.09 / AR9 RC3, release
+--------------------------------------------------------------------------------
+CHG fixes based on static code analysis
+
+--------------------------------------------------------------------------------
+version 1.5.0.2  |  2009-03-26  |        TAPI 3.09 / AR9 RC1, RC2
+--------------------------------------------------------------------------------
+NEW TAPI LL interface for GR909
+NEW T.38 support in DSP firmware
+CHG PCM i/f configuration for AR9 use DS bit 0
+
+--------------------------------------------------------------------------------
+version 1.5.0.1  |  2009-03-24  |        TAPI 3.09 / AR9 intern
+--------------------------------------------------------------------------------
+CHG PCM i/f configuration for AR9 use DS bit 1
+CHG min. firmware requirement to 2.0.0
+NEW Support for enhanced jitter buffer
+NEW Added reporting of SSI crash, ground key end, ground fault end and
+    overtemperature end.
+FIX Fixed possible command error when activating the DTMF receiver in a special
+    sequence of IOCTLs.
+FIX Fixed possible command error when deactivating all detectors and generators
+    while keeping the CPTD active.
+FIX 30ms framelength for G.722.1 encoder now correctly rejected with error code.
+
+--------------------------------------------------------------------------------
+version 1.5.0.0  |  2009-03-13  |        TAPI 3.09 / AR9 intern
+--------------------------------------------------------------------------------
+NEW DECT nibble swap for COSIC modem enabled per default, for backward
+    compatibility the nibble swap can be disabled with the configure option
+    --disable-dect-nibble-swap
+CHG PCM i/f configuration for AR9 and newer devices sets DS bit to 0
+NEW PCM ch ADPCM bitpacking configuration via IFX_TAPI_PCM_CFG_SET
+NEW PCM ch byte swap for wideband G.711 and linear via IFX_TAPI_PCM_CFG_SET
+
+--------------------------------------------------------------------------------
+version 1.4.6.0  |  2009-03-02  |        TAPI 3.8.3 release for Danube
+--------------------------------------------------------------------------------
+FIX Restored compatiblility for gain parameter according to 2CPE value range
+    in IFX_TAPI_T38_DEMOD_DATA_t and IFX_TAPI_T38_MOD_DATA_t
+Note: released on tapi_3_8_3_danube_maintenance stream
+
+--------------------------------------------------------------------------------
+version 1.4.5.2  |  2009-02-25  |       TAPI 3.8.3 release for Danube - rejected
+--------------------------------------------------------------------------------
+FIX default out of band event payload type is set to 0x60 according to RFC
+
+--------------------------------------------------------------------------------
+version 1.4.5.1  |  2009-02-23  |
+--------------------------------------------------------------------------------
+NEW Added interface to report the FW status to the power management control unit
+    driver. For Linux the file "power" in the /proc filesystem allows to display
+    the reported overall status as well as details
+CHG Removed deactivation of the DTMF detector from within the DTMF sender code.
+    Since V1.4.0.2 this code is obsolete because of the DTMF override control
+FIX Improved error handling in CmdRead in case that timeout occurs
+FIX Fixed possible buffer overflow in the output of interrupt counters for
+    evaluation purposes
+
+--------------------------------------------------------------------------------
+version 1.4.5.0  |  2009-02-xx  |
+--------------------------------------------------------------------------------
+FIX GR-909 result collection for RFT tip to ring
+
+--------------------------------------------------------------------------------
+version 1.4.4.0  |  2009-01-20  |        TAPI 3.8.3 release for AR9
+--------------------------------------------------------------------------------
+FIX Calibration sequence now also working when sleep mode is enabled
+FIX Corrected implementation for IFX_TAPI_TEST_LOOP on AR9
+
+--------------------------------------------------------------------------------
+version 1.4.3.0  |  2009-01-13  |        TAPI 3.8.2 / maintenance stream
+--------------------------------------------------------------------------------
+FIX buffer loss on last close call while packets are streamed via KPI
+FIX autoconf version requirements
+
+--------------------------------------------------------------------------------
+version 1.4.2.6  |  2008-12-19  |        TAPI 3.8.2 release
+--------------------------------------------------------------------------------
+no changes
+
+--------------------------------------------------------------------------------
+version 1.4.2.5  |  2008-12-17  |        TAPI 3.8.2
+--------------------------------------------------------------------------------
+FIX CmdRead return code evaluation in drv_vmmc_bbd.c
+
+--------------------------------------------------------------------------------
+version 1.4.2.2  |  2008-12-09  |        TAPI 3.8.2
+--------------------------------------------------------------------------------
+FIX workaround for GR-909 ensuring linemode disabled at the end of
+    the measurement
+
+--------------------------------------------------------------------------------
+version 1.4.2.1  |  2008-11-26  |        TAPI 3.8.2
+--------------------------------------------------------------------------------
+FIX RTCP statistics get
+FIX CmdWrite protection
+CHG renamed NEWS to CHANGELOG
+
+--------------------------------------------------------------------------------
+version 1.4.2.0  |  2008-11-21  |        TAPI 3.8.2
+--------------------------------------------------------------------------------
+CHG adaption for KPI tasklet mode
+NEW Support for calibration of analog lines
+NEW Support for events IFX_TAPI_EVENT_FAULT_LINE_GK_LOW and
+    IFX_TAPI_EVENT_FAULT_LINE_GK_HIGH
+FIX Correct reading of "received bytes" for IFX_TAPI_JB_STATISTICS_GET ioctl.
+FIX Corrected reset of jitter buffer statistics
+FIX Improved error handling on init of driver
+FIX Added parameter check to functions which lookup the module connections to
+    prevent access to uninitialised data
+
+--------------------------------------------------------------------------------
+version 1.4.1.0  |  2008-10-22  |        TAPI 3.8.1.0 /AR9 RC1,2
+--------------------------------------------------------------------------------
+NEW AR9: added Watchdog Timer support
+FIX VMMC_TAPI_LL_PCM_Volume_Set and VMMC_TAPI_LL_PCM_DEC_HP_Set will no longer
+    be rejected while the PCM channel is not active
+FIX Starting the CID FSK receiver will no longer fail when the SIG channel is
+    not active
+FIX Setting RTP timestamp to zero works now also right after startup
+NEW license update
+CHG distribution package name doesn't contain tapi-x.x.x anymore
+CHG remove check for absolute path in configure.in
+
+--------------------------------------------------------------------------------
+version 1.4.0.5  |  2008-09-15  |        TAPI 3.8.0.5 /AR9
+--------------------------------------------------------------------------------
+FIX internal eval counting
+
+--------------------------------------------------------------------------------
+version 1.4.0.4  |  2008-09-08  |        TAPI 3.8.0.4 RC3/AR9
+--------------------------------------------------------------------------------
+FIX deadlock in ENC_CFG_SET
+CHG PCM i/f configuration additional checks
+CHG min AR9 FW Version to 1.0
+
+--------------------------------------------------------------------------------
+version 1.4.0.3  |  2008-09-04  |        TAPI 3.8.0.3 RC2/AR9
+--------------------------------------------------------------------------------
+NEW FIO_GET_VERS provides access to all FW version details (AR9)
+CHG namespace cleanup VMMC_TAPI_LL_ instead of IFX_TAPI_LL
+CHG remove empty _stream.c|.h files
+CHG remove empty _qos.c|.h files
+
+--------------------------------------------------------------------------------
+version 1.4.0.2  |  2008-09-03  |        TAPI 3.8.0.2 RC1/AR9
+--------------------------------------------------------------------------------
+NEW Support for override control of the DTMF receiver during CID sequences.
+NEW Interrupt counter for evaluation purposes.
+NEW remove --prefix option from distcheck configure options to avoid removal
+    of installed binaries on distcheck
+
+--------------------------------------------------------------------------------
+version 1.4.0.1  |  2008-08-07  |        TAPI 3.8.0.1 engineering snapshot/AR9
+--------------------------------------------------------------------------------
+NEW check for SmartSLIC status (AR9 only) and disable ALM functionality if
+    SmartSLIC is not present
+NEW added whitelist check for transparent BBD download block
+    currently whitelisted: SDD_BasicCfg, SDD_RingCfg, SDD_DCDCCfg
+CHG enable KPI and DECT support via drv_config.h (was via CFLAGS passing before)
+
+--------------------------------------------------------------------------------
+version 1.4.0.0  |  2008-06-11  |        TAPI 3.8.0.0 engineering snapshot/AR9
+--------------------------------------------------------------------------------
+NEW Includes MPS driver per default, i.e. just one driver binary needs to be
+    loaded. Ensure to update your system startup file!
+NEW Added support for DTMF tone end event reporting.
+FIX Fixed driver crash that occured when using UTG on the 6th DECT channel.
+FIX Use protected voice buffer functions also in error cases of the packet
+    reception path.
+CHG removed drv_vmmc_main.c|h, _host.c|h, _dspconf.c
+CHG Moved verification of LEC window size parameters from HL-driver to here.
+
+--------------------------------------------------------------------------------
+version 1.3.0.5  |  2008-04-24  |           TAPI 3.7.1
+--------------------------------------------------------------------------------
+CHG Removed QOS packet path code. QOS is now done by HL-TAPI via KPI.
+
+--------------------------------------------------------------------------------
+version 1.3.0.4  |  2008-04-22  |           TAPI 3.7.1 RC4
+--------------------------------------------------------------------------------
+FIX CPTD configuration for continuous tones shorter than 1s
+FIX Set encoder timestamp frequency according to selected wideband or narrowband
+    encoder.
+
+--------------------------------------------------------------------------------
+version 1.3.0.3  |  2008-04-22  |           TAPI 3.7.1 RC3
+--------------------------------------------------------------------------------
+FIX read chip id for capabilities list (Danube/Twinpass)
+FIX DTMF RX gain limit to +12dB
+CHG #include of ifx_mps.h -> drv_mps_vmmc_device.h
+
+--------------------------------------------------------------------------------
+version 1.3.0.2  |  2008-04-14  |           TAPI 3.7.1 RC2
+--------------------------------------------------------------------------------
+CHG Changed include path of the MPS driver. Use --enable-mpsincl=<path> to
+    specify the path when configuring the driver build.
+
+--------------------------------------------------------------------------------
+version 1.3.0.0  |  2008-04-07  |           TAPI 3.7.1 RC1
+--------------------------------------------------------------------------------
+NEW Tone API configurable modulation factor
+FIX CID FSK receiver now uses frequencies according to Bellcore 202 when
+    configured to Telcordia (Bellcore) setting. Before it was always using
+    frequencies according to ITU-T V.23.
+NEW Added support for independent upstream and downstream event payload types.
+FIX Transmission of event packets triggered by MFTD: CNG, CED, DIS detectors is
+    now configurable with IFX_TAPI_PKT_CFG_SET or IFX_TAPI_PKT_EV_OOB_MFTD_SET.
+FIX Tone-holding-end detector is now correctly deactivated in the case that it
+    is the only detector active.
+NEW Added support for Voice-modem-discriminator in the data channel.
+FIX for 6th DECT channel data, requires MPS driver 1.2.7 or patch for 1.2.6
+NEW Send an event to HL-TAPI upon received RFC2833 RTP event packets.
+NEW Added functions to find current connections between the modules.
+NEW Implemented support for the TAPI init modes: IFX_TAPI_INIT_MODE_PCM_DSP and
+    IFX_TAPI_INIT_MODE_PCM_PHONE (internal use only).
+FIX disable silence compression for G.711 VBD, G.728, G.729E, and iLBC coders.
+CHG Block reading of JB statistics or RTCP statistics when coder is not active
+    to prevent reporting of invalid data.
+CHG Implementation of the packet path changed. Separate functions for FAX and
+    Voice packet flows are now merged. Removed the packet read function as this
+    is now implemented in HL-TAPI and put LL specific parts into the interrupt
+    handler.
+CHG Limit the muting of coder channels in conferences to actions that acutally
+    switch between narrowband and wideband.
+CHG Avoid memory allocation for the firmware image on kernel space, instead
+    copy the firmware directly to the RAM area for the voice CPU.
+NEW Echo suppressor support on PCM channels. Available echo suppressor resources
+    can now be freely used on either ALM or PCM.
+CHG AGC is now automatically switched off when encoder and decoder of a channel
+    are both turned off.
+NEW DTMF receiver configuration ioctl now offers the parameter nVoicePathDelay
+    to reduce the time a DTMF tone is transmitted before the autosuppression
+    becomes active. As the parameter suggests the faster suppression in turn
+    adds a delay to the voice path. This parameter allows you to define your
+    preferred compromise between voice delay and speed of autosuppression.
+
+--------------------------------------------------------------------------------
+version 1.2.1.10 |  2008-01-17  |           TAPI 3.6.1 /DECT/FXO new SPI
+--------------------------------------------------------------------------------
+FIX for 6th DECT channel, requires MPS driver 1.2.7 or patch for 1.2.6
+Note: released on tapi_3_6_1_maintenance_int stream
+
+--------------------------------------------------------------------------------
+version 1.2.1.9  |  2007-10-23  |           TAPI 3.6.1 release
+--------------------------------------------------------------------------------
+no changes
+
+--------------------------------------------------------------------------------
+version 1.2.1.7  |  2007-10-19  |           TAPI 3.6.1 RC7
+--------------------------------------------------------------------------------
+CHG updated README and configure.in
+CHG FW encoding for FDP_REQ message from 6 to 0
+FIX Starting the CPTD when it is already running no longer causes an error.
+
+--------------------------------------------------------------------------------
+version 1.2.1.6  |  2007-10-16  |           TAPI 3.6.1 RC6
+--------------------------------------------------------------------------------
+FIX ENC Stop handling for blocking read configuration, the wakeup doesn't make
+    sense as it will only trigger a run through select. The application will be
+    woken up only based on the return value (i.e. if packets are in the fifo)
+
+--------------------------------------------------------------------------------
+version 1.2.1.5  |  2007-10-15  |           TAPI 3.6.1 RC5
+--------------------------------------------------------------------------------
+no change
+
+--------------------------------------------------------------------------------
+version 1.2.1.4  |  2007-10-10  |           TAPI 3.6.1 RC4
+--------------------------------------------------------------------------------
+FIX race condition in tone end handling
+FIX UDP redirection is working again
+NEW log macro for mailbox events
+NEW Added support for G.711 voice band data (modem or FAX).
+FIX When used as a Linux module the driver can again be unloaded.
+
+--------------------------------------------------------------------------------
+version 1.2.1.3  |  2007-10-08  |           TAPI 3.6.1 RC3
+--------------------------------------------------------------------------------
+NEW added RTP PT range check and check for event PT duplication
+NEW support for dynamic bit packing according to ITU-T I.366.2 Annex E (AAL2)
+    for G.726
+NEW single source of the ll interface version for all device drivers by
+    adding drv_tapi_ll_if_version.h as a symlink to the ll device drivers
+NEW Support for setting DECT channel en-/decoder path gains
+CHG IFX_xint32_t has been changed to int types (was long)
+NEW Linux 2.6 kbuild problem check in configure script to ensure relative path
+CHG set MFTD gap detection time for fax/modem holding to 7 sec to allow
+    transparent fax transmissions
+
+--------------------------------------------------------------------------------
+version 1.2.1.2  |  2007-09-26  |           TAPI 3.6.1 RC2
+--------------------------------------------------------------------------------
+no changes
+
+--------------------------------------------------------------------------------
+version 1.2.1.0  |  2007-09-21  |           TAPI 3.6.1 internal test
+--------------------------------------------------------------------------------
+CHG JB configuration and statistics code cleanup
+
+--------------------------------------------------------------------------------
+version 1.2.0.3  |  2007-08-22  |           TAPI 3.6.0 RC4
+--------------------------------------------------------------------------------
+    no changes
+
+--------------------------------------------------------------------------------
+version 1.2.0.2  |  2007-08-10  |           TAPI 3.6.0 RC3
+--------------------------------------------------------------------------------
+FIX Prevent command errors when the CID FSK transmission runs out of data.
+
+--------------------------------------------------------------------------------
+version 1.2.0.1  |  2007-08-06  |           TAPI 3.6.0 RC2
+--------------------------------------------------------------------------------
+    no changes
+
+--------------------------------------------------------------------------------
+version 1.2.0.0  |  2007-07-30  |           TAPI 3.6.0 RC1
+--------------------------------------------------------------------------------
+NEW support for event mailbox
+NEW DTMF detection from network side
+CHG removed default device specific compiler flags and added new configure
+    option --with-cflags=""
+CHG Removed OS_Init_Baseadress() and OS_Release_Baseadress() - are not needed
+FIX Reinsert driver into memory (when unloading it i/o memory was not released)
+CHG Added support for setting the LEC window sizes
+CHG Event logging macros were adapted to support multiple boards (device type,
+    device number and channel number was added)
+CHG more detailed error reporting for T.38, _SETUP and _DATA provide now
+    additional information in the .data.value field
+CHG Return types of LL interfaces for CID_TX_xxx changed to IFX_int32_t to
+    support devices specific error return codes for the new error reporting
+
+--------------------------------------------------------------------------------
+version 1.1.7.0  |  2007-05-14  |           TAPI 3.5.3 engineering release
+--------------------------------------------------------------------------------
+NEW Added support for new DECT features: tones, statistics, echo suppressor
+CHG PCM clock tracking will be activated in case of PCM master and
+    (nMCTS & 0xF7) != 0
+FIX Corrected usage of wrong buffer in the transmit path of the QOS module
+
+--------------------------------------------------------------------------------
+version 1.1.6.5  |  2007-03-14  |           TAPI 3.5.2 release
+--------------------------------------------------------------------------------
+FIX return value of write packets in case of congested mailbox to 0
+    (was -1/IFX_ERROR) to be consistent with overall concept (and VINETIC-CPE)
+FIX internal errorhandling in CmdRead could exit before returning the mutex or
+    unlock irqs which havn't been locked
+
+--------------------------------------------------------------------------------
+version 1.1.6.4  |  2007-03-13  |           TAPI 3.5.2 RC3
+--------------------------------------------------------------------------------
+CHG renamed gains in IFX_TAPI_COD_VOLUME_SET param structure to vol.enc, vol.dec
+CHG buffer COD volume settings in case ENC/DEC are currently disabled
+CHG improved handling for downstream packets in case of mailbox congestion -
+    report IFX_TAPI_EVENT_INFO_MBX_CONGESTION event and drop packets
+
+--------------------------------------------------------------------------------
+version 1.1.6.3  |  2007-03-07  |           TAPI 3.5.2 RC2
+--------------------------------------------------------------------------------
+FIX Buffer leakage resulting while reading of firmware commands
+NEW preview version support for DECT coder channels
+NEW preview version Kernel Packet Interface (disabled by default)
+
+--------------------------------------------------------------------------------
+version 1.1.6.2  |  2007-02-27  |           TAPI 3.5.2 RC1
+--------------------------------------------------------------------------------
+NEW codec support check added against the capabilities of the used firmware
+NEW ioctl IFX_TAPI_PCM_DEC_HP_SET to switch on/off PCM decoder HP filter
+NEW ioctl IFX_TAPI_COD_DEC_HP_SET to switch on/off COD decoder HP filter
+NEW ioctl IFX_TAPI_COD_VOLUME_SET to set Enc and Dec gains of the COD module
+NEW ioctl IFX_TAPI_DTMF_RX_CFG_SET/GET to set/get the DTMF detector's
+    coefficients, i.e. gain, level, and twist
+FIX UTG2 now works properly (depending on FW featureset)
+NEW PCM clock tracking configuration (requires Danube FW 9.x)
+CHG allow PCM i/f reconfiguration if no PCM ch is active
+CHG added field "ascii" to the event IFX_TAPI_EVENT_DTMF_DIGIT
+
+--------------------------------------------------------------------------------
+version 1.1.6.1  |  2007-02-06  |           internal test
+--------------------------------------------------------------------------------
+CHG allow IFX_TAPI_PKT_RTP_CFG_SET allows now also to set the event payload
+    type to 0 - in this case all event transmission configuration is bypassed
+NEW New BBD type defined which allows FW coefficient download (internal use)
+
+-------------------------------------------------------------------------------
+version 1.1.6.0  |  2007-01-19  |           internal test
+--------------------------------------------------------------------------------
+FIX CPTD coefficients for non continous tones (wrong coding)
+FIX CPTD frequency calculation 2-3kHz
+FIX CPTD time tolerance calculation
+FIX CODER set missing SID bit for G.726 to avoid "noise"
+CHG locking mechanism for linemode changes
+CHG don't set NS bit on VAD ioctls
+
+-------------------------------------------------------------------------------
+version 1.1.5.4  |  2006-12-15  |           TAPI v3.5.1 release
+--------------------------------------------------------------------------------
+CHG default major number to 122 (can be changed on insmod major=xxx)
+CHG removed check/return error on PCM_CH_CFG if PCM_IF_CFG hasn't been
+    done before (check isn't required anymore)
+
+-------------------------------------------------------------------------------
+version 1.1.5.3  |  2006-12-13  |           TAPI v3.5.1 RC3
+--------------------------------------------------------------------------------
+NEW Capabillity list shows as much as possible at different initialization
+    states. Device type and probable version (without reading the device)
+    is available after basic driver init. The chip type is available after
+    reset (with reading the device).
+    Note: information may change during the initialization process, since
+    features must be read out and can be downloaded.
+
+--------------------------------------------------------------------------------
+version 1.1.5.2  |  2006-12-08  |           TAPI v3.5.1 RC2
+--------------------------------------------------------------------------------
+CHG activate PCM high pass
+
+--------------------------------------------------------------------------------
+version 1.1.5.1  |  2006-12-04  |           TAPI v3.5.1 RC1
+--------------------------------------------------------------------------------
+CHG NLP coefficient bn_adj to -1,5 dB
+NEW DTMF dialing support for FXO
+
+--------------------------------------------------------------------------------
+version 1.1.4.1  |  2006-11-17  |           TAPI v3.4.4
+--------------------------------------------------------------------------------
+NEW Check FW version and abort init if newer version is required by the driver
+FIX IFX_TAPI_TONE_STOP problems to stop tones with a loop count fixed
+
+--------------------------------------------------------------------------------
+version 1.1.4.0  |  2006-11-09  |           internal test
+--------------------------------------------------------------------------------
+CHG renamed IFX_TAPI_EVENT_CODER_DEC_CHG to IFX_TAPI_EVENT_COD_DEC_CHG
+FIX AGC coding error
+
+--------------------------------------------------------------------------------
+version 1.1.3.1  |  2006-10-31  |           TAPI v3.4.3
+--------------------------------------------------------------------------------
+NEW Decoder Change event
+NEW configure PCM interface (master/slave mode, dcl clock, offsets, slopes,...)
+NEW Audiochannel (INCA-IP2 only)
+NEW Driver has protection from activating coder channel fax data pump while
+    coder channel is active, but had no protection in opposite case.
+    Now the driver returns error if the coder is to be activated when T.38
+    is running.
+CHG Renamed IFX_TAPI_EVENT_FAXMODEM_HOLD to IFX_TAPI_EVENT_FAXMODEM_HOLDEND
+NEW New feature CID FSK receiver
+
+--------------------------------------------------------------------------------
+version 1.1.2.1  |  2006-10-17  |           TAPI v3.4.2
+--------------------------------------------------------------------------------
+CHG acitvate bad frame interpolation and silence compression by default
+
+--------------------------------------------------------------------------------
+version 1.1.1.2  |  2006-09-28  |           TAPI v3.4.1 for Danube Release
+--------------------------------------------------------------------------------
+FIX CPTD configuration corrupted random memory blocks
+
+--------------------------------------------------------------------------------
+version 1.1.1.1  |  2006-09-28  |           internal test RC2
+--------------------------------------------------------------------------------
+NEW Howler Tone support (high level on analog channel)
+NEW OOB event playout
+NEW OOB event transmission mode Block
+FIX Sending of DTMF CID corrected. DTMF CID did not work for longer telephone
+    numbers more than once after initialisation.
+
+--------------------------------------------------------------------------------
+version 1.1.1.0  |  2006-09-25  |           internal test RC1
+--------------------------------------------------------------------------------
+FIX ALM/PCM volume coefficients
+NEW AGC (Automatic Gain Control) feature added, provided through
+    IFX_TAPI_ENC_AGC_CFG and IFX_TAPI_ENC_AGC_ENABLE. AGC is available in
+    encoder direction only.
+FIX DTMF receiver events over coder side are now reported as network (remote)
+    events. NOTE: no TAPI interface exists to enable remote DTMF detection.
+CHG removed references of '#ifdef TAPI' from the code
+
+--------------------------------------------------------------------------------
+version 1.1.0.0  |  2006-09-15  |           internal test
+--------------------------------------------------------------------------------
+FIX IFX_TAPI_PHONE_VOLUME_SET crashed if used on channel 1,
+    internal mismapping in the access of the channel structures
+NEW Use FW capability command to get more detailed information
+FIX Do not allow deactivation of SIG module while MFTD is running
+FIX MFTD reporting of rx data can now be done without having tx reporting
+    enabled
+FIX activation of PCM LEC caused MIPS overflow due to wrong coefficient mapping
+NEW Encoder Hold feature, provided through TAPI ioctl IFX_TAPI_ENC_HOLD
+NEW FXO/FXS line type selection, provided through TAPI ioctl
+    IFX_TAPI_LINE_TYPE_SET
+NEW VAD features, provided through TAPI ioctl IFX_TAPI_ENC_VAD_CFG_SET
+NEW RFC2833 OOB DTMF signalisation
+
+--------------------------------------------------------------------------------
+version 1.0.2.2  |  2006-08-28  |          internal test
+--------------------------------------------------------------------------------
+CHG moved OS independent parts to _init.c
+CHG added memcpy from/to skbuf in UDP redirect
+
+--------------------------------------------------------------------------------
+version 1.0.2.1  |  2006-08-03  |          internal test
+--------------------------------------------------------------------------------
+FIX UTG_Stop working for composed tones
+CHG Improved handling of firmware capabilities reading
+FIX report correct driver version number
+NEW channel specific BBD download
+
+--------------------------------------------------------------------------------
+version 1.0.1.1  |  2006-07-28  |           TAPI v3.3 for Danube Release
+--------------------------------------------------------------------------------
+CHG improved portability, cleanup
+
+--------------------------------------------------------------------------------
+version 0.9.4.5  |  2006-07-28  |           internal test
+--------------------------------------------------------------------------------
+FIX RTP config
+CHG Disable SIC
+
+--------------------------------------------------------------------------------
+version 0.9.4.4  |  2006-07-27  |           internal test
+--------------------------------------------------------------------------------
+FIX compiler warnings
+CHG encoder defaults (activate CNG, HP, PF, SIC, IM, PST, NS)
+
+--------------------------------------------------------------------------------
+version 0.9.4.3  |  2006-07-26  |           internal test
+--------------------------------------------------------------------------------
+FIX LEC configuration / default coefficients
+CHG activate Decorrelation filter for NLEC and WLEC
+
+--------------------------------------------------------------------------------
+version 0.9.4.2  |  2006-07-25  |           internal test
+--------------------------------------------------------------------------------
+FIX Multiple init
+FIX Type II CID Tx
+NEW Version handshake during registration of LL driver
+NEW Composed tones working
+FIX Some of the error interrupts handled
+FIX Multiparty conferences work also with PCM modules
+CHG Voice stream fifo, bufferpool moved to high level tapi.
+CHG UDP redirection modified, tested only with local loopback and cleaned.
+
+--------------------------------------------------------------------------------
+version 0.9.4.1  |  2006-xx-xx  |
+--------------------------------------------------------------------------------
+NEW MFTD and T.38 integrated. Not fully tested
+NEW default initialisation, removed implicit data channel add to phone channels
+!!! ATTENTION - applications must call DataChAdd explicity for
+!!!             CID, DTMF detection, voice coders etc.
+NEW configure option --enable-obsolete-premapping (for backward compatibility)
+
+--------------------------------------------------------------------------------
+version 0.9.3.1  |  2006-07-13  |           alpha release for Danube
+--------------------------------------------------------------------------------
+FIX lec configuration / voice quality
+
+--------------------------------------------------------------------------------
+version 0.9.2.2  |  2006-07-07  |           alpha release for Danube
+--------------------------------------------------------------------------------
+FIX packet loss problem
+
+--------------------------------------------------------------------------------
+version 0.9.2.1  |  2006-07-05  |           internal test version
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+version 0.9.1.5  |  2006-06-27  |           test version
+--------------------------------------------------------------------------------
+NEW UDP redirection support added, code cleanup, testing and improvements
+    needed.
+
+--------------------------------------------------------------------------------
+version 0.9.1.4  |  2006-06-19  |           test version
+--------------------------------------------------------------------------------
+FIX LEC coefficient were mixed up
+CHG IFX_TAPI_CH_INIT now does not activate the NLP
+
+--------------------------------------------------------------------------------
+version 0.9.1.3  |  2006-06-16  |           test version
+--------------------------------------------------------------------------------
+CHG LEC coefficient LEN_FIX_WIN changed to 0x80
+
+--------------------------------------------------------------------------------
+version 0.9.1.2  |  2006-06-13  |           test version
+--------------------------------------------------------------------------------
+CHG Enabled LEC on TAPI init for firmware verification
+
+--------------------------------------------------------------------------------
+version 0.9.1.1  |  2006-06-09  |           alpha integration release INCA-IP2
+--------------------------------------------------------------------------------
+NEW  extended error handling and reporting
+NEW  Jitter Buffer adaptive implemented
+NEW  3-party conferencing
+     open issue: after removing connections the voice a loop might persist
+FIX  several minor fixes and improvements
+
+     tested on INCA-IP2, FW version 3.3
+
+--------------------------------------------------------------------------------
+version 0.9.0.1  |  2006-05-05  |                       integration release
+--------------------------------------------------------------------------------
+NEW  basic tapidemo featureset, conferencing not tested yet, tested on INCA2
+NEW  COD activation, configuration G.711 a/u-law, G.726, Payload tables
+NEW  DTMF and hook detection
+NEW  UTG playing simple tones
+NEW  Basic Initialisation, incl. BBD Download for SLIC (ALM) channels
+

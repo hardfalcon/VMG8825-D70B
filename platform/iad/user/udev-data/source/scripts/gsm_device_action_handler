@@ -1,0 +1,393 @@
+#!/bin/sh
+# script to notify services when gsm device has been added/removed
+# using usb-state-manage
+SID=$(cat /dev/urandom | tr -dc 0-9 | dd bs=6 count=1)
+SERVICE=gsm_device_action_handler
+
+LOG_INFO()
+{
+    logger -p user.info -t $SERVICE "$*"
+}
+
+LOG_ERROR()
+{
+    logger -p user.error -t $SERVICE "$*"
+}
+
+LOG_STATUS()
+{
+    logger -p user.notice -t $SERVICE "$*"
+}
+
+USB_STATE_MANAGER=`which usb-state-manage`
+USB_STATE_CACHE="usb_state_manager_arguments"
+SYSFS="/sys"
+GSM_TYPE=6
+GSM_DB="/etc/gsm_devices"
+
+CACHE_DIR="/etc/udev/cache.d"
+
+case $# in
+    2)
+	    ACTION=$1
+	    DEVICE=$2
+	    ;;
+    *)
+        $LOG_ERROR "Unsupported Number of Arguments: $# for \"$DEVICE\" given!"
+        exit 0
+	    ;;
+esac
+
+# on 2.6.20 there we get 
+# XXX - TODO
+# so here we have to dereference linked node "device"
+# with hubs, we have a little different view here:
+# /sys/devices/platform/ifxusb_hcd/usb1/1-1/1-1.3/1-1.3:1.0/ttyUSB0 (by kernel name)
+# usb path: bus x -> root-hub (port1) -> user hub (port 3) -> MSD
+
+# on 2.6.32 we get:
+# /sys/devices/pci0000:00/0000:00:0f.2/usb1/1-4/1-4:1.0/ttyUSB0 (by kernel name)
+# /devices/pci0000:00/0000:00:0f.2/usb1/1-4/1-4:1.2/ttyUSB1/tty/ttyUSB1 (tty)
+
+pathtype=`echo $DEVICE | cut -f2 -d'/'`
+
+case "$pathtype" in
+    class)
+	    device_link=`ls -al /sys/$DEVICE | grep "device ->" | cut -f2 -d'>'`
+	    pathlist=`echo ${device_link} | tr '/' '\n'`
+        ;;
+    devices)
+	    pathlist=`echo ${DEVICE} | tr '/' '\n'`
+        ;;
+    *)
+        LOG_ERROR "Unsupported Argument \"$DEVICE\" given!"
+        ;;
+esac
+
+do_parse_sysfs_usb_device_path()
+{
+    CURPATH=$SYSFS
+    DEVPATH=$SYSFS
+    local t=""
+
+    while [ $# -gt 0 ] ; do
+	    case "$1" in
+	        usb*)
+                # we are at busX
+                CURPATH=$CURPATH/$1
+                shift
+                # we are at root hub bus-port
+		        # traverse the possilbe list of hubs
+                BUSID=`echo $1 | cut -f1 -d'-'`
+                PORTID=`echo $1 | cut -f2 -d'-'`
+		        t=$(echo $1 | tr -d ':')
+		        # as long there is no ':' in the subpath, we are not at the end of the porta.portb.portc list
+	            while [ ${#t} -eq ${#1} ] ; do
+		            if [ ${#1} -eq 0 ]; then
+			            break;
+		            fi
+        	        CURPATH=$CURPATH/$1
+    		        DEVPATH=$CURPATH
+		            shift
+		            t=$(echo $1 | tr -d ':')
+		        done
+		        # to suppress error messages on rem
+                [ ! -f $DEVPATH/devnum ] || DEVID=`cat $DEVPATH/devnum`
+                [ ! -f $DEVPATH/idVendor ] || VID=`cat $DEVPATH/idVendor`
+                [ ! -f $DEVPATH/idProduct ] || PID=`cat $DEVPATH/idProduct`
+                # we are at bus-port.port.port:configuration.interface
+                CID=`echo $1 | cut -f2 -d':' | cut -f1 -d'.'`
+                IFID=`echo $1 | cut -f2 -d':' | cut -f2 -d'.'`
+		        # update curpath
+		        CURPATH=$CURPATH/$1
+                ;;
+            .*)
+                echo -n ""
+                ;;
+            *)
+                CURPATH=$CURPATH/$1
+                ;;
+	    esac
+
+	    shift
+    done
+}
+
+parse_gsm_device_function()
+{
+    local id=$1
+    local interface=$2
+    shift 2
+
+    GSM_DEVICE_FN=""
+    GSM_INTF_ID=""
+
+    if [ "${id}" != "${1}" ]; then
+        LOG_ERROR "Wrong line delivered for device $id -- \"$*\, unknown device"
+        exit $SH_STAT_FAILED
+    fi
+
+    shift
+
+    # parse the line word by word
+    while [ $# -gt 0 ] ; do
+	    case "$1" in
+	        "#"|"#*")
+        	# ignore all the following words
+		    #LOG_INFO "ignore $*"
+		    shift
+		    return
+        	;;
+	    *)
+		    if [ ${interface} = ${1%%:*} ]; then
+		        GSM_INTF_ID=${1%%:*}
+		        GSM_DEVICE_FN=${1##*:}
+		        #LOG_INFO "Found Interface $interface function $GSM_DEVICE_FN"
+		        return
+		    fi
+        	shift
+        	;;
+	    esac   
+    done 
+    return 1;
+}
+
+get_gsm_device_function()
+{
+    local vid=$1
+    local pid=$2
+    local ifid=$3
+   
+    local line=$(cat $GSM_DB | grep -e $vid:$pid )
+
+    if [ ${#line} -lt 8 ]; then
+        GSM_DEVICE_FN=""
+    else
+	    #$LOG_INFO "Searching for device info for $vid:$pid on interface $ifid"
+	    parse_gsm_device_function $vid:$pid $ifid $line 
+    fi
+
+    if [ ${#GSM_DEVICE_FN} -eq 0 ]; then
+        # we have to generate the link
+	    # and notify
+        LOG_INFO "Did not find function for device $vid:$pid interface $ifid"
+    else
+        LOG_INFO "Found function for device $vid:$pid interface $ifid : ${GSM_DEVICE_FN}"
+	    case "$GSM_DEVICE_FN" in
+            CNTRL|VOICE|DATA)
+		        PRINTOUT="$PRINTOUT gsm/$GSM_DEVICE_FN"
+                PRINTOUT="$PRINTOUT gsm/usbid/$VID:$PID"
+                PRINTOUT="$PRINTOUT gsm/usb:$BUSID-$PORTID.$IFID"
+		        mark_gsm_device_function "$CACHE_DIR/$DEVPATH" "$GSM_DEVICE_FN"
+        	    ;;
+	        *)
+        	    echo -n "" > /dev/null
+            	;;
+	    esac
+    fi
+}
+
+mark_gsm_device_function()
+{
+    local cpath=$1
+    local fn=$2
+
+    [ -d $cpath ] || mkdir -p $cpath
+    touch $cpath/$fn
+    sync
+
+    LOG_INFO "created: ${cpath}/${fn} "
+}
+
+# checks if device function is already found
+# returns 1 if we did not find a function in cache, we aught to see
+# return 0 else
+check_gsm_device_functions() 
+{
+    local path=$1
+    local vid=$2
+    local pid=$3
+    local line=$(cat $GSM_DB | grep -e $vid:$pid )
+
+    # this parser is currently not as robust as it could be, but looking for 
+    # CNTRL, VOICE and DATA should be sufficient
+    for l in $line ; do
+	    case "${l##*:}" in
+            "CNTRL"|"VOICE"|"DATA")
+        	    if [ ! -f $path/${l##*:} ] ; then
+        	        LOG_INFO "Missing $path/${l##*:}, so we are not ready to fill the notify cache!"
+        	        return 1
+		        fi
+        	    ;;
+	        "#"|"#*")
+        	    # ignore all the following words
+		        return 0
+		        ;;
+	        *)
+        	    continue
+        	    ;;
+	    esac
+    done
+    return 0
+}
+
+gsm_device()
+{
+    local action=$1
+    # add just creates the links we need
+    # rem just calls USB_STATE_MANAGER with rem
+
+    DEV_READYLEAF="${CACHE_DIR}/${DEVPATH}/readyleaf"
+
+    case "$1" in
+	    add)
+             # first look if we have all the right information
+	        [ ${#BUSID} -ne 0 ] || return 0;
+	        [ ${#DEVID} -ne 0 ] || return 0;
+	        [ ${#VID} -ne 0 ] || return 0;
+	        [ ${#PID} -ne 0 ] || return 0;
+    	    [ ${#CID} -ne 0 ] || return 0;
+	        [ ${#IFID} -ne 0 ] || return 0;
+	        # first we write to cache file
+	        # then we read from it
+	        get_gsm_device_function $VID $PID $IFID 
+
+	        # look if we already have initialized all device functions (CNTRL, DATA,..)
+	        check_gsm_device_functions "$CACHE_DIR/$DEVPATH" "$VID" "$PID"
+	        if [ $? -eq 0 ]; then
+        	    # we should create readyleaf, when there was really a device function found
+    		    # on readyleaf creation we are able to notify services
+		        if [ ${#GSM_DEVICE_FN} -gt 0 ]; then
+                    PRINTOUT="$PRINTOUT gsm/readyleaf"
+        	        do_write_cache $DEVPATH
+		            do_read_cache $DEVPATH
+		        fi
+	        fi
+            
+            usleep ${SID}               #delay random time to defuse simultanius dev add     
+    
+            #check again to check if we could notify services
+            check_gsm_device_functions "$CACHE_DIR/$DEVPATH" "$VID" "$PID"
+            if [ $? -eq 0 ]; then
+                if [ ! -f $DEV_READYLEAF ]; then
+                    mark_gsm_device_function "$CACHE_DIR/$DEVPATH" "readyleaf"
+                    #LOG_INFO "start notification"
+                    notify_services
+                fi
+            fi
+	        ;;
+	    rem)
+	        # we just need the information from the cache file
+	        do_read_cache $DEVPATH
+            # signal the api, that the device is not ready anymore
+            
+            if [ -f $DEV_READYLEAF ]; then
+                remove_readyleaf "$CACHE_DIR/$DEVPATH"
+                usleep ${SID}                   #delay random time to defuse simultanius dev remove, else service notification runs
+                                                # multiple times cause readyleaf was not removed so fast   
+                notify_services                 #do deinitialize once 
+            fi
+	        ;;
+	    *)	
+	        LOG_ERROR "Wrong arguments given!"
+	        return;
+	        ;;
+    esac
+}
+
+
+notify_services()
+{
+    # do not proceed if we miss something
+    [ ${#RD_CACHE} -ne 0 ] || return 1;
+    [ -f $USB_STATE_MANAGER ] || return 2;
+    [ ${#USB_STATE_MANAGER} -gt 8 ] || return 2;
+
+    LOG_INFO "${USB_STATE_MANAGER} $action ${RD_CACHE}"
+    $USB_STATE_MANAGER "$action" $RD_CACHE
+
+    ret=$?
+    [ $ret -ne 0 ] || return 0;
+
+    case "$1" in						# # 
+	    add)
+	        LOG_ERROR "Failed to register gsm device $RD_CACHE with $ret"
+	        ;;
+	    rem)
+	        LOG_ERROR "Failed to unregister gsm device $RD_CACHE with $ret"
+	        refresh_write_cache $DEVPATH
+	        ;;
+        esac
+    return 1    
+}
+
+refresh_write_cache()
+{
+    local file=$1/$USB_STATE_CACHE
+    [ -d $CACHE_DIR/$1 ] || mkdir -p $CACHE_DIR/$1
+    LOG_ERROR "Need to refresh Write Cache $CACHE_DIR/$file for $DEVICE"
+    echo -n "${RD_CACHE}" > $CACHE_DIR/$file
+}
+
+do_write_cache()
+{
+    local file=$1/$USB_STATE_CACHE
+    [ -d $CACHE_DIR/$1 ] || mkdir -p $CACHE_DIR/$1
+
+    LOG_INFO "Writing Cache to $CACHE_DIR/$file for $DEVICE"
+    echo -n "$GSM_TYPE $PORTID $BUSID $DEVID 0" > $CACHE_DIR/$file
+}
+
+do_read_cache()
+{
+    local file=$1/$USB_STATE_CACHE
+    [ -d ${CACHE_DIR}/$1 ] || return;
+    [ -f ${CACHE_DIR}/$file ] || return;
+
+    RD_CACHE=$(cat ${CACHE_DIR}/$file)
+}
+
+remove_cache()
+{
+    local file=$1/$USB_STATE_CACHE
+    [ -f ${CACHE_DIR}/$file ] || return;
+    rm -f ${CACHE_DIR}/$file
+}
+
+remove_readyleaf()
+{
+    if [ -f $1/readyleaf ]; then
+        rm -f $1/readyleaf
+    	rm -f $1/*
+
+	    if [ -f /dev/gsm/readyleaf ] ; then
+	        rm -f /dev/gsm/readyleaf
+	    fi
+    fi
+}
+
+case "$1" in
+	add)
+        LOG_INFO "add device $2"
+	    do_parse_sysfs_usb_device_path $pathlist
+	    chown -R root:usb /dev/bus/usb/*$BUSID/*
+	    gsm_device add
+        echo $PRINTOUT
+	    ;;
+	remove|rem|del)
+        LOG_INFO "rem device $2"
+	    do_parse_sysfs_usb_device_path $pathlist
+	    gsm_device rem
+	    if [ $? -eq 0 ]; then
+		    remove_cache $DEVPATH
+	    fi
+	    ;;
+	*)
+            LOG_ERROR "Called with wrong arguments"
+	    ;;
+esac
+
+# it seems that fs cache is involved
+sync
+
+exit 0

@@ -1,0 +1,23 @@
+From: Alexander Sack <asac@jwsdot.com>
+Date: Thu, 18 Dec 2008 05:43:52 +0100
+Subject: /ppp-2.4.4rel/debian/patches/resolv.conf_no_log
+
+---
+ pppd/ipcp.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pppd/ipcp.c b/pppd/ipcp.c
+index a567577..6966cff 100644
+--- a/pppd/ipcp.c
++++ b/pppd/ipcp.c
+@@ -2063,7 +2063,7 @@ create_resolv(peerdns1, peerdns2)
+ 
+     f = fopen(_PATH_RESOLV, "w");
+     if (f == NULL) {
+-	error("Failed to create %s: %m", _PATH_RESOLV);
++	/* error("Failed to create %s: %m", _PATH_RESOLV); */
+ 	return;
+     }
+ 
+--
+

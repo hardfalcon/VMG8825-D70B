@@ -1,0 +1,35 @@
+* Lantiq VMMC MPS driver
+
+Node describing MPS register block
+
+Required properties:
+- compatible: must be equal to "lantiq,mps-xrx100"
+- reg: address and range of the MPS register block
+- interrupts: interrupt numbers associated with the MPS AD0 and AD1 registers
+- interrupt-parent: reference to the icu
+- lantiq,mbx: reference to node describing the MPS mailbox SRAM
+
+Optional properties:
+- none
+
+Node describing MPS mailbox SRAM
+
+Required properties:
+- reg: address and range of the MPS mailbox SRAM
+
+Optional properties:
+- none
+
+Example:
+
+        mps@107000 {
+                compatible = "lantiq,mps-xrx100";
+                reg = <0x107000 0x400>;
+                interrupt-parent = <&icu0>;
+                interrupts = <154 155>;
+                lantiq,mbx = <&mpsmbx>;
+        };
+
+        mpsmbx: mpsmbx@200000 {
+                reg = <0x200000 0x200>;
+        };

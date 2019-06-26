@@ -1,0 +1,994 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Tue, 10 Aug 2010 14:57:42 +0200
+Subject: Removed unused protocols to save space.
+
+---
+ Makefile.in       |   41 ++++++++++-------------
+ addrtoname.c      |    5 ++-
+ configure         |    4 +--
+ configure.in      |    4 +--
+ missing/dlnames.c |   19 -----------
+ print-atm.c       |    6 ++++
+ print-chdlc.c     |    2 +-
+ print-ether.c     |   10 ++++++
+ print-gre.c       |    2 ++
+ print-igmp.c      |    2 ++
+ print-ip.c        |   10 +++++-
+ print-ip6.c       |    8 +++++
+ print-llc.c       |   12 +++++++
+ print-null.c      |   12 -------
+ print-ppp.c       |    2 ++
+ print-sll.c       |    2 ++
+ print-tcp.c       |   14 ++++++--
+ print-udp.c       |   19 ++++++++++-
+ tcpdump.c         |   94 ++---------------------------------------------------
+ 19 files changed, 110 insertions(+), 158 deletions(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index 8e7b73b..db23559 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -66,31 +66,27 @@ RANLIB = @RANLIB@
+ 	@rm -f $@
+ 	$(CC) $(CFLAGS) -c $(srcdir)/$*.c
+ 
+-CSRC =	addrtoname.c af.c checksum.c cpack.c gmpls.c oui.c gmt2local.c ipproto.c \
++CSRC =	addrtoname.c af.c checksum.c cpack.c oui.c gmt2local.c ipproto.c \
+         nlpid.c l2vpn.c machdep.c parsenfsfh.c \
+-	print-802_11.c print-ap1394.c print-ah.c print-arcnet.c \
+-	print-aodv.c print-arp.c print-ascii.c print-atalk.c print-atm.c \
+-	print-beep.c print-bfd.c print-bgp.c print-bootp.c print-bt.c \
+-	print-cdp.c print-cfm.c print-chdlc.c print-cip.c print-cnfp.c \
+-	print-dccp.c print-decnet.c \
+-	print-domain.c print-dtp.c print-dvmrp.c print-enc.c print-egp.c \
+-	print-eap.c print-eigrp.c\
+-	print-esp.c print-ether.c print-fddi.c print-fr.c \
++	print-802_11.c print-ah.c \
++	print-arp.c print-ascii.c print-atm.c \
++	print-beep.c print-bootp.c \
++	print-chdlc.c \
++	print-domain.c print-enc.c \
++	print-eap.c \
++	print-esp.c print-ether.c \
+ 	print-gre.c print-hsrp.c print-icmp.c print-igmp.c \
+ 	print-igrp.c print-ip.c print-ipcomp.c print-ipfc.c print-ipnet.c \
+-	print-ipx.c print-isoclns.c print-juniper.c print-krb.c \
+-	print-l2tp.c print-lane.c print-ldp.c print-lldp.c print-llc.c \
+-        print-lmp.c print-lspping.c print-lwapp.c \
+-	print-lwres.c print-mobile.c print-mpcp.c print-mpls.c print-msdp.c \
+-	print-nfs.c print-ntp.c print-null.c print-olsr.c print-ospf.c \
+-	print-pgm.c print-pim.c print-ppp.c print-pppoe.c print-pptp.c \
+-	print-radius.c print-raw.c print-rip.c print-rrcp.c print-rsvp.c \
+-	print-rx.c print-sctp.c print-sflow.c print-sip.c print-sl.c print-sll.c \
+-	print-slow.c print-snmp.c print-stp.c print-sunatm.c print-sunrpc.c \
+-	print-symantec.c print-syslog.c print-tcp.c print-telnet.c print-tftp.c \
+-	print-timed.c print-token.c print-udld.c print-udp.c print-usb.c \
+-	print-vjc.c print-vqp.c print-vrrp.c print-vtp.c print-forces.c \
+-	print-wb.c print-zephyr.c signature.c setsignal.c tcpdump.c util.c
++	print-l2tp.c print-llc.c \
++	print-ntp.c print-null.c \
++	print-ppp.c print-pppoe.c print-pptp.c \
++	print-raw.c \
++	print-sip.c print-sl.c print-sll.c \
++	print-slow.c print-stp.c print-sunatm.c print-sunrpc.c \
++	print-syslog.c print-tcp.c print-telnet.c print-tftp.c \
++	print-timed.c print-udp.c print-usb.c \
++	print-vjc.c \
++	signature.c setsignal.c tcpdump.c util.c
+ 
+ LIBNETDISSECT_SRC=print-isakmp.c
+ LIBNETDISSECT_OBJ=$(LIBNETDISSECT_SRC:.c=.o)
+@@ -252,7 +248,6 @@ EXTRA_DIST = \
+ 	print-ip6opts.c \
+ 	print-mobility.c \
+ 	print-netbios.c \
+-	print-ospf6.c \
+ 	print-pflog.c \
+ 	print-ripng.c \
+ 	print-rt6.c \
+diff --git a/addrtoname.c b/addrtoname.c
+index 29826df..1d25c21 100644
+--- a/addrtoname.c
++++ b/addrtoname.c
+@@ -520,9 +520,6 @@ linkaddr_string(const u_char *ep, const unsigned int type, const unsigned int le
+ 	if (type == LINKADDR_ETHER && len == ETHER_ADDR_LEN)
+ 		return (etheraddr_string(ep));
+ 
+-	if (type == LINKADDR_FRELAY)
+-		return (q922_string(ep));
+-
+ 	tp = lookup_bytestring(ep, len);
+ 	if (tp->e_name)
+ 		return (tp->e_name);
+@@ -1125,6 +1122,7 @@ init_addrtoname(u_int32_t localnet, u_int32_t mask)
+ const char *
+ dnaddr_string(u_short dnaddr)
+ {
++#if 0
+ 	register struct hnamemem *tp;
+ 
+ 	for (tp = &dnaddrtable[dnaddr & (HASHNAMESIZE-1)]; tp->nxt != 0;
+@@ -1140,6 +1138,7 @@ dnaddr_string(u_short dnaddr)
+ 		tp->name = dnname_string(dnaddr);
+ 
+ 	return(tp->name);
++#endif
+ }
+ 
+ /* Return a zero'ed hnamemem struct and cuts down on calloc() overhead */
+diff --git a/configure b/configure
+index cb51d19..73399b8 100755
+--- a/configure
++++ b/configure
+@@ -4807,7 +4807,7 @@ if test "${enable_ipv6+set}" = set; then
+   enableval=$enable_ipv6;  case "$enableval" in
+ yes)   { echo "$as_me:$LINENO: result: yes" >&5
+ echo "${ECHO_T}yes" >&6; }
+-       LOCALSRC="print-ip6.c print-ip6opts.c print-mobility.c print-ripng.c print-icmp6.c print-frag6.c print-rt6.c print-ospf6.c print-dhcp6.c $LOCALSRC"
++       LOCALSRC="print-ip6.c print-ip6opts.c print-mobility.c print-ripng.c print-icmp6.c print-frag6.c print-rt6.c print-dhcp6.c $LOCALSRC"
+        cat >>confdefs.h <<\_ACEOF
+ #define INET6 1
+ _ACEOF
+@@ -4867,7 +4867,7 @@ eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+   (exit $ac_status); }; }; then
+    { echo "$as_me:$LINENO: result: yes" >&5
+ echo "${ECHO_T}yes" >&6; }
+-  LOCALSRC="print-ip6.c print-ip6opts.c print-mobility.c print-ripng.c print-icmp6.c print-frag6.c print-rt6.c print-ospf6.c print-dhcp6.c $LOCALSRC"
++  LOCALSRC="print-ip6.c print-ip6opts.c print-mobility.c print-ripng.c print-icmp6.c print-frag6.c print-rt6.c print-dhcp6.c $LOCALSRC"
+   cat >>confdefs.h <<\_ACEOF
+ #define INET6 1
+ _ACEOF
+diff --git a/configure.in b/configure.in
+index eb3e5e8..fc365d4 100644
+--- a/configure.in
++++ b/configure.in
+@@ -172,7 +172,7 @@ AC_ARG_ENABLE(ipv6,
+   --disable-ipv6          disable ipv6 support],
+ [ case "$enableval" in
+ yes)   AC_MSG_RESULT(yes)
+-       LOCALSRC="print-ip6.c print-ip6opts.c print-mobility.c print-ripng.c print-icmp6.c print-frag6.c print-rt6.c print-ospf6.c print-dhcp6.c $LOCALSRC"
++       LOCALSRC="print-ip6.c print-ip6opts.c print-mobility.c print-ripng.c print-icmp6.c print-frag6.c print-rt6.c print-dhcp6.c $LOCALSRC"
+        AC_DEFINE(INET6)
+        ipv6=yes
+        ;;
+@@ -194,7 +194,7 @@ main()
+ }
+ ],
+ [ AC_MSG_RESULT(yes)
+-  LOCALSRC="print-ip6.c print-ip6opts.c print-mobility.c print-ripng.c print-icmp6.c print-frag6.c print-rt6.c print-ospf6.c print-dhcp6.c $LOCALSRC"
++  LOCALSRC="print-ip6.c print-ip6opts.c print-mobility.c print-ripng.c print-icmp6.c print-frag6.c print-rt6.c print-dhcp6.c $LOCALSRC"
+   AC_DEFINE(INET6)
+   ipv6=yes],
+ [ AC_MSG_RESULT(no)
+diff --git a/missing/dlnames.c b/missing/dlnames.c
+index 32072b7..e6cf25e 100644
+--- a/missing/dlnames.c
++++ b/missing/dlnames.c
+@@ -59,11 +59,7 @@ struct dlt_choice {
+ static struct dlt_choice dlt_choices[] = {
+ 	DLT_CHOICE(DLT_NULL, "BSD loopback"),
+ 	DLT_CHOICE(DLT_EN10MB, "Ethernet"),
+-	DLT_CHOICE(DLT_IEEE802, "Token ring"),
+-	DLT_CHOICE(DLT_ARCNET, "ARCNET"),
+-	DLT_CHOICE(DLT_SLIP, "SLIP"),
+ 	DLT_CHOICE(DLT_PPP, "PPP"),
+-	DLT_CHOICE(DLT_FDDI, "FDDI"),
+ 	DLT_CHOICE(DLT_ATM_RFC1483, "RFC 1483 IP-over-ATM"),
+ 	DLT_CHOICE(DLT_RAW, "Raw IP"),
+ #ifdef DLT_SLIP_BSDOS
+@@ -87,9 +83,6 @@ static struct dlt_choice dlt_choices[] = {
+ #ifdef DLT_IEEE802_11
+ 	DLT_CHOICE(DLT_IEEE802_11, "802.11"),
+ #endif
+-#ifdef DLT_FRELAY
+-	DLT_CHOICE(DLT_FRELAY, "Frame Relay"),
+-#endif
+ #ifdef DLT_LOOP
+ 	DLT_CHOICE(DLT_LOOP, "OpenBSD loopback"),
+ #endif
+@@ -108,24 +101,12 @@ static struct dlt_choice dlt_choices[] = {
+ #ifdef DLT_PRISM_HEADER
+ 	DLT_CHOICE(DLT_PRISM_HEADER, "802.11 plus Prism header"),
+ #endif
+-#ifdef DLT_IP_OVER_FC
+-	DLT_CHOICE(DLT_IP_OVER_FC, "RFC 2625 IP-over-Fibre Channel"),
+-#endif
+ #ifdef DLT_SUNATM
+ 	DLT_CHOICE(DLT_SUNATM, "Sun raw ATM"),
+ #endif
+ #ifdef DLT_IEEE802_11_RADIO
+ 	DLT_CHOICE(DLT_IEEE802_11_RADIO, "802.11 plus radio information header"),
+ #endif
+-#ifdef DLT_ARCNET_LINUX
+-	DLT_CHOICE(DLT_ARCNET_LINUX, "Linux ARCNET"),
+-#endif
+-#ifdef DLT_LINUX_IRDA
+-	DLT_CHOICE(DLT_LINUX_IRDA, "Linux IrDA"),
+-#endif
+-#ifdef DLT_LANE8023
+-	DLT_CHOICE(DLT_LANE8023, "Linux 802.3 LANE"),
+-#endif
+ #ifdef DLT_CIP
+ 	DLT_CHOICE(DLT_CIP, "Linux Classical IP-over-ATM"),
+ #endif
+diff --git a/print-atm.c b/print-atm.c
+index 135898b..4df247c 100644
+--- a/print-atm.c
++++ b/print-atm.c
+@@ -176,6 +176,7 @@ atm_if_print(const struct pcap_pkthdr *h, const u_char *p)
+ 		return (caplen);
+ 	}
+ 
++#if 0
+         /* Cisco Style NLPID ? */
+         if (*p == LLC_UI) {
+             if (eflag)
+@@ -183,6 +184,7 @@ atm_if_print(const struct pcap_pkthdr *h, const u_char *p)
+             isoclns_print(p+1, length-1, caplen-1);
+             return hdrlen;
+         }
++#endif
+ 
+ 	/*
+ 	 * Extract the presumed LLC header into a variable, for quick
+@@ -312,10 +314,12 @@ atm_print(u_int vpi, u_int vci, u_int traftype, const u_char *p, u_int length,
+ 			printf("meta: ");
+ 			return;
+ 
++#if 0
+ 		case VCI_ILMIC:
+ 			printf("ilmi: ");
+ 			snmp_print(p, length);
+ 			return;
++#endif
+ 		}
+ 	}
+ 
+@@ -329,9 +333,11 @@ atm_print(u_int vpi, u_int vci, u_int traftype, const u_char *p, u_int length,
+ 		atm_llc_print(p, length, caplen);
+ 		break;
+ 
++#if 0
+ 	case ATM_LANE:
+ 		lane_print(p, length, caplen);
+ 		break;
++#endif
+ 	}
+ }
+ 
+diff --git a/print-chdlc.c b/print-chdlc.c
+index 238e91a..f197db0 100644
+--- a/print-chdlc.c
++++ b/print-chdlc.c
+@@ -95,7 +95,6 @@ chdlc_print(register const u_char *p, u_int length) {
+ 	case CHDLC_TYPE_CDP:
+ 		chdlc_cdp_print(p, length);
+ 		break;
+-#endif
+         case ETHERTYPE_MPLS:
+         case ETHERTYPE_MPLS_MULTI:
+                 mpls_print(p, length);
+@@ -109,6 +108,7 @@ chdlc_print(register const u_char *p, u_int length) {
+                 else
+                     isoclns_print(p, length, length);
+                 break;
++#endif
+ 	default:
+                 if (!eflag)
+                         printf("unknown CHDLC protocol (0x%04x)", proto);
+diff --git a/print-ether.c b/print-ether.c
+index e086d16..dc28779 100644
+--- a/print-ether.c
++++ b/print-ether.c
+@@ -269,6 +269,7 @@ ethertype_print(u_short ether_type, const u_char *p, u_int length, u_int caplen)
+   	        arp_print(gndo, p, length, caplen);
+ 		return (1);
+ 
++#if 0
+ 	case ETHERTYPE_DN:
+ 		decnet_print(p, length, caplen);
+ 		return (1);
+@@ -287,10 +288,13 @@ ethertype_print(u_short ether_type, const u_char *p, u_int length, u_int caplen)
+ 		printf("(NOV-ETHII) ");
+ 		ipx_print(p, length);
+ 		return (1);
++#endif
+ 
++#if 0
+         case ETHERTYPE_ISO:
+                 isoclns_print(p+1, length-1, length-1);
+                 return(1);
++#endif
+ 
+ 	case ETHERTYPE_PPPOED:
+ 	case ETHERTYPE_PPPOES:
+@@ -303,9 +307,11 @@ ethertype_print(u_short ether_type, const u_char *p, u_int length, u_int caplen)
+ 	        eap_print(gndo, p, length);
+ 		return (1);
+ 
++#if 0
+ 	case ETHERTYPE_RRCP:
+ 	        rrcp_print(gndo, p - 14 , length + 14);
+ 		return (1);
++#endif
+ 
+ 	case ETHERTYPE_PPP:
+ 		if (length) {
+@@ -314,6 +320,7 @@ ethertype_print(u_short ether_type, const u_char *p, u_int length, u_int caplen)
+ 		}
+ 		return (1);
+ 
++#if 0
+ 	case ETHERTYPE_MPCP:
+ 	        mpcp_print(p, length);
+ 		return (1);
+@@ -330,10 +337,12 @@ ethertype_print(u_short ether_type, const u_char *p, u_int length, u_int caplen)
+ 	case ETHERTYPE_LLDP:
+ 	        lldp_print(p, length);
+ 		return (1);
++#endif
+ 
+         case ETHERTYPE_LOOPBACK:
+                 return (1);
+ 
++#if 0
+ 	case ETHERTYPE_MPLS:
+ 	case ETHERTYPE_MPLS_MULTI:
+ 		mpls_print(p, length);
+@@ -344,6 +353,7 @@ ethertype_print(u_short ether_type, const u_char *p, u_int length, u_int caplen)
+ 	case ETHERTYPE_MOPRC:
+ 	case ETHERTYPE_MOPDL:
+ 		/* default_print for now */
++#endif
+ 	default:
+ 		return (0);
+ 	}
+diff --git a/print-gre.c b/print-gre.c
+index 106e6fd..3e57fed 100644
+--- a/print-gre.c
++++ b/print-gre.c
+@@ -213,6 +213,7 @@ gre_print_0(const u_char *bp, u_int length)
+ 		ip6_print(bp, len);
+ 		break;
+ #endif
++#if 0
+ 	case ETHERTYPE_MPLS:
+ 		mpls_print(bp, len);
+ 		break;
+@@ -228,6 +229,7 @@ gre_print_0(const u_char *bp, u_int length)
+ 	case ETHERTYPE_TEB:
+ 		ether_print(bp, len, len, NULL, NULL);
+ 		break;
++#endif
+ 	default:
+ 		printf("gre-proto-0x%x", prot);
+ 	}
+diff --git a/print-igmp.c b/print-igmp.c
+index a848562..b126ad1 100644
+--- a/print-igmp.c
++++ b/print-igmp.c
+@@ -303,6 +303,7 @@ igmp_print(register const u_char *bp, register u_int len)
+         TCHECK2(bp[4], 4);
+         (void)printf("igmp leave %s", ipaddr_string(&bp[4]));
+         break;
++#if 0
+     case 0x13:
+         (void)printf("igmp dvmrp");
+         if (len < 8)
+@@ -314,6 +315,7 @@ igmp_print(register const u_char *bp, register u_int len)
+         (void)printf("igmp pimv1");
+         pimv1_print(bp, len);
+         break;
++#endif
+     case 0x1e:
+         print_mresp(bp, len);
+         break;
+diff --git a/print-ip.c b/print-ip.c
+index acf3bd8..f48576e 100644
+--- a/print-ip.c
++++ b/print-ip.c
+@@ -415,6 +415,7 @@ again:
+ 		goto again;
+ 	}
+ 
++#if 0
+ 	case IPPROTO_SCTP:
+ 		sctp_print(ipds->cp, (const u_char *)ipds->ip, ipds->len);
+ 		break;
+@@ -422,6 +423,7 @@ again:
+ 	case IPPROTO_DCCP:
+ 		dccp_print(ipds->cp, (const u_char *)ipds->ip, ipds->len);
+ 		break;
++#endif
+ 		
+ 	case IPPROTO_TCP:
+ 		/* pass on the MF bit plus the offset to detect fragments */
+@@ -440,7 +442,8 @@ again:
+ 		icmp_print(ipds->cp, ipds->len, (const u_char *)ipds->ip,
+ 			   ipds->off & (IP_MF|IP_OFFMASK));
+ 		break;
+-		
++
++#if 0
+ 	case IPPROTO_PIGP:
+ 		/*
+ 		 * XXX - the current IANA protocol number assignments
+@@ -473,6 +476,7 @@ again:
+ 	case IPPROTO_OSPF:
+ 		ospf_print(ipds->cp, ipds->len, (const u_char *)ipds->ip);
+ 		break;
++#endif
+ 
+ 	case IPPROTO_IGMP:
+ 		igmp_print(ipds->cp, ipds->len);
+@@ -494,15 +498,18 @@ again:
+ 		break;
+ #endif /*INET6*/
+ 
++#if 0
+ 	case IPPROTO_RSVP:
+ 		rsvp_print(ipds->cp, ipds->len);
+ 		break;
++#endif
+ 
+ 	case IPPROTO_GRE:
+ 		/* do it */
+ 		gre_print(ipds->cp, ipds->len);
+ 		break;
+ 
++#if 0
+ 	case IPPROTO_MOBILE:
+ 		mobile_print(ipds->cp, ipds->len);
+ 		break;
+@@ -519,6 +526,7 @@ again:
+ 	case IPPROTO_PGM:
+ 		pgm_print(ipds->cp, ipds->len, (const u_char *)ipds->ip);
+ 		break;
++#endif
+ 
+ 	default:
+ 		if ((proto = getprotobynumber(ipds->nh)) != NULL)
+diff --git a/print-ip6.c b/print-ip6.c
+index 1599cf2..9982a56 100644
+--- a/print-ip6.c
++++ b/print-ip6.c
+@@ -183,12 +183,14 @@ ip6_print(register const u_char *bp, register u_int length)
+ 			advance = rt6_print(cp, (const u_char *)ip6);
+ 			nh = *cp;
+ 			break;
++#if 0
+ 		case IPPROTO_SCTP:
+ 			sctp_print(cp, (const u_char *)ip6, len);
+ 			return;
+ 		case IPPROTO_DCCP:
+ 			dccp_print(cp, (const u_char *)ip6, len);
+ 			return;
++#endif
+ 		case IPPROTO_TCP:
+ 			tcp_print(cp, len, (const u_char *)ip6, fragmented);
+ 			return;
+@@ -218,6 +220,7 @@ ip6_print(register const u_char *bp, register u_int length)
+ 			break;
+ 		    }
+ 
++#if 0
+ 		case IPPROTO_PIM:
+ 			pim_print(cp, len, nextproto6_cksum(ip6, (u_short *)cp, len,
+ 							    IPPROTO_PIM));
+@@ -226,6 +229,7 @@ ip6_print(register const u_char *bp, register u_int length)
+ 		case IPPROTO_OSPF:
+ 			ospf6_print(cp, len);
+ 			return;
++#endif
+ 
+ 		case IPPROTO_IPV6:
+ 			ip6_print(cp, len);
+@@ -235,17 +239,21 @@ ip6_print(register const u_char *bp, register u_int length)
+ 		        ip_print(gndo, cp, len);
+ 			return;
+ 
++#if 0
+                 case IPPROTO_PGM:
+                         pgm_print(cp, len, (const u_char *)ip6);
+                         return;
++#endif
+ 
+ 		case IPPROTO_GRE:
+ 			gre_print(cp, len);
+ 			return;
+ 
++#if 0
+ 		case IPPROTO_RSVP:
+ 			rsvp_print(cp, len);
+ 			return;
++#endif
+ 
+ 		case IPPROTO_NONE:
+ 			(void)printf("no next header");
+diff --git a/print-llc.c b/print-llc.c
+index d20fbdf..e307c7a 100644
+--- a/print-llc.c
++++ b/print-llc.c
+@@ -196,6 +196,7 @@ llc_print(const u_char *p, u_int length, u_int caplen,
+ 		is_u = 0;
+ 	}
+ 
++#if 0
+ 	if (ssap_field == LLCSAP_GLOBAL && dsap_field == LLCSAP_GLOBAL) {
+ 		/*
+ 		 * This is an Ethernet_802.3 IPX frame; it has an
+@@ -218,6 +219,7 @@ llc_print(const u_char *p, u_int length, u_int caplen,
+             ipx_print(p, length);
+             return (1);
+ 	}
++#endif
+ 
+ 	dsap = dsap_field & ~LLC_IG;
+ 	ssap = ssap_field & ~LLC_GSAP;
+@@ -238,11 +240,13 @@ llc_print(const u_char *p, u_int length, u_int caplen,
+ 		}
+ 	}
+ 
++#if 0
+ 	if (ssap == LLCSAP_8021D && dsap == LLCSAP_8021D &&
+ 	    control == LLC_UI) {
+ 		stp_print(p+3, length-3);
+ 		return (1);
+ 	}
++#endif
+ 
+ 	if (ssap == LLCSAP_IP && dsap == LLCSAP_IP &&
+ 	    control == LLC_UI) {
+@@ -250,6 +254,7 @@ llc_print(const u_char *p, u_int length, u_int caplen,
+ 		return (1);
+ 	}
+ 
++#if 0
+ 	if (ssap == LLCSAP_IPX && dsap == LLCSAP_IPX &&
+ 	    control == LLC_UI) {
+ 		/*
+@@ -265,6 +270,7 @@ llc_print(const u_char *p, u_int length, u_int caplen,
+ 		ipx_print(p+3, length-3);
+ 		return (1);
+ 	}
++#endif
+ 
+ #ifdef TCPDUMP_DO_SMB
+ 	if (ssap == LLCSAP_NETBEUI && dsap == LLCSAP_NETBEUI
+@@ -296,11 +302,13 @@ llc_print(const u_char *p, u_int length, u_int caplen,
+ 		return (1);
+ 	}
+ #endif
++#if 0
+ 	if (ssap == LLCSAP_ISONS && dsap == LLCSAP_ISONS
+ 	    && control == LLC_UI) {
+ 		isoclns_print(p + 3, length - 3, caplen - 3);
+ 		return (1);
+ 	}
++#endif
+ 
+ 	if (ssap == LLCSAP_SNAP && dsap == LLCSAP_SNAP
+ 	    && control == LLC_UI) {
+@@ -422,6 +430,7 @@ snap_print(const u_char *p, u_int length, u_int caplen, u_int bridge_pad)
+ 			return (ret);
+ 		break;
+ 
++#if 0
+ 	case OUI_APPLETALK:
+ 		if (et == ETHERTYPE_ATALK) {
+ 			/*
+@@ -458,6 +467,7 @@ snap_print(const u_char *p, u_int length, u_int caplen, u_int bridge_pad)
+                 default:
+                         break;
+                 }
++#endif
+ 
+ 	case OUI_RFC2684:
+ 		switch (et) {
+@@ -482,6 +492,7 @@ snap_print(const u_char *p, u_int length, u_int caplen, u_int bridge_pad)
+ 			ether_print(p, length, caplen, NULL, NULL);
+ 			return (1);
+ 
++#if 0
+ 		case PID_RFC2684_802_5_FCS:
+ 		case PID_RFC2684_802_5_NOFCS:
+ 			/*
+@@ -527,6 +538,7 @@ snap_print(const u_char *p, u_int length, u_int caplen, u_int bridge_pad)
+ 		case PID_RFC2684_BPDU:
+ 			stp_print(p, length);
+ 			return (1);
++#endif
+ 		}
+ 	}
+ 	return (0);
+diff --git a/print-null.c b/print-null.c
+index a69997d..111cb61 100644
+--- a/print-null.c
++++ b/print-null.c
+@@ -129,18 +129,6 @@ null_if_print(const struct pcap_pkthdr *h, const u_char *p)
+ 		break;
+ #endif
+ 
+-	case BSD_AFNUM_ISO:
+-		isoclns_print(p, length, caplen);
+-		break;
+-
+-	case BSD_AFNUM_APPLETALK:
+-		atalk_print(p, length);
+-		break;
+-
+-	case BSD_AFNUM_IPX:
+-		ipx_print(p, length);
+-		break;
+-
+ 	default:
+ 		/* unknown AF_ value */
+ 		if (!eflag)
+diff --git a/print-ppp.c b/print-ppp.c
+index 7f231ea..c1a3226 100644
+--- a/print-ppp.c
++++ b/print-ppp.c
+@@ -1371,6 +1371,7 @@ handle_ppp(u_int proto, const u_char *p, int length)
+ 		ip6_print(p, length);
+ 		break;
+ #endif
++#if 0
+ 	case ETHERTYPE_IPX:	/*XXX*/
+ 	case PPP_IPX:
+ 		ipx_print(p, length);
+@@ -1382,6 +1383,7 @@ handle_ppp(u_int proto, const u_char *p, int length)
+ 	case PPP_MPLS_MCAST:
+ 		mpls_print(p, length);
+ 		break;
++#endif
+ 	case PPP_COMP:
+ 		printf("compressed PPP data");
+ 		break;
+diff --git a/print-sll.c b/print-sll.c
+index c954658..63a74a8 100644
+--- a/print-sll.c
++++ b/print-sll.c
+@@ -155,12 +155,14 @@ recurse:
+ 		 */
+ 		switch (ether_type) {
+ 
++#if 0
+ 		case LINUX_SLL_P_802_3:
+ 			/*
+ 			 * Ethernet_802.3 IPX frame.
+ 			 */
+ 			ipx_print(p, length);
+ 			break;
++#endif
+ 
+ 		case LINUX_SLL_P_802_2:
+ 			/*
+diff --git a/print-tcp.c b/print-tcp.c
+index e2559ec..3e3184e 100644
+--- a/print-tcp.c
++++ b/print-tcp.c
+@@ -194,6 +194,7 @@ tcp_print(register const u_char *bp, register u_int length,
+ 
+         hlen = TH_OFF(tp) * 4;
+ 
++#if 0
+         /*
+ 	 * If data present, header length valid, and NFS port used,
+ 	 * assume NFS.
+@@ -230,6 +231,7 @@ tcp_print(register const u_char *bp, register u_int length,
+ 			}
+                 }
+         }
++#endif
+ #ifdef INET6
+         if (ip6) {
+                 if (ip6->ip6_nxt == IPPROTO_TCP) {
+@@ -639,8 +641,11 @@ tcp_print(register const u_char *bp, register u_int length,
+         if (sport == TELNET_PORT || dport == TELNET_PORT) {
+                 if (!qflag && vflag)
+                         telnet_print(bp, length);
+-        } else if (sport == BGP_PORT || dport == BGP_PORT)
++        } 
++#if 0
++	else if (sport == BGP_PORT || dport == BGP_PORT)
+                 bgp_print(bp, length);
++#endif
+         else if (sport == PPTP_PORT || dport == PPTP_PORT)
+                 pptp_print(bp);
+ #ifdef TCPDUMP_DO_SMB
+@@ -649,8 +654,10 @@ tcp_print(register const u_char *bp, register u_int length,
+ 	else if (sport == SMB_PORT || dport == SMB_PORT)
+ 		smb_tcp_print(bp, length);
+ #endif
++#if 0
+         else if (sport == BEEP_PORT || dport == BEEP_PORT)
+                 beep_print(bp, length);
++#endif
+         else if (length > 2 &&
+                  (sport == NAMESERVER_PORT || dport == NAMESERVER_PORT ||
+                   sport == MULTICASTDNS_PORT || dport == MULTICASTDNS_PORT)) {
+@@ -659,12 +666,15 @@ tcp_print(register const u_char *bp, register u_int length,
+                  * XXX packet could be unaligned, it can go strange
+                  */
+                 ns_print(bp + 2, length - 2, 0);
+-        } else if (sport == MSDP_PORT || dport == MSDP_PORT) {
++        } 
++#if 0
++	else if (sport == MSDP_PORT || dport == MSDP_PORT) {
+                 msdp_print(bp, length);
+         }
+         else if (length > 0 && (sport == LDP_PORT || dport == LDP_PORT)) {
+                 ldp_print(bp, length);
+         }
++#endif
+ 
+         return;
+  bad:
+diff --git a/print-udp.c b/print-udp.c
+index 0f1528e..2048216 100644
+--- a/print-udp.c
++++ b/print-udp.c
+@@ -473,6 +473,7 @@ udp_print(register const u_char *bp, u_int length,
+ 
+ 		switch (packettype) {
+ 
++#if 0
+ 		case PT_VAT:
+ 			udpipaddr_print(ip, sport, dport);
+ 			vat_print((void *)(up + 1), up);
+@@ -493,6 +494,7 @@ udp_print(register const u_char *bp, u_int length,
+ 				nfsreply_print((u_char *)rp, length,
+ 				    (u_char *)ip);			/*XXX*/
+ 			break;
++#endif
+ 
+ 		case PT_RTP:
+ 			udpipaddr_print(ip, sport, dport);
+@@ -505,6 +507,7 @@ udp_print(register const u_char *bp, u_int length,
+ 				cp = rtcp_print(cp, ep);
+ 			break;
+ 
++#if 0
+ 		case PT_SNMP:
+ 			udpipaddr_print(ip, sport, dport);
+ 			snmp_print((const u_char *)(up + 1), length);
+@@ -514,12 +517,13 @@ udp_print(register const u_char *bp, u_int length,
+ 			udpipaddr_print(ip, sport, dport);
+ 			cnfp_print(cp, (const u_char *)ip);
+ 			break;
++#endif
+ 
+ 		case PT_TFTP:
+ 			udpipaddr_print(ip, sport, dport);
+ 			tftp_print(cp, length);
+ 			break;
+-
++#if 0
+ 		case PT_AODV:
+ 			udpipaddr_print(ip, sport, dport);
+ 			aodv_print((const u_char *)(up + 1), length,
+@@ -529,10 +533,12 @@ udp_print(register const u_char *bp, u_int length,
+ 			    0);
+ #endif
+ 			break;
++#endif
+ 		}
+ 		return;
+ 	}
+ 
++#if 0
+ 	if (!qflag) {
+ 		register struct sunrpc_msg *rp;
+ 		enum sunrpc_msg_type direction;
+@@ -566,6 +572,7 @@ udp_print(register const u_char *bp, u_int length,
+ 			return;
+ 		}
+ 	}
++#endif
+ 	udpipaddr_print(ip, sport, dport);
+ 
+ 	if (IP_V(ip) == 4 && (vflag > 1) && !Kflag && !fragmented) {
+@@ -600,12 +607,15 @@ udp_print(register const u_char *bp, u_int length,
+ 			ns_print((const u_char *)(up + 1), length, 0);
+ 		else if (ISPORT(MULTICASTDNS_PORT))
+ 			ns_print((const u_char *)(up + 1), length, 1);
++#if 0
+ 		else if (ISPORT(TIMED_PORT))
+ 			timed_print((const u_char *)(up + 1));
+ 		else if (ISPORT(TFTP_PORT))
+ 			tftp_print((const u_char *)(up + 1), length);
++#endif	
+ 		else if (ISPORT(IPPORT_BOOTPC) || ISPORT(IPPORT_BOOTPS))
+ 			bootp_print((const u_char *)(up + 1), length);
++#if 0
+ 		else if (ISPORT(RIP_PORT))
+ 			rip_print((const u_char *)(up + 1), length);
+ 		else if (ISPORT(AODV_PORT))
+@@ -615,6 +625,7 @@ udp_print(register const u_char *bp, u_int length,
+ #else
+ 			    0);
+ #endif
++#endif
+ 	        else if (ISPORT(ISAKMP_PORT))
+ 			 isakmp_print(gndo, (const u_char *)(up + 1), length, bp2);
+   	        else if (ISPORT(ISAKMP_PORT_NATT))
+@@ -623,20 +634,25 @@ udp_print(register const u_char *bp, u_int length,
+    	        else if (ISPORT(ISAKMP_PORT_USER1) || ISPORT(ISAKMP_PORT_USER2))
+ 			isakmp_print(gndo, (const u_char *)(up + 1), length, bp2);
+ #endif
++#if 0
+ 		else if (ISPORT(SNMP_PORT) || ISPORT(SNMPTRAP_PORT))
+ 			snmp_print((const u_char *)(up + 1), length);
++#endif
+ 		else if (ISPORT(NTP_PORT))
+ 			ntp_print((const u_char *)(up + 1), length);
++#if 0
+ 		else if (ISPORT(KERBEROS_PORT) || ISPORT(KERBEROS_SEC_PORT))
+ 			krb_print((const void *)(up + 1));
+ 		else if (ISPORT(L2TP_PORT))
+ 			l2tp_print((const u_char *)(up + 1), length);
++#endif
+ #ifdef TCPDUMP_DO_SMB
+ 		else if (ISPORT(NETBIOS_NS_PORT))
+ 			nbt_udp137_print((const u_char *)(up + 1), length);
+ 		else if (ISPORT(NETBIOS_DGRAM_PORT))
+ 			nbt_udp138_print((const u_char *)(up + 1), length);
+ #endif
++#if 0
+ 		else if (dport == 3456)
+ 			vat_print((const void *)(up + 1), up);
+ 		else if (ISPORT(ZEPHYR_SRV_PORT) || ISPORT(ZEPHYR_CLT_PORT))
+@@ -698,6 +714,7 @@ udp_print(register const u_char *bp, u_int length,
+                         lwapp_control_print((const u_char *)(up + 1), length, 0);
+                 else if (ISPORT(LWAPP_DATA_PORT))
+                         lwapp_data_print((const u_char *)(up + 1), length);
++#endif
+                 else if (ISPORT(SIP_PORT))
+ 			sip_print((const u_char *)(up + 1), length);
+                 else if (ISPORT(SYSLOG_PORT))
+diff --git a/tcpdump.c b/tcpdump.c
+index 06683af..cbc66e4 100644
+--- a/tcpdump.c
++++ b/tcpdump.c
+@@ -147,25 +147,7 @@ struct ndo_printer {
+ 
+ 
+ static struct printer printers[] = {
+-	{ arcnet_if_print,	DLT_ARCNET },
+-#ifdef DLT_ARCNET_LINUX
+-	{ arcnet_linux_if_print, DLT_ARCNET_LINUX },
+-#endif
+ 	{ ether_if_print,	DLT_EN10MB },
+-	{ token_if_print,	DLT_IEEE802 },
+-#ifdef DLT_LANE8023
+-	{ lane_if_print,        DLT_LANE8023 },
+-#endif
+-#ifdef DLT_CIP
+-	{ cip_if_print,         DLT_CIP },
+-#endif
+-#ifdef DLT_ATM_CLIP
+-	{ cip_if_print,		DLT_ATM_CLIP },
+-#endif
+-	{ sl_if_print,		DLT_SLIP },
+-#ifdef DLT_SLIP_BSDOS
+-	{ sl_bsdos_if_print,	DLT_SLIP_BSDOS },
+-#endif
+ 	{ ppp_if_print,		DLT_PPP },
+ #ifdef DLT_PPP_WITHDIRECTION
+ 	{ ppp_if_print,		DLT_PPP_WITHDIRECTION },
+@@ -173,19 +155,8 @@ static struct printer printers[] = {
+ #ifdef DLT_PPP_BSDOS
+ 	{ ppp_bsdos_if_print,	DLT_PPP_BSDOS },
+ #endif
+-	{ fddi_if_print,	DLT_FDDI },
+-	{ null_if_print,	DLT_NULL },
+-#ifdef DLT_LOOP
+-	{ null_if_print,	DLT_LOOP },
+-#endif
+ 	{ raw_if_print,		DLT_RAW },
+ 	{ atm_if_print,		DLT_ATM_RFC1483 },
+-#ifdef DLT_C_HDLC
+-	{ chdlc_if_print,	DLT_C_HDLC },
+-#endif
+-#ifdef DLT_HDLC
+-	{ chdlc_if_print,	DLT_HDLC },
+-#endif
+ #ifdef DLT_PPP_SERIAL
+ 	{ ppp_hdlc_if_print,	DLT_PPP_SERIAL },
+ #endif
+@@ -198,24 +169,15 @@ static struct printer printers[] = {
+ #ifdef DLT_IEEE802_11
+ 	{ ieee802_11_if_print,	DLT_IEEE802_11},
+ #endif
+-#ifdef DLT_LTALK
+-	{ ltalk_if_print,	DLT_LTALK },
+-#endif
+ #if defined(DLT_PFLOG) && defined(HAVE_NET_PFVAR_H)
+ 	{ pflog_if_print,	DLT_PFLOG },
+ #endif
+ #ifdef DLT_FR
+ 	{ fr_if_print,		DLT_FR },
+ #endif
+-#ifdef DLT_FRELAY
+-	{ fr_if_print,		DLT_FRELAY },
+-#endif
+ #ifdef DLT_SUNATM
+ 	{ sunatm_if_print,	DLT_SUNATM },
+ #endif
+-#ifdef DLT_IP_OVER_FC
+-	{ ipfc_if_print,	DLT_IP_OVER_FC },
+-#endif
+ #ifdef DLT_PRISM_HEADER
+ 	{ prism_if_print,	DLT_PRISM_HEADER },
+ #endif
+@@ -225,66 +187,14 @@ static struct printer printers[] = {
+ #ifdef DLT_ENC
+ 	{ enc_if_print,		DLT_ENC },
+ #endif
+-#ifdef DLT_SYMANTEC_FIREWALL
+-	{ symantec_if_print,	DLT_SYMANTEC_FIREWALL },
+-#endif
+-#ifdef DLT_APPLE_IP_OVER_IEEE1394
+-	{ ap1394_if_print,	DLT_APPLE_IP_OVER_IEEE1394 },
+-#endif
+ #ifdef DLT_IEEE802_11_RADIO_AVS
+ 	{ ieee802_11_radio_avs_if_print,	DLT_IEEE802_11_RADIO_AVS },
+ #endif
+-#ifdef DLT_JUNIPER_ATM1
+-	{ juniper_atm1_print,	DLT_JUNIPER_ATM1 },
+-#endif
+-#ifdef DLT_JUNIPER_ATM2
+-	{ juniper_atm2_print,	DLT_JUNIPER_ATM2 },
+-#endif
+-#ifdef DLT_JUNIPER_MFR
+-	{ juniper_mfr_print,	DLT_JUNIPER_MFR },
+-#endif
+-#ifdef DLT_JUNIPER_MLFR
+-	{ juniper_mlfr_print,	DLT_JUNIPER_MLFR },
+-#endif
+-#ifdef DLT_JUNIPER_MLPPP
+-	{ juniper_mlppp_print,	DLT_JUNIPER_MLPPP },
+-#endif
+-#ifdef DLT_JUNIPER_PPPOE
+-	{ juniper_pppoe_print,	DLT_JUNIPER_PPPOE },
+-#endif
+-#ifdef DLT_JUNIPER_PPPOE_ATM
+-	{ juniper_pppoe_atm_print, DLT_JUNIPER_PPPOE_ATM },
+-#endif
+-#ifdef DLT_JUNIPER_GGSN
+-	{ juniper_ggsn_print,	DLT_JUNIPER_GGSN },
+-#endif
+-#ifdef DLT_JUNIPER_ES
+-	{ juniper_es_print,	DLT_JUNIPER_ES },
+-#endif
+-#ifdef DLT_JUNIPER_MONITOR
+-	{ juniper_monitor_print, DLT_JUNIPER_MONITOR },
+-#endif
+-#ifdef DLT_JUNIPER_SERVICES
+-	{ juniper_services_print, DLT_JUNIPER_SERVICES },
+-#endif
+-#ifdef DLT_JUNIPER_ETHER
+-	{ juniper_ether_print,	DLT_JUNIPER_ETHER },
+-#endif
+-#ifdef DLT_JUNIPER_PPP
+-	{ juniper_ppp_print,	DLT_JUNIPER_PPP },
+-#endif
+-#ifdef DLT_JUNIPER_FRELAY
+-	{ juniper_frelay_print,	DLT_JUNIPER_FRELAY },
+-#endif
+-#ifdef DLT_JUNIPER_CHDLC
+-	{ juniper_chdlc_print,	DLT_JUNIPER_CHDLC },
+-#endif
+-#ifdef DLT_MFR
+-	{ mfr_if_print,		DLT_MFR },
+-#endif
++#if 0
+ #if defined(DLT_BLUETOOTH_HCI_H4_WITH_PHDR) && defined(HAVE_PCAP_BLUETOOTH_H)
+ 	{ bt_if_print,		DLT_BLUETOOTH_HCI_H4_WITH_PHDR},
+ #endif
++#endif
+ #ifdef HAVE_PCAP_USB_H
+ #ifdef DLT_USB_LINUX
+ 	{ usb_linux_48_byte_print, DLT_USB_LINUX},
+--
+

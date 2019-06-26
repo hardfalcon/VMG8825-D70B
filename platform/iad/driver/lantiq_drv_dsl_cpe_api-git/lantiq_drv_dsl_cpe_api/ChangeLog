@@ -1,0 +1,1468 @@
+NEXT VERSION
+
+V4.19.3 - 2017-12-06
+common:
+- VRX (DSLCPE_SW-1116) Intra DTU must be enabled for R5 firmware
+
+V4.19.2 - 2017-12-04
+common:
+- VRX (DSLCPE_SW-1103) Usage of new BAR register for PPE frequency scaling
+  + Added handling for new suberror code LINIT_SUB_S_PP_CLOCK_NEW
+- VRX (DSLCPE_SW-1086) Extend DSL CPE API to work with line state change events
+  instead of polling
+  + Update MCAT header files MCAT 3.0
+  + Added callback handling for line state changes
+  + Aligned Autoboot state machine to work with events (or polling)
+
+V4.19.1 - 2017-10-26
+common:
+- VRX (DSLCPE_SW-1093) Include improvements for error condition handlings within
+  firmware message send functionality
+- VRX (DSLCPE_SW-986) Deactivate CMD_RA_ModeDS_Get and CMD_RA_ModeUS_Get with
+  ADSL firmware
+- VRX (DSLCPE_SW-1075) Extend version information with ChipSetType for VRX517
+- VRX (DSLCPE_SW-1060) Systematic usage of T1.413 inventory messages at wrong
+  time
+- VRX (DSLCPE_SW-1068) Extended autoboot script file handling needs to support
+  dynamic line numbers
+- VRX (DSLCPE_SW-1073) Update MCAT header files to latest revision (Rev.3.0)
+- VRX (DSLCPE_SW-1083) Counter addition of BC/LP related PM counters
+- VRX (DSLCPE_SW-1079) Support and cleanup functionality for ADSL PTM bonding
+
+V4.19.0 - 2017-06-08
+common:
+- VRX (DSLCPE_SW-1070) Cleanup implementation for optimized Firmware download
+- VRX (DSLCPE_SW-1062) Changes within max data rates that needs to be configured
+- VRX (DSLCPE_SW-1067) Rework handling for enabling TC-Layer events on FW level
+  (EVT_TC_StatusGet)
+- VRX518 (DSLCPE_SW-1064) Add new value for hybrid type
+
+V4.18.10 - 2017-04-21
+-
+
+V4.18.9 - 2017-03-24
+common:
+- VRX (DSLCPE_SW-1037) Extend feed_dsl_cpe with additional packages for
+  VRX318 and VRX518
+
+V4.18.8 - 2017-03-02
+common:
+- VRX318/518 (DSLCPE_SW-1003) Automatic detection of available VRX devices
+  + Introduce new kernel module options, replace defines with new global
+    variables
+  + Use number of lines / devices from MEI module initialization instead of
+    defines
+- VRX (DSLCPE_SW-1048) Merge missing 518 functionalities to default
+  + DSLCPE_SW-1012 CIPOLICY configuration to be adopted due to FW change
+  + DSLCPE_SW-1009 Change implementation of BAR register usage for ERB
+handling
+
+V4.18.7 - 2017-02-10
+- VRX (DSLCPE_SW-1036)Improvement of configuration handling for BAR14/17
+  + Retry ERB data retrieval
+- VRX (DSLCPE_SW-1043) Rework implementation for R9 FW message backward
+  compatible handling
+  + add seperate directories with vrx headers
+
+V4.18.6 - 2017-01-26
+common:
+- VRX (DSLCPE_SW-1039) Backward compatible handling for Firmware message with
+  changed parameter size (16/32 bit)
+- VRX (DSLCPE_SW-1029) Rework PM thread suspend and resume handling
+  + change mutex to dowm_interruptible
+- VRX (DSLCPE_SW-1028) Issue with reporting of SNR
+  + in US and DS in both 17a and 35B profile
+
+V4.18.5 - 2016-12-07
+common:
+- VRX (UGW_SW-10246) GRX_300: DSL mode on/off causes kernel crash
+  + do not unlock PM during module Stop
+- VRX (DSLCPE_SW-1025) DSL/PP callback interface does not provide correct
+  bonding information
+  + Corrected data size type for nRemotePafAvailable handling (consistencly use
+    32-bit value)
+- VRX518 (DSLCPE_SW-1019) Changes within max data rates that needs to be
+  configured
+  + Changed max PTM US rate to 100Mbit/s
+- VRX (DSLCPE_SW-1012) CIPOLICY configuration to be adopted due to FW change
+  + CIPOLICY adopted
+- VRX (DSLCPE_SW-1001) Extend API driver and Control Application with support
+  for R10 FW
+  + import mcat version 2.9
+  + extend internal tables for 8192 carriers
+- VRX518 (DSLCPE_SW-1009) Change implementation of BAR register usage for ERB
+  handling
+  + add support for additional BAR registers
+  + initialize BAR 14 & BAR 17 with values obtained from PPA via new callback
+
+V4.18.4 - 2016-09-05
+common:
+- VRX (DSLCPE_SW-990) Extend API driver and Control Application for support of
+  new VRX518 device
+  + extended configuration option to make VR11 (VRX518) available
+  + added new chipset type/string (Lantiq-VRX500)
+
+V4.18.3 - 2016-08-31
+common:
+- (VRX DSLCPE_SW-999) Link drop and potential kernel crash in case of R9 FW
+  + Do not leave showtime if MEI_InternalXtmSwhowtimeEntrySignal fails,
+    log error instead
+
+V4.18.2 - 2016-08-11
+-
+
+V4.18.1 - 2016-07-29
+common:
+-VRX (DSLCPE_SW-956) Semaphore lock timeout within context of PM modules
+  + change a DSL_DRV_PM_Lock and DSL_DRV_PM_unLock to stop threads
+  (DSL_DRV_PM_ThreadNe and DSL_DRV_PM_ThreadFe) instead of locking
+  them uninterruptedly
+- VRX (UGW_SW-8087) gcc security hardening support fixes for drv_mei_cpe
+  and drv_dsl_cpe_api
+  + Delete a CFLAGS from EXTRA_CFLAGS for drv_dsl_cpe_api.ko
+- VRX (DSLCPE_SW-954) Some FW messages are not included within whitelist
+  + Added CMD_TESTOPTIONSSET to the white list
+  + Remove implementation for sending obsolete CMD_AlgorithmControlSet and
+    CMD_AlgorithmControlGet message
+- VRX (DSLCPE_SW-985) Reduce error prints within default UGW usage
+  + Reduce log level of some messages
+- VRX (DSLCPE_SW-916) API Interface extensions to support calibration
+  configuration for US/DS PSD
+  + Added DSL_DRV_VRX_SendMsgPSDCalibration[DS|US][Set|Get]
+  + Added PSD Calibration support to DSL_DRV_DEV_ModemWriteConfig
+- VRX (DSLCPE_SW-977) Double QLN data is displayed on API level. On FW level,
+  all 512 values are available
+  + correct a g997dqlng, g997dhling, g997dhlogg
+  + fixed a incorrect macro call in "DSL_DRV_DEV_G997_DeltHlinGet"
+- VRX (DSLCPE_SW-978) Restarting DSL after Complete Shutdown is not working.
+  + fixed module and file_operations reference counting
+
+
+V4.18.0 - 2016-02-29
+common:
+- VRX (DSLCPE_SW-957) Bringup of VRX320 on Cougar Park V2.0 hardware
+  + use file_inode(pFile) on recent kernel versions
+  + add hotplug support
+  + do not use DS, fix compile problem under x86
+- VRX (DSLCPE_SW-953) [Debug] Usage of netlink ID -29 (NETLINK_DBG_MSG)
+  + DSL_DBG_MSG_NETLINK_ID can be configured via MEI driver configuration of
+    menuconfig
+- VRX DSLCPE_SW-958: warn about format errors and fix them
+  + do not hide and fix format warnings
+- (DSLCPE_SW-908) Complete/review parameters within DSL FAPI/Subystem
+  interface mapping
+  + New ioctl(s) added:
+    DSL_FIO_T1413_XTUR_REVISION_GET (mapped to the CMD_T1413_RevNo_R_Get)
+    DSL_FIO_T1413_XTUO_REVISION_GET (mapped to the CMD_T1413_RevNo_O_Get)
+    DSL_FIO_T1413_XTUR_VENDOR_REVISION_GET (CMD_T1413_VendorRevNo_R_Get)
+    DSL_FIO_T1413_XTUO_VENDOR_REVISION_GET (CMD_T1413_VendorRevNo_R_Get)
+  + Extended ioctl(s) handling:
+    DSL_FIO_G997_US_POWER_BACK_OFF_STATUS_GET (CMD_PBO_AELEM_Status_Get)
+- DSLCPE_SW-930: Values in Gain table DS are incorrect
+  + Supported Q8.8 to Q3.13 converting for ADSL DS case
+- VRX (DSLCPE_SW-898) Extend DSL Subsystem with support for PME ID
+  + Added CMD_PAF_PME_ID_SET to the white list
+  + Added R9 firmware version check
+
+V4.17.19 - 2015-12-01
+- Branch-off point for development only (no tarball)
+
+V4.17.18 - 2015-11-17
+common:
+- VRX (DSLCPE_SW-856) Extend handling to support G.992.2 mode
+ + Extended ADSL1 Lite mode handling
+- VRX (DSLCPE_SW-917) Correct issues for integration of MCAT Rev2.7
+  + Extended new MCAT 2.7 control parameters with default values
+- VRX (DSLCPE_SW-911) Remove "Automatic detection from XTSE configuration"
+  for ActivationSequence
+  + Excluded DSL_ACT_SEQ_AUTO option from handling
+  + Changed CMD_Misc_ConfigSet (0x3A48) handling due to new MCAT 2.7
+    (StartMode is used for Standard and NonStandard activation sequence)
+
+V4.17.17 - 2015-10-13
+common:
+- VRX (DSLCPE_SW-889) API extension needed for 35b profile
+  + Corrected data type (DSL_uint16_t) of Profile status to detect 35b correctly
+
+V4.17.16 - 2015-10-09
+-
+
+V4.17.15 - 2015-09-25
+- (DSLCPE_SW-914) Remove SOAP implementation
+  + Excluded SOAP related functionality
+
+V4.17.14 - 2015-09-02
+common:
+- VRX (DSLCPE_SW-898) Extend DSL Subsystem with support for PME ID
+  + Added CMD_PAF_PME_ID_Set fw message support
+  + Extended DSL_DRV_DEV_ModemWriteConfig() with PME ID set function
+- VRX (DSLCPE_SW-885) Simplified handling of PMD Test Parameter reporting
+  + Merged header files for MCAT 2.6
+- VRX (DSLCPE_SW-889) API extension needed for 35b profile
+  + Merged header files for MCAT 2.7
+  + Added profile 35B handling
+  + Extended CMD_HS_StandardInfoFE_SPAR1Get debug print outs
+- VRX (DSLCPE_SW-887) [Debug] Include support for handling of debug strings
+  wrt UGW-6.5 definitions/requirements
+  + Debug logger support added
+  + DSL_FIO_DBG_MODULE_DESTINATION_SET/GET ioctls added to control debug output
+    destination (DSL_DBG_DST_CONSOLE/DSL_DBG_DST_LOGGER)
+
+V4.17.13 - 2015-08-19
+common:
+- (DSLCPE_SW-881) Changes for reboot criterias required due to firmware changes
+  + Changed Negative_MARGIN conf value to be only valid for Danube
+
+V4.17.12 - 2015-08-07
+Bug fix(es):
+- VRX (DSLCPE_SW-891) Release package R7MR3-BT can only executed in debug mode,
+  patch is needed for new release package
+common:
+- (DSLCPE_SW-901) Rework open topics from interagtion within SL
+  + Fixed Klocwork warnings
+
+V4.17.11 - 2015-07-17
+- VRX (DSLCPE_SW-885) Simplified handling of PMD Test Parameter reporting
+  + Extended separate parameters handling for MCAT 2.5.2 and MCAT 2.6 for
+    DSL_FIO_G997_SNR_ALLOCATION_NSC_GET, DSL_FIO_G997_DELT_HLOG_GET,
+    DSL_FIO_G997_DELT_QLN_GET, DSL_FIO_G997_DELT_SNR_GET
+
+V4.17.10 - 2015-07-10
+- VRX (DSLCPE_SW-883) Implementation of TR-181 extensions for DSL FAPI (phase2)
+  + Added DSL_FIO_G997_RATE_ADAPTATION_STATUS_GET ioctl handling
+
+V4.17.9 - 2015-06-26
+common:
+- VRX (DSLCPE_SW-858) Implementation for DSL/PPE TC switchover extensions
+  + Removed mutex handling from within IRQ context
+- Updated copyright header and "LICENSE" file
+
+V4.17.8 - 2015-06-19
+common:
+- VRX (DSLCPE_SW-862) Merge fixes and changes for g997dhlog/g997dsnrg/g997dqlng
+  to active branches
+  + supported 4.15.2 branch patches extensions for g997dhlog/g997dsnrg/g997dqlng
+  + reworked g997bang, g997gang, g997sang handling
+  + cleaned up obsolete Vinax source code of gain tables handling
+- VRX220 (DSLCPE_SW-868) eval board with UGW6.1/ API 4.17.2 / R7 FW crashes
+  + fixed not safety access to the OpenContextList pointer
+- VRX (DSLCPE_SW-858) Implementation for DSL/PPE TC switchover extensions
+  + added MEI driver callback handling functionality
+  + extended used TC layer handling for autonomous message EVT_TC_StatusGet
+
+V4.17.7 - 2015-03-16
+common:
+- VRX320 (DSLCPE_SW-816) Merge changes from "vrx320_qca" to "default" branch
+  + added VRX320 device support
+- VRX (DSLCPE_SW-857) Extension of local orderly shutdown procedure
+  + Merged latest MCAT 2.5.2 headers
+  + Removed link freeze implementation
+  + Implemented link terminated extensions
+- VRX (DSLCPE_SW-856) Extend handling to support G.992.2 mode
+  + Extended XTSE confiruation handling for Annex A G.992.2 type
+
+V4.17.6 - 2015-03-02
+common:
+- VRX (DSLCPE_SW-837) API for FW R8 Release - Change of default configuration
+  values
+  + reworked LineFeatureConfig::b20BitSupport default value handling
+
+V4.17.5 - 2015-01-23
+common:
+- VRX - Initial version that supports GRX500
+  + Included possibility to use external driver c-flags
+Bug fix(es):
+- VRX (DSLCPE_SW-851) Initialization of DSL CPE API not working correctly
+  + Fixed problem within initialization (DSL_FIO_INSTANCE_CONTROL_SET) of
+    the API
+
+V4.17.4 - 2015-01-09
+common:
+- VRX (DSLCPE_SW-838) Message header files update to VRX FWMCAT Rev2.5.1
+  + extended message headers and default values handling
+- VRX (DSLCPE_SW-836) T1.413 related extensions of multimode FSM with regard
+  to vectoring
+  + extended Automode FSM according to APS3 v2b
+- VRX (DSLCPE_SW-839) Changes related to Attainable Net Datarate (ATTNDR)
+  + Added ioctl DSL_FIO_G997_ATTAINABLE_NDR_STATUS_GET handling
+  + Added fw message CMD_ATTNDRSTATUSGET (0xF003) handling
+- VRX (DSLCPE_SW-841) Extend VersionInformationGet parameter "nHybrid" with
+  new definition
+  + extended HybridType with new param (Annex-B/J)
+Bug fix(es):
+- VRX (DSLCPE_SW-770) Klocwork reworks/fixes for UGW-6.1(.x)
+
+V4.17.3 - 2014-12-05
+- (DSLCPE_SW-823) Configure NE inventory with meaningful values based on CPE
+  platform and config
+  + Extended inventory XTSECapabilities values handling
+    + get current XTSE config (xDSL for NearEnd)
+    + added CMD_HS_STANDARDINFOFE_VDSL2GET for white list (VDSL for FarEnd)
+- VRX (DSLCPE_SW-810) CPE configuration of supported VDSL Profiles
+  + clean up unused profile 17b for supported profiles check
+- VRX (DSLCPE_SW-837) API for FW R8 Release - Change of default configuration
+  values
+  + splitted reboot criteria config ctx data for adsl and vdsl default values
+  + splitted line features config ctx data for adsl and vdsl default values
+  + excluded rate adaptation special handling added within DSLCPE_SW-768
+- VRX (DSLCPE_SW-749) Rework Retransmission counter related API functions.
+  + fixed wrong XTU direction to MCAT mapping
+  + extended thresholds handling for Retx nEftrMin counter
+- VRX (DSLCPE_SW-826) VDSL: API commands does not return US data: g997dhlog,
+  g997dsnrg, g997dqlng
+  + extended context variables handling with new macro DSL_CTX_NREAD
+
+V4.17.2 - 2014-10-24
+common:
+- VRX (DSLCPE_SW-815) FEC and CRC values in pmccsg jump suddenly to a very high
+  number when disturbing the line
+  + extended showtime counters g_VRxPM_MsgChecklist with available state
+    (exception)
+  + please note that this covers only a part of the issue! The Jira
+    DSLCPE_SW-824 (which is currently open) needs to be included in addition.
+- VRX (DSLCPE_SW-810) CPE configuration of supported VDSL Profiles
+  + Extended Vdsl profiled configuration set within Modem config init (use only
+    selected profiles via DSL_FIO_VDSL_PROFILE_CONFIG_SET)
+- VRX (DSLCPE_SW-794) Optimize DSL Firmware download from performance point of
+  view.
+  + Fixed uninitialised variable nFwFeatures for optimised download case
+Bug fix(es):
+- VRX (DSLCPE_SW-826) VDSL: API commands does not return US data: g997dhlog,
+  g997dsnrg, g997dqlng
+  + Get data from ctx manually (mem error at DSL_CTX_READ: different elements at
+    array)
+
+V4.17.1 - 2014-08-12
+common:
+- VRX (DSLCPE_SW-809)Multimode related configureations from dsl.cfg file are not
+  taken into account
+  + extended handshake multimode timeout handling
+  + extended fw message CMD_Misc_ConfigSet parameters set
+
+V4.17.0 - 2014-08-04
+common:
+- VRX320 (DSLCPE_SW-790) Changes for QCA platform
+  + fixed MCAT header files for little endian case
+- VRX (DSLCPE_SW-780 )Rework PM counter implementation
+  + added PM messages check list implementation
+- VRX (DSLCPE_SW-781) Rework autoboot status handling in case of disabled autoboot.
+  + exlcuded bAutobootThreadStarted flag check from DSL_DRV_AutobootStatusSet
+  + reworked autoboot handling in case of autoboot thread(s) are not started
+- VRX (DSLCPE_SW-745) Optimization for functions which returns per-subcarrier data
+  + added DSL_DRV_VRX_SendMsgSnrPerGroupesGet function (read only active groupes)
+  + fixed DSL_FIO_G997_DELT_SNR_GET handler issue (diagnostic delt data type case)
+- VRX (DSLCPE_SW-794) Optimize DSL Firmware download from performance point of view.
+  + extended fw download by DSL_FIO_AUTOBOOT_LOAD_FIRMWARE::bForceFwDownload flag
+    handling to support chunks reuse mode
+
+V4.16.6 - 2014-04-16
+common:
+- (DSLCPE_SW-784) State 0xff on CPE after activation of Debug messages
+  for mutlimode tests
+  + added ioctl DSL_FIO_FIRMWARE_DOWNLOAD_STATUS_GET support to trigger
+  firmware download status within startup script
+
+V4.16.5 - 2014-03-07
+Bug fix(es):
+- (DSLCPE_SW-786) [VRX] Counter overflow in UAS or FECS values
+ + extended UAS counter handling
+  + exluded possible overflow within autoboot timeouts handling
+
+V4.16.4 - 2014-03-05
+Bug fix(es):
+- VRX (DSLCPE_SW-789) Version check for G.INP Amd2 Support (ReTx) is wrong
+  + Corrected version check including check to enable feature only for VDSL
+common:
+- VRX (DSLCPE_SW-777) In case of bonding is enabled increase polling cycle
+  frequency during G.HS phase
+  + excluded PM related counters (except UAS) polling cycle within training
+  + added CMD_ATM_BC0_TXSTATSNE_GET to the DSL_DRV_VRX_g_MsgDumpBlacklist
+- (DSLSPE_SW-771) Extend debugging functionality and take care that it is
+  working completely
+  + extended DSL_FIO_DBG_MODULE_LEVEL_SET/GET (+ DSL_DBG_NOTIFICATIONS)
+  + extended showtime enter/exit debug prints with new debug level
+- VRX (DSLCPE_SW-783) first US parameters are 0, when API command lsg is
+  directly after ST is read.
+  + extended DSL_DRV_VRX_LineStatusGet() function
+- (DSLCPE_SW-711) Misc smaller improvements
+  + extended context variables read/write operations with mutex protection
+  + updated timeout wait values within according defines and descriptions
+- (DSLCPE_SW-786) [VRX] Counter overflow in UAS or FECS values
+  + fixed ms counter overflow handling for UAS counter
+  + extended LineSecCounters restore with FECS counter
+  + fixed ES counter restore
+  + extended UAS counter handling aligned in sync with IFXOS_ElapsedTimeMSecGet
+  + extended DSL_DRV_ElapsedTimeMSecGet aligned to the IFXOS_ElapsedTimeMSecGet
+- (DSLPCE_SW-787) [VRX] US ETR value read from CPE through API command is not
+  correct
+  + extended msg white list with CMD_RTX_BEARERCHSUS_GET
+
+V4.16.3 - 2014-01-29
+common:
+- VRX (DSLCPE_SW-768) API for FW R7 Release - Change of default configuration
+  values
+  + Added handling to set API default for (S)RA mode within context of FW
+    download only in case no user specific re-configurations has been done
+    before
+- VRX (DSLCPE_SW-767) Extensions for retry-counter handling of
+  Multimode State Machine (APS3).
+  + Extended with CAM retry function with nCamGhsReinits counter.
+- VRX (DSLCPE_SW-778) Line unlock does not work in case of operating a single
+  link line on a boding CPE (related to the DSLCPE_SW-752)
+  + fix orderly shutdown usage in case of internal firmware exception case
+- VRX (DSLCPE_SW-775) Automatically enable Telefonica mode in case of T1.413 is
+  configured at startup
+  + extended startup activation sequence with auto sequence config.
+- VRX (DSLCPE_SW-777) In case of bonding is enabled increase polling cycle
+  frequency during G.HS phase
+  + added DSL_AUTOBOOT_BONDING_TRAINING_POLL_TIME 100ms for PafEnable case
+    between link actvation and full init
+  + added new function DSL_DRV_BND_BondingEnableCheck
+
+V4.16.2 - 2014-01-16
+-
+
+V4.16.1 - 2014-01-15
+common:
+- (DSLCPE_SW-770) Klocwork reworks/fixes for UGW-6.1.
+  + Extended drv_dsl_cpe_api (UGW_VRX288_GW_HE_VDSL_LTE)
+
+V4.16.0 - 2014-01-10
+common:
+- Updated copyright header (year 2014)
+
+V4.15.10 - 2013-12-19
+- VRX (DSLCPE_SW-768) API for FW R7 Release - Change of default configuration
+  values
+- VRX (DSLCPE_SW-759) Include and test CPE controlled L3 orderly shutdown handling
+
+V4.15.9 - 2013-12-06
+- VRX (DSLCPE_SW-749) Rework Retransmission counter related API functions.
+  + fix compile with disabled PM ReTX counters
+  + fix DSL_DRV_PM_PTR_RETX_COUNTERS macro (definition & usage)
+
+V4.15.8 - 2013-12-05
+common:
+- (DSLCPE_SW-772) Take care that MEI driver version can be more than three digits
+  + Reworked implementation for ADSL platforms (ADSL MEI Driver related handling)
+- VRX (DSLCPE_SW-749) Rework Retransmission counter related API functions.
+  + Extended PM_ReTxCounters with nErrorFreeBits, nLeftr.
+  + Extended PM_LineSecCounters with nFECS.
+  + Fixed nEftrMin handling for PM Showtime counter.
+- VRX (DSLCPE_SW-752) Strictly usage of local orderly shutdown.
+  + Extended transition to L3 within showtime update with orderly shutdown.
+  + Extended SNR min margin error within showtime update with orderly shutdown.
+- VRX (DSLCPE_SW-764) CMV bit to enable/disable G.INP Amendment 2 support.
+  + Added G.998.4 Amendment 2 support.
+- VRX (DSLCPE_SW-731) Extend far end counter handling of PM module.
+  + Added FarEnd CMD_ATM_BC0_StatsFE_Get (MsgId 0x330A) (HEC, IBE, CD, CU).
+
+V4.15.7 - 2013-09-18
+common:
+- VRX (DSLCPE_SW-757)Extend Retransmission config&status for Upstream direction
+  + Message header files update to VRX FWMCAT Rev2.3
+  + Extended handling for upstream RTX config und status, *excluding* counters
+    from within following functions
+    - DSL_FIO_PM_RETX_COUNTERS_xxx_GET
+    - DSL_FIO_RETX_STATISTICS_GET
+
+V4.15.6 - 2013-09-13
+common:
+- (DSLCPE_SW-755) Extensions for G997_RateAdaptationConfigSet handling
+- VRX (DSLCPE_SW-754) Using different DSL FW binaries for dual port
+  and single port mode.
+  + Extended firmware download handling with second firmware.
+
+V4.15.5 - 2013-08-22
+-
+
+V4.15.4 - 2013-08-16
+common:
+- (DSLCPE_SW-734) Take care that DSL Subsystem is fully functional with
+  Linux kernel 3.8.
+  + Extended source code for Danube to be compilable with linux kernel 3.8
+Bug fix(es):
+- Danube (DSLCPE_SW-744) SNRpsds w/ and w/o virtual noise including bugfixes for
+  all per-tone/subcarrier functions.
+  + Fixed compilation error for DSL_DRV_DEV_DeltSNRGet() function.
+
+V4.15.3 - 2013-08-09
+common:
+- (DSLCPE_SW-734) Take care that DSL Subsystem is fully functional with
+  Linux kernel 3.8.
+  + Extended source code for VRX to be compilable with linux kernel 3.8
+
+V4.15.2 - 2013-07-29
+common:
+- VRX (DSLCPE_SW-744) SNRpsds w/ and w/o virtual noise including bugfixes for
+  all per-tone/subcarrier functions.
+  Extended DELT functions according to MCAT 2.2 (see Table 12 How to retrieve
+  test parameter data). Use fw values from CO side via EOC (showtime case).
+  Added periodically update FE test parameters (background mode).
+- VRX (DSLCPE_SW-743) Message header files update to VRX FWMCAT Rev2.2
+
+V4.15.1 - 2013-07-18
+Bug fix(es):
+- VRX (DSLCPE_SW-739) VDSL modes are masked out in case of ADSL link activation
+  Corrected to include configured VDSL modes within FW configuration of ADSL
+  link activation
+common:
+- VRX (DSLCPE_SW-738) Bonding and ReTx functionality needs to be enabled together
+- (DSLCPE_SW-736) Change of default configuration values
+  Updated the following default configuration values
+  + bReTxEnable enabled
+  + VRX only: bVirtualNoiseSupport enabled
+  + VRX only: G.HS tones A43+A43C for AnnexA respective B43+B43C for AnnexB
+  + XTSE octets for AnnexB set to 0x10 0x00 0x00 0x00 0x00 0x04 0x01 0xXX
+- VRX (DSLCPE_SW-728) Adapt TR1/TR2 supervision for ReTx specific EFTR_min
+  parameter.
+  Extended PM module handling for reTxCounters.
+- VRX (DSLCPE_SW-732) Include/rework implementation for NoiseMargingDelta
+  configuration.
+  Implementation re-included again with extensions (one parameter for ADSL and
+  VDSL).
+
+V4.15.0 - 2013-07-10
+Bug fix(es):
+- VRX (DSLCPE_SW-724) ADSL / ReTx / ActualDataRate is in kpbs
+  Reworked handling (incl. ReTx) for g997csg related parameters
+- VRX (DSLCPE_SW-710) VDSL-PTM doesn't reach showtime when changing mode from
+  any DSL
+  + Extend NextMode update from non-fail state error (wrong xtse config).
+- VRX (DSLCPE_SW-707) Extensions for Multimode State Machine (APS3)
+  + fixed restart disabled line for manual enabling second line.
+  + extend disabled line lock (one of two lines could be paf not available)
+  + set bGotShowtime flag for VRX within showtime state.
+  + added check for opposite line disabled.
+  + added check for only vdsl firmware for CMD_PAF_HS_StatusGet (0xDD03).
+- VRX (DSLCPE_SW-712) Error Prints from DSL on the console.
+  + extended DSL_DRV_VRX_SendMsgXtseStatusGet function printout (msg dump added).
+- VRX (DSLCPE_SW-692) Activating specific debug output results in "Oops[#1]"
+  on autoboot re-start. Extended debug prints table DSL_DBG_PRN_AUTOBOOT_STATE
+  with orderly shutdown autoboot states (reques, wait, reached).
+- (UGW_SW-3017) Script notification shall be only called in case of relevant
+  state changes
+common:
+- VRX (DSLCPE_SW-729) Add FAST LOS suberror code to the known list of
+  SubErrorCodes
+- VRX (DSLCPE_SW-726) Message header files update to VRX FWMCAT Rev2.1
+- VRX (DSLCPE_SW-720) XTSE8 (VDSL region) bit on CPE does not match with the
+  configured value on CPE and not with reported value on CO side
+  + If US0 is not used all three regions (A/B/C) are indicated now
+- VRX (DSLCPE_SW-718)Increase API training timout handling for vectoring to 12
+  minutes
+- VRX (DSLCPE_SW-672) Extend autoboot handling with orderly link shutdown
+  handling.
+  + added transition from ORDERLY_SHUTDOWN_WAIT state to RESTART state.
+  + added orderly shutdown after autoboot training timeout restart.
+- (DSLCPE_SW-704) Investigate error prints within autoboot stop/start sequence.
+  Changed autoboot start error prints level to warning.
+- VRX (DSLCPE_SW-707) Extensions for Multimode State Machine (APS3).
+  Extended autoboot handling for off-chip bonding board and non-bonding CO
+  (2 lines connected).
+- VRX (DSLCPE_SW-730) L2 exit according to G.992.3 Amendment 4.
+  Extended using message CMD_ModemFSM_OptionsSet with DSL_G997_PMMODE_BIT_L2_STATE
+  configuration. PMMode stored within DSL_Context.
+
+V4.14.12 - 2013-04-05
+common:
+- Klocwork issues crosschecked/fixed
+
+V4.14.11 - 2013-04-02
+common:
+- VRX (DSLCPE_SW-672) Extend autoboot handling with orderly shutdown handling.
+  + Added handling for orderly shutdown within training and showtime states.
+- VRX (DSLCPE_SW-693) Checks for dual port mode (on-chip bonding) are incorrect.
+  Updated fw feature checks only for on-chip bonding.
+
+V4.14.10 - 2013-03-25
+common:
+- VRX (DSLCPE_SW-682) API for FW R6 Release - Support for unified multimode
+  state machine
+  + Changed implementation according to APS3 multimode handling V1d to combine
+    Telefonica switching mode functionality (from V4.11.x) with bonding
+    functionality (on-chip and off-chip, from V4.13.x)
+
+V4.14.9 - 2013-03-22
+Bug fix(es):
+- VRX (DSLCPE_SW-702) SRA VDSL FW version check is wrong for "released" FW binary
+- VRX (DSLCPE_SW-697) Correct VDSL FW version checks to allow also app type "7"
+- VRX318 (DSLCPE_SW-691) Disabling autoboot state machine results in problems.
+  Removed INCLUDE_DSL_CPE_API_VRX defined section within function
+  DSL_DRV_AutobootHandleOrderlyShutdownRequest() implementation.
+- VRX (DSLCPE_SW-680) API for FW R6 Release - Include API formated message dump
+  within MEI
+  + Added mapping of low level driver debug configuration (dbgmls 13)
+  + Fine tuning of MEI debug level for MEI_MSG_DUMP_API (as within updated Jira)
+  + Initialized MEI related debug levels within DSL_DRV_Init()
+common:
+- (DSLCPE_SW-701) Extend API interface for getting more fail state information
+- VRX (DSLCPE_SW-694) Message header files update to VRX FWMCAT Rev2.0
+- VRX (DSLCPE_SW-667) API for FW R6 Release - New AELEM Feature to be added.
+  Changed nAeleMode type to enum DSL_G997_AeleMode_t. Added absent mapping
+  API nAeleMode to the fw message value.
+
+V4.14.8 - 2013-03-04
+Bug fix(es):
+- VRX318 (DSLCPE_SW-691) Disabling autoboot state machine results in problems
+- VRX (DSLCPE_SW-688) RTX DS - CRC reporting
+common:
+- VRX (DSLCPE_SW-679) API for FW R6 Release - Erasure decoding specific INP
+  report. Added new parameters ActualImpulseNoiseProtectionNoErasure and
+  ActualImpulseNoiseProtectionRein handling, updated parameter
+  ActualImpulseNoiseProtection handling (fw value used instead of calculated
+  within API).
+
+V4.14.7 - 2013-02-27
+common:
+- VRX (DSLCPE_SW-686) Extensions for SystemInterfaceStatus handling
+- VRX (DSLCPE_SW-678) API for FW R6 Release - Handling for new FW application
+  type (which supports G.Vector). Transfer platform id and fw xdsl mode for
+  MEI driver.
+- VRX (DSLCPE_SW-680) API for FW R6 Release - Include API formated message dump
+  within MEI. ModuleLevelSet for msg dump in sync with MEI debug dump prints.
+- VRX (DSLCPE_SW-667) API for FW R6 Release - New AELEM Feature to be added.
+  Added ioctl DSL_FIO_G997_US_POWER_BACK_OFF_STATUS_GET handling (mapped to the
+  ACK_PBO_AELEM_Status_Get firmware message).
+
+V4.14.6 - 2013-02-15
+Bug fix(es):
+- VRX (DSLCPE_SW-685) Notification Events for DSL Bonding and Status are not
+  received in the xdslrc.sh script
+  Reworked event generation for DSL_EVENT_S_SYSTEM_INTERFACE_STATUS
+- Danube (DSLCPE_SW-663) In case of INCLUDE_DSL_DELT undefined g997lsg returns
+  error DSL_ERR_DELT_DATA_NOT_AVAILABLE
+common:
+- Enhanced upstream framing (DSL_ENHANCED_FRAMING_US) will be enabled by default
+- Fixed ReTx counters save issue for several "acs 2" auotoboot restart.
+- CMD_ATM_BC0_TXSTATSNE_GET moved to whitelist from blacklist
+
+V4.14.5 - 2013-02-05
+Bug fix(es):
+- Fix for VRX FWMCAT Rev1.9 update: Corrected message length for
+  "CMD_ATM_BC0_StatsNE_Set" (MsgID: 0x2E4A)
+common:
+- VRX318 (DSLCPE_SW-672) Extend autoboot handling with orderly link shutdown
+  handling.
+  Extended the autoboot handling state machine with an additional state
+  "OrderlyShutdownRequested".
+- Fixed ReTx counters save issue for several "acs 2" auotoboot restart.
+- CMD_ATM_BC0_TXSTATSNE_GET moved to whitelist from blacklist
+
+V4.14.4 - 2013-01-25
+Bug fix(es):
+- VRX (DSLCPE_SW-673) In case of ReTx is used ActualNetDataRate (g997csg) is zero
+- VRX (DSLCPE_SW-668) ReTx: lfsg does not give the correct status for
+  Retransmission (on/off)
+common:
+- VRX (DSLCPE_SW-669) ReTx is also supported for ADSL AnnexB
+- VRX (DSLCPE_SW-653) Update implementation of DSL_FIO_G997_CHANNEL_STATUS_GET
+   for ReTx specific handling. Added ActualNetDataRate parameter handling.
+- Danube (DSLCPE_SW-657) Make usage of ReTx specific net data rate. Updated
+  actual data rate handling in retransmission case.
+- VRX (DSLCPE_SW-660) Supported for TC-Layer automode in VDSL (Step 1, 2).
+  Updated SystemIf Status handling. Updated DataPathCounters (ATM or PTM)
+  according to the selected TC-Layer.
+- VRX (DSLCPE_SW-650) Cleanup of obsolete preprocessor definition
+  INCLUDE_DSL_CPE_API_VRX_FULL_MSG.
+- [DSLCPE_SW-665][ARX300] DSL Subsystem is fully functional with Linux kernel 2.6.36
+- Danube [DSLCPE_SW-663] Function g997lsg deliver values for
+  nDeltDataType == diagnostic.
+- VRX (DSLCPE_SW-664) Message header files updated to VRX FWMCAT Rev1.9
+
+V4.14.3 - 2012-12-03
+common:
+- Marked left over and not used SAR related functionalities ("not used anymore")
+- VRX (DSLCPE_SW-654) Added supporting SRA for VDSL.
+
+V4.14.2 - 2012-11-26
+common:
+- VRX (DSLCPE_SW-622) Message header files updated to VRX FWMCAT Rev1.8
+
+V4.14.1 - 2012-09-14
+common:
+- VRX (DSLCPE_SW-635) Message header files updated to VRX FWMCAT Rev1.7
+  Modem initialization updated with function DSL_DRV_VRX_SendMsgMiscConfigSet
+- VRX (DSLCPE_SW-637) API for FW R5.1 Release - Support for Virtual Noise.
+  Added CMD_ModemFSM_Options2Set msg handle to ModemWriteConfig.
+  Updated ioctl DSL_FIO_LINE_FEATURE_CONFIG_SET handle (VRX support).
+- VRX (DSLCPE_SW-639) API for FW R5.1 Release - ReTx is also supported for ADSL.
+  RTX related messages handled for minimun firmware versions
+  DSL_MIN_FW_VERSION_RETX_ADSL and DSL_MIN_FW_VERSION_RETX_VDSL.
+
+V4.14.0 - 2012-09-05
+common:
+  Workarounds added for problems within communication to the PP subsystem
+  (showtime entry/exit handling)
+
+V4.13.3 - 2012-09-04
+Bug fix(es):
+- VRX (DSLCPE_SW-642) Link drops in G992.1A mode.
+  DSL_DRV_VRX_AdslChStatusGet() handling fixed, added back ADSL1 mode
+  detection
+
+V4.13.2 - 2012-08-16
+common:
+- (DSLCPE_SW-630) Cleanup deprecated functionalities
+  Removed deprecated implementation related to LED and line failure counter
+  handling
+Bug fix(es):
+- (DSLCPE_SW-618) Extend low level (MEI) driver for support of new SMART PHY
+  Rollback of changes (not needed because PCIe driver will provide base address
+  for PDBRAM)
+- VRX (DSLCPE_SW-614) Add tear down functionality within context of autoboot
+  restart
+  Corrected implementation for Danube Family (fixed unknown symbols)
+
+V4.13.1 - 2012-07-27
+common:
+- Danube family (DSLCPE_SW-602) Split AutobootHandleStart with
+  new function DSL_DRV_DEV_ModemWriteConfig.
+- VRX - New IOCTL(s) added:
+  + DSL_FIO_BND_PORT_MODE_SYNC_SET
+- Reduce changelog up to V4.0
+- VRX (DSLCPE_SW-610) [VRX200] Correct includation of ReTx functionality:
+  IOCTL DSL_FIO_RETX_STATISTICS_GET extended for VRX.
+- (DSLCPE_SW-600) Remove unnecessary preprocessor options
+  VRX (DSLCPE_SW-627) Corrections for FW msg. handling accdg. to MCAT Rev1.6.1
+  CMD_InteropConfigGet is not supported anymore.
+- VRX (DSLCPE_SW-614) Add tear down functionality within context of autoboot
+  restart.
+  Implemented LinkFreeze functionality (by undefined in MCAT messages).
+- (DSLCPE_SW-618) Extend low level (MEI) driver for support of new SMART PHY.
+  Added PDBRAM field handling for device low level configuration.
+Bug fix(es):
+- Danube family (DSLCPE_SW-602) Migrate special FW configurations for
+  retransmission to AutobootHandleStart (to be handled in configuration phase).
+- VRX (DSLCPE_SW-603) [VRX200] VRX Onchip-Bonding FSM: Inconsistency after
+  transition from VDSL dual port to single port mode. Updating current FSM mode
+  according to sync value BndPortModeSync controled by ioctl. Added according
+  debug print "CAM - Port Mode Sync".
+- VRX (DSLCPE_SW-606) [VRX200] Showtime Interleaving Delay is wrong in ADSL2/2.
+  Using direct fw delay values instead of calculating it in API (only ADSL).
+
+V4.13.0 - 2012-03-19
+common:
+- Danube&ARX300 [DSLCPE_SW-599] Remove blacklist handling completely
+  - excluded OPTN 15 (OLR_CONTROL), DSL 0-2 (FEATURE_CONTROL,
+  ERASURE_DECODER_CONTROL, PSD_CONTROL)
+- Danube family [DSLCPE_SW-602] Include special FW configurations in
+  case of enabling ReTx. Updated LinkActivate function.
+
+V4.12.3 - 2012-03-09
+Bug fix(es):
+- VRX (DSLCPE_SW-556)[VRX200] Bonding -- Handling of preprocessor definitions:
+  + Updated configure.in file
+- VRX (DSLCPE_SW-597) [VRX200] Include functionality to support PM related
+  counters for ADSL modes. Added PM implementation according to MCAT 1.6
+common:
+- Danube&ARX300 [DSLCPE_SW-593]Update blacklist handling for S7 Firmware release
+  - updated ARX300 blacklist (removed OPTN 9)
+  - highpass filter (bFtTxPotsHp) is not handled for ARX300 firmware
+- VRX (DSLCPE_SW-597)[VRX200]:
+  - updated header files according to MCAT 1.6
+- VRX (DSLCPE_SW-598) [VRX200]  Missing T1.413 related ModemState needs to be
+  added. T1.413 line state handling added.
+
+V4.12.2 - 2012-01-20
+Bug fix(es):
+- VRX (DSLCPE_SW-592) [VRX200] ON-chip Bonding -- Retry counter is not
+  incrementing on S_XDSL_MODE in Dual Port Mode.
+  Additional fix added to reset bCamDualPortModeSteady flag.
+- VRX (DSLCPE_SW-591) [VRX200] OFF-chip Bonding -- Extend API for basic
+  off-chip bonding support.
+  Minor extensions/fixes added.
+
+V4.12.1 - 2012-01-17
+Bug fix(es):
+- VRX: Internal overwrite removed for nTcLayer configuration parameter.
+- VRX (DSLCPE_SW-584) Extensions for Microfilter detection.
+  + Added flag for activation of MFD within CMD_OperationOptionsSet message and
+    set it to VRX_ENABLE
+  + Updated Metric2 declaration
+  + Updated Metric1 handling
+  + Updated BTFlag mapping
+  + Added error DSL_ERR_NOT_SUPPORTED_IN_CURRENT_VDSL_MODE for MFD related
+    IOCtl/CLI commands in case of VDSL is currently active
+  + Updated DSL_DRV_DEV_LinkActivate: "not supported in VDSL mode" warning added
+    in case of VDSL is currently active
+- VRX (DSLCPE_SW-588) Clean-up of profile configuration via FW message
+  CMD_HS_VDSL2ProfileControl.
+  CMD_HS_VDSL2ProfileControl handling fixed.
+- Danube (DSLCPE_SW-569) Timing performance - optimization using CMV commands
+  with data located in continuous block
+  + Updated DSL_DRV_DANUBE_LineInventoryNeWrite() function
+  + Updated DSL_CEOC_DANUBE_MessageReceive() function
+  + Updated DSL_DRV_DANUBE_G997_LineTrainingStatusUpdate() function
+  + Updated DSL_DRV_PM_DEV_ChannelCountersSet() function
+  + Updated DSL_Error_t DSL_DRV_PM_DEV_DataPathCountersGet() function
+- VRX: Correction within context of CMD_OLR_Control
+  + MsgSize corrected within drv_dsl_cpe_vrx_msg_olr.h (19->16 bit)
+  + Use positive logic for Bitswap enable bits
+  + removed special handling to disable Bitswaps in VDSL mode
+  + SRA is now also supported by ADSL firmware for US (upstream) direction
+- VRX (DSLCPE_SW-592) [VRX200] ON-chip Bonding -- Retry counter is not
+  incrementing on S_XDSL_MODE in Dual Port Mode.
+  Retry function fixed
+common:
+ARX300:
+  - Removed configuration CMV of SystemInterface (INFO 103) from black list
+merge from 4.10.9:
+   V4.10.9 - 2011-12-28
+   common:
+   - DSL_EVENT_S_MULTIMODE_FSM_STATUS event handling removed completely.
+   - DSL_MultimodeFsmStatusData_t type removed
+   - DSL_MultimodeFsmConfig_t type removed
+   - DSL_FIO_MULTIMODE_FSM_CONFIG_SET/GET ioctls removed
+   - DSL_FIO_MULTIMODE_FSM_STATUS_GET ioctl removed
+   VRX:
+   - Add bPafEnable handling to select next activation mode.
+   - CMD_HS_VDSL2ProfileControl msg handling updated with respect to the
+     latest MCAT.
+   Bug fix(es):
+   - CAM FSM fix: don't change CAM state in the DUAL port mode showtime.
+   - DSLCPE_SW-589: [VRX200] ON-chip Bonding -- Violation of timing criterias
+     in case of ALU/BRCM DSLAM.
+     SW/HW reboot triggers fixed.
+
+   V4.10.8 - 2011-10-28
+   common:
+   - VRX & Danube (DSLCPE_SW-561) Set CPE vendor ID to defined value
+   VRX:
+   - enable only profiles 8 a/b/c/d for the dual-port mode.
+   - mask out ADSL XTSE settings for the dual-port mode.
+   - mask out PAF settings for the single-port mode in the on-chip bonding.
+   - DSLCPE_SW-581: [VRX200] Bonding -- Implementation of new multimode FSM
+     Implementation added according to the specified requirements.
+   Bug fix(es):
+   - VRX (DSLCPE_SW-543) Enable/extend Retransmission (ReTx) support for VRX200
+     BugFix to update ReTx status (CLI: lfsg, bReTxEnable) correctly in showtime.
+   - DSLCPE_SW-578: [VRX200] ON-chip Bonding -- Possibility to compile for non
+     bonded operation.
+     Compile options handling fixed. The latest Multimode FSM tested for the
+     non-bonded operation.
+   V4.10.7 - 2011-10-13
+   common:
+   - ARX300:
+     + Extended DSL_FirmwareFeatures_t struct with nPlatformId (major version of FW)
+       This is extracted from what string and therefore defines the running
+       platform before firmware download has been done.
+     + Adapted handling for ARX300 platform at multiple places
+   - ARX300 (DSLCPE_SW-577) Blacklist to avoid usage of not supported configuration
+     messages included
+
+   V4.10.6 - 2011-09-23
+   common:
+   - VRX (DSLCPE_SW-543) Enable/extend Retransmission (ReTx) support for VRX200
+   - VRX (DSLCPE_SW-576) Configuration consistency - Exclusive OR enable for
+     Bonding and ReTx
+   - VRX (DSLCPE_SW-572) Support of NTR feature
+   - VRX (DSLCPE_SW-573) Extend mapping of ACTPS to FW message value
+   - VRX (DSLCPE_SW-570) ON-chip Bonding -- Autoboot handling stuck partially fixed
+
+   V4.10.5 - 2011-09-08
+   common:
+   - DSLCPE_SW-563: [VRX200] ON-chip Bonding -- Usage of feature indication what
+     string
+     Implementation is generic but currently it is only used for indication of a
+     dual port mode (bonding) capable firmware.
+   - common (DSLCPE_SW-568) Timing performance - Optimization of autoboot polling
+     cycles
+
+   V4.10.4 - 2011-08-11
+   Bug fix(es):
+   - DSLCPE_SW-556: [VRX200] Bonding -- Handling of preprocessor definitions.
+     Handling extended.
+   - Apply soft reboot also on a training timeout for a bonded link.
+
+   V4.10.3 - 2011-08-04
+   common:
+   - New error code(s) added:
+     + DSL_ERR_AUTOBOOT_DISABLED = -103
+   API:
+   - DSL_AutobootCtrlSet_t extended with:
+     + DSL_AUTOBOOT_CTRL_DISABLE = 4
+     + DSL_AUTOBOOT_CTRL_ENABLE = 5
+     + DSL_AUTOBOOT_CTRL_RESTART_FULL = 6
+   - DSL_AutobootStatGet_t extended with:
+     + DSL_AUTOBOOT_STATUS_DISABLED
+
+   V4.10.2 - 2011-08-03
+   common:
+   - "--with-lines-per-device" configuration option added
+   VRX:
+   - On-chip bonding implementation added
+
+V4.12.0 - 2011-12-19
+- New IOCTL(s) added:
+  + DSL_FIO_OLR_STATISTICS_GET
+- IOCTL(s) extended for VRX:
+  DSL_FIO_LOOP_LENGTH_STATUS_GET
+  DSL_FIO_FILTER_DETECTION_DATA_GET
+  DSL_FIO_HYBRID_SELECTION_DATA_GET
+common:
+- VRX & Danube (DSLCPE_SW-574) Add configuration option for "Upstream Enhanced Framing"
+- VRX & Danube (DSLCPE_SW-539) Extend interface with OLR statistic counters.
+  OLR statistics counters support added.
+- VRX (DSLCPE_SW-584) Extensions for Microfilter detection.
+  VRX MFD implementation added.
+
+V4.11.1 - 2011-10-26
+common:
+- VRX & Danube (DSLCPE_SW-561) Set CPE vendor ID to defined value
+Bug fix(es):
+- VRX (DSLCPE_SW-543) Enable/extend Retransmission (ReTx) support for VRX200
+  BugFix to update ReTx status (CLI: lfsg, bReTxEnable) correctly in showtime.
+
+V4.11.0 - 2011-09-26
+Bug fix(es):
+- VRX (DSLCPE_SW-550) T1.413 mode shall be included to be used by default
+  Update to make it possible to select T1.413 mode exclusively.
+- common (DSLCPE_SW-568) Timing performance - Optimization of autoboot polling
+  cycles
+- VRX (DSLCPE_SW-543) Enable/extend Retransmission (ReTx) support for VRX200
+- VRX (DSLCPE_SW-572) Support of NTR feature
+- VRX (DSLCPE_SW-573) Extend mapping of ACTPS to FW message value
+
+V4.10.1 - 2011-07-18
+common:
+- VRX (DSLCPE_SW-550) T1.413 mode shall be included to be used by default
+  T1.413 mode is included in case of ADSL AnnexA by default and can be
+  configured manually in addition.
+- VRX (DSLCPE_SW-541) Enable/extend SystemInterface-Config/-Status
+  implementation
+
+V4.10.0 - 2011-04-11
+common:
+- Danube RTT status update extended.
+Bug fix(es):
+- VRX (DSLCPE_SW-529) Implementation of message dump printouts are not in
+  sync with specification.
+  Implementation extended to fulfill specification.
+- VRX (DSLCPE_SW-533) Optimize multimode handling.
+  On sub-error code "S_XDSL_MODE" switch to VDSL mode.
+- Danube
+  RTT functionality check fixed.
+
+V4.9.2 - 2011-02-24
+Bug fix(es):
+- VRX (DSLCPE_SW-529) Implementation of message dump printouts are not in
+  sync with specification.
+  RX/TX message dump fixed.
+- Danube (N/A)
+  Several fixes added to compatibility with new MEI driver sources.
+
+V4.9.1 - 2011-02-18
+common:
+- VRX (DSLCPE_SW-530) Multimode debugging capability.
+  New debug module definition added: DSL_DBG_MULTIMODE.
+  Multiple debug messages related to multimode handling added.
+
+V4.9.0 - 2011-02-15
+common:
+- VRX (DSLCPE_SW-531) Message header files update to VRX FWMCAT Rev1.4.
+  Header files updated, related code reworked.
+
+V4.8.12 - 2011-01-31
+Bug fix(es):
+- Common (DSLCPE_SW-529) Implementation of message dump printouts are not in
+  sync with specification.
+  message dump implementation fixed.
+- Danube (DSLCPE_SW-527) Problems in case of special split-point configuration.
+  warning doesn't lead to an error anymore.
+
+V4.8.11 - 2011-01-28
+common:
+- Common (DSLCPE_SW-431) linefeaturestatus does not return an error if system is
+  not in showtime.
+  Linestate check added to DSL_DRV_LineFeatureStatusGet.
+- VRX (DSLCPE_SW-485) Add information of which hybrid type (HW) is connected to
+  version command.
+  Hybrid type information added to the ioctl DSL_FIO_VERSION_INFORMATION_GET.
+
+V4.8.10 - 2011-01-14
+Bug fix(es):
+- Danube (DSLCPE_SW-523) Configuration and status implementation for ReTx is
+  wrong
+  ReTx activation and status check fixed.
+- Danube (DSLCPE_SW-524) g997xtusecs does not reflect the actual mode enabled
+  for AnxJ
+  AnxJ handled as AnxB. All related code reworked.
+
+V4.8.9 - 2010-12-29
+Bug fix(es):
+- Danube (N/A) DELT array spread function fixed.
+- VRX (DSLCPE_SW-505) DELT for VR9 FW in ADSL mode reports only every second
+  tone.
+  Spread DELT downstream values for ADSL mode.
+
+V4.8.8 - 2010-12-24
+Bug fix(es):
+- Common (DSLCPE_SW-522) Reboot causes soft lockup and then kernel panic.
+  Kernel thread handling fixed.
+common:
+- Common (DSLCPE_SW-518) New IOCTL(s) added
+  + DSL_FIO_DBG_DEVICE_MESSAGE_MODIFY_SEND
+
+V4.8.7 - 2010-12-02
+Bug fix(es):
+- Danube (N/A) CMV DSL 8 8 initialization removed.
+
+V4.8.6 - 2010-12-01
+Bug fix(es):
+- Danube (N/A) Fixed RTT initialization.
+
+V4.8.5 - 2010-11-30
+Bug fix(es):
+- Danube (N/A) Fixed RTT initialization.
+common:
+- IOCTL DSL_FIO_RTT_INIT added Ip address and port settings.
+
+V4.8.4 - 2010-11-13
+Bug fix(es):
+- Common (DSLCPE_SW-511) Generation for "ifx_mei_atm_showtime_exit" signal does
+  not work correctly
+- VRX (DSLCPE_SW-511) Channel status update fixed.
+  Channel status information update added to MeiShowtimeSignaling.
+
+V4.8.3 - 2010-11-01
+common:
+- Added unit selector value in ioctl DSL_FIO_LOOP_LENGTH_STATUS_GET to choose
+  between feet and meter for loop length status values.
+- New IOCTL(s) added:
+  + DSL_FIO_HYBRID_SELECTION_DATA_GET
+  + DSL_FIO_FILTER_DETECTION_DATA_GET
+- new configuration option(s) added:
+  + INCLUDE_DSL_FILTER_DETECTION
+    (--enable-dsl-filter-detection)
+- Danube (DSLCPE_SW-507) Extensions for Microfilter detection.
+  Extensions added.
+
+V4.8.2 - 2010-10-15
+- New IOCTL(s) added:
+  + DSL_FIO_RTT_INIT
+  + DSL_FIO_RTT_CONFIG_SET
+  + DSL_FIO_RTT_CONFIG_GET
+  + DSL_FIO_RTT_STATUS_GET
+  + DSL_FIO_RTT_CONTROL_SET
+  + DSL_FIO_RTT_STATISTICS_GET
+- New configuration option added to enable/disable RTT support:
+  + --enable-real-time-trace (INCLUDE_REAL_TIME_TRACE)
+- Parameters nRxCorruptedTotal, nRxUncorrectedProtected, nRxRetransmitted,
+  nRxCorrected removed. Following IOCTL(s) affected:
+  + DSL_FIO_PM_RETX_COUNTERS_15MIN_GET
+  + DSL_FIO_PM_RETX_COUNTERS_1DAY_GET
+  + DSL_FIO_PM_RETX_COUNTERS_SHOWTIME_GET
+  + DSL_FIO_PM_RETX_COUNTERS_TOTAL_GET
+  + DSL_FIO_PM_RETX_HISTORY_STATS_15MIN_GET
+  + DSL_FIO_PM_RETX_HISTORY_STATS_1DAY_GET
+  + DSL_FIO_PM_RETX_THRESHOLDS_15MIN_GET
+  + DSL_FIO_PM_RETX_THRESHOLDS_15MIN_SET
+  + DSL_FIO_PM_RETX_THRESHOLDS_1DAY_GET
+  + DSL_FIO_PM_RETX_THRESHOLDS_1DAY_SET
+Bug fix(es):
+- VRX (DSLCPE_SW-510) Autoboot issue with ReTX fw.
+  Data Rate handling fixed.
+
+V4.8.1 - 2010-10-01
+- New IOCTL(s) added:
+  + DSL_FIO_RETX_STATISTICS_GET
+- Added parameter nEftrMin to DSL_PM_ReTxData_t structure
+  following IOCTL(s) affected:
+  + DSL_FIO_PM_RETX_COUNTERS_15MIN_GET
+  + DSL_FIO_PM_RETX_COUNTERS_1DAY_GET
+  + DSL_FIO_PM_RETX_COUNTERS_SHOWTIME_GET
+  + DSL_FIO_PM_RETX_COUNTERS_TOTAL_GET
+  + DSL_FIO_PM_RETX_HISTORY_STATS_15MIN_GET
+  + DSL_FIO_PM_RETX_HISTORY_STATS_1DAY_GET
+  + DSL_FIO_PM_RETX_THRESHOLDS_15MIN_GET
+  + DSL_FIO_PM_RETX_THRESHOLDS_15MIN_SET
+  + DSL_FIO_PM_RETX_THRESHOLDS_1DAY_GET
+  + DSL_FIO_PM_RETX_THRESHOLDS_1DAY_SET
+- Added parameter ActualNetDataRate to DSL_G997_ChannelStatusData_t structure.
+- Added new error code DSL_ERR_RETRANSMISSION_DISABLED.
+
+V4.8.0 - 2010-09-17
+- New IOCTL(s) added:
+  + DSL_FIO_LOOP_LENGTH_STATUS_GET
+- Danube (DSLCPE_SW-499) Added b20BitSupport within the following IOCTLs:
+  + DSL_FIO_LINE_FEATURE_CONFIG_SET/GET
+  + DSL_FIO_LINE_FEATURE_STATUS_GET
+Bug fix(es):
+- Danube (DSLCPE_SW-498) API for FW R5 Release - Looplength estimation.
+  Looplength estimation feature added.
+- Danube (DSLCPE_SW-497) API for FW R5 Release - Hybrid (LIF) Module Selection.
+  Hybrid selection support added.
+- Danube (DSLCPE_SW-495) API for FW R5 Release - Erasure decoding
+  Dependency between DSL_ERASURE_DECODING_TYPE_DS and DSL_TRUST_ME_BIT added.
+- Danube (DSLCPE_SW-496) API for FW R5 Release - US inband spectral shaping
+  DSL_INBAND_SPECTRAL_SHAPING_US mapping corrected.
+
+V4.7.3 - 2010-09-03
+common:
+- Added multiple VR9 messages to the white list
+  + CMD_CRC_STATSNE_NOTR1GET
+  + CMD_FEC_STATSNE_NOTR1GET
+  + CMD_CRC_STATSNE_NOTR1SET
+  + CMD_FEC_STATSNE_NOTR1SET
+Bug fix(es):
+- VRX (DSLCPE_SW-492) Event "DSL_EVENT_S_MULTIMODE_FSM_STATUS" is generated
+  also in single xDSL mode.
+  Single xDSL modes handling fixed.
+- VRX (DSLCPE_SW-489) no NE CRC & FEC in ADSL broken with FW 5.3.2.4.1.2
+  CRC and FEC ADSL handling extended.
+
+V4.7.2 - 2010-08-05
+common:
+- VRX (DSLCPE_SW-480) Cleanup of LowLevelConfigSet/Get according to VirtualNoise
+  switch
+- VRX (DSLCPE_SW-479) Default handshake tone sets
+  Extended interface and internal implementation as defined within jira issue.
+- VRX (DSLCPE_SW-475) Remove unused parameters from LowLevelConfigurationGet/Set
+  IOCTLs LowLevelConfigurationGet/Set parameters list reduced.
+- VRX (DSLCPE_SW-476) Handle new 'sub error code' of firmware for hybrid detection
+  error
+  New error code definition and handling added for suberror
+  LINIT_SUB_FW_HYBRID(=5)
+Bug fix(es):
+- Danube (DSLCPE_SW-482) Include read-modify-write sequence for DSL 2
+  Changed to read-modify-write for DSL0/1/2 access
+- Danube/VRX (DSLCPE_SW-484) DSL Drivers are getting loaded in Ethernet WAN Models
+  Extended driver installation scripts (inst_drv_dsl_cpe_api<_xxx>.sh) as suggested
+- VRX (DSLCPE_SW-477) Wrong TC-Layer returned in
+  "sisg"/"DSL_FIO_SYSTEM_INTERFACE_STATUS_GET"
+  Set TC-Layer staus and config within context of FW download as follows
+  ADSL FW -> ATM, VDSL FW -> EFM
+
+V4.7.1 - 2010-07-16
+Bug fix(es):
+- Common (DSLCPE_SW-473) Use 120s timeout for line activation for all platforms
+  Timeout values corrected.
+- VRx (DSLCPE_SW-474) Do not use configuration values for
+  "sics"/"DSL_FIO_SYSTEM_INTERFACE_CONFIG_SET".
+  Special error code DSL_WRN_CONFIG_PARAM_IGNORED (4) added for the
+  DSL_FIO_SYSTEM_INTERFACE_CONFIG_SET ioctl call.
+
+V4.7.0 - 2010-07-09
+Bug fix(es):
+- Danube (DSLCPE_SW-471) Optimization of the current US OHC Polling frequency.
+  PM FE counters request handling fixed, all OHC counters are handled in a
+  single HDLC request.
+- VRX (DSLCPE_SW-472) Provide line status parameters within context of
+  "g997lspbg" in ADSL mode.
+  Implementation extended.
+- Common (DSLCPE_SW-405) please reformat debug output of FW messages.
+  For Danube: Message dump for DSL_DBG_WRN level fixed.
+  For VRX: Message write check added. Message dump for DSL_DBG_WRN level
+  fixed. Message opcode definitions added to drv_dsl_cpe_device_vrx.h
+
+V4.6.3 - 2010-07-02
+Bug fix(es):
+- VRx (N/A) Multimode FSM switch fails from MULTIMODE ADSL to VDSL.
+  Internal FSM handling fixed.
+- VRx (N/A) DSL_FIO_MULTIMODE_FSM_STATUS_GET returns wrong values.
+  DSL_FIO_MULTIMODE_FSM_STATUS_GET ioctl handling fixed.
+
+V4.6.2 - 2010-07-01
+common:
+- VRx specific messages removed:
+  + CMD_REINITFE_CONFIGURE
+  + CMD_GAINCALIBRATIONSET
+  + CMD_HW_CONFIGSET
+  + CMD_LED_CONTROL
+- Added multiple VR9 messages to the white list
+  + CMD_PTM_BC0_STATSNE_GET
+  + CMD_PTM_BC0_STATSNE_SET
+  + CMD_ATM_BC0_STATSNE_GET
+  + CMD_ATM_BC0_STATSNE_SET
+  + CMD_LINEPERFCOUNTNE_NOTR1GET
+  + CMD_LINEPERFCOUNTFE_NOTR1GET
+  + CMD_LINEPERFCOUNTNE_NOTR1SET
+  + CMD_DATAPATHFAILURESGET
+  + CMD_MODEMFSM_OPTIONSSET
+  + CMD_HLINDS_GET
+  + CMD_HLINUS_GET
+  + CMD_HLOGDS_GET
+  + CMD_NOISEMARGINDELTASET
+  + CMD_OH_OPTIONSSET
+  + CMD_LINEFAILUREFE_GET
+  + CMD_LINESTATUSPERBANDUS_GET
+  + CMD_LINESTATUSPERBANDDS_GET
+  + CMD_SYSVENDORSERIALNUM_R_SET
+  + CMD_OLR_CONTROL
+  + CMD_TESTPARAMSAUXDS_GET
+  + CMD_TESTPARAMSAUXUS_GET
+  + CMD_PILOTTONESGET
+  + CMD_INTEROPCONFIGGET
+Bug fix(es):
+- Danube (DSLCPE_SW-373) Reporting of showtime pilot tones.
+  PilotTonesStatusGet return warning code changed to error code -10
+  (not supported by firmware).
+- VRx (DSLCPE_SW-463) Disable/do not configure T1.413 mode on VR9 systems.
+  Mask added for T1.413 and ETSI Annex C modes.
+
+V4.6.1 - 2010-06-25
+common:
+- New IOCTL(s) added:
+  + DSL_FIO_MULTIMODE_FSM_CONFIG_SET
+  + DSL_FIO_MULTIMODE_FSM_CONFIG_GET
+  + DSL_FIO_MULTIMODE_FSM_STATUS_SET
+- New event for reboot added
+  + DSL_EVENT_S_MULTIMODE_FSM_STATUS
+- New data type(s) definitions added:
+  + DSL_FirmwareType_t
+  + DSL_MultimodeConfigData_t
+  + DSL_MultimodeFsmConfig_t
+  + DSL_MultimodeFsmStatusData_t
+  + DSL_MultimodeFsmStatus_t
+Bug fix(es):
+- VRx (DSLCPE_SW-453) Extensions for API internal multimode handling
+  (ADSL/VDSL).
+  CPE Automode FSM implemented according to the proposed concept.
+  For more details please refer to the appropriate JIRA entry.
+
+V4.6.0 - 2010-06-04
+common:
+- Added VR9 message CMD_XTSE_CONFIGURE to the white list
+
+V4.5.0 - 2010-05-14
+common:
+- Added multiple VR9 messages to the white list
+  + CMD_ADSL_FRAMEDATAUS_LP0GET
+  + CMD_ADSL_FRAMEDATADS_LP0GET
+  + CMD_ADSL_FRAMEDATAUS_LP1GET
+  + CMD_ADSL_FRAMEDATADS_LP1GET
+- Removed multiple VR9 messages from the white list
+  + CMD_GAINCALIBRATIONSET
+  + CMD_DIGITALFILTERSET
+  + CMD_ALGORITHMCONTROLSET
+
+V4.4.1 - 2010-04-09
+Bug fix(es):
+- Common (SMS01446192) Enhancement of debug implementation for Linux console
+  prints.
+  Debug prints implementation extended. For more details please refer to the
+  appropriate UTP entry.
+
+V4.4.0 - 2010-04-02
+common:
+- new file(s) added:
+  + \src\include\drv_dsl_cpe_device_vrx.h
+- VRX common implementation extracted to drv_dsl_cpe_device_vrx.c
+
+V4.3.5 - 2010-03-29
+common:
+- new file(s) added:
+  + \src\device\drv_dsl_cpe_device_vrx.c
+- VRX common implementation extracted to drv_dsl_cpe_device_vrx.c
+- VRX VDSL1 support removed
+Bug fix(es):
+- VRX (SMS01434916) Extend automode handling with firmware System Sub
+  Error Code "S_XDSL_MODE".
+  Automode handling extended according to the updated concept. For more details
+  please refer to the appropriate UTP entry.
+
+V4.3.4 - 2010-03-19
+-
+
+V4.3.3 - 2010-02-05
+common:
+- VRx device specific implementation
+  + optimizations
+  + XTSE status update added in the SHOWTIME state a workaround.
+  + ACK_ModemFSM_StateGet parameter#3 ignored since it signals L3 state even
+    in the SHOWTIME.
+- Added multiple VR9 messages to the white list
+  + CMD_ADSL_BAT_US_GET
+  + CMD_ADSL_BAT_DS_GET
+  + CMD_GAINTABLEENTRIESGET
+  + CMD_ADSL_GAINTABLEUS_GET
+  + CMD_ADSL_GAINTABLEDS_GET
+  + CMD_SNR_DS_GET
+  + CMD_SNR_US_GET
+  + CMD_HLOGUS_GET
+  + CMD_QLN_US_GET
+  + CMD_HS_TONEGROUPSET
+  + CMD_REINITFE_CONFIGURE
+  + CMD_HS_VDSL2PROFILECONTROL
+  + CMD_DIGITALFILTERSET
+  + CMD_HS_STANDARDINFOFE_SPAR1GET
+  + CMD_OLR_DS_STATSGET
+  + CMD_OLR_US_STATSGET
+
+V4.3.2 - 2010-02-26
+common:
+- KW cleanups.
+
+V4.3.1 - 2010-02-19
+Bug fix(es):
+- Danube (SMS01391618) Extend existing interface to report pilot tones.
+  Danube family implementation extended to support Pilot Tones reporting.
+- Danube (SMS01391626) Extension of testmodes with sleep state.
+  Implementation extended, DSL_TESTMODE_SLEEP (=6) handling added.
+- Common (SMS01391620) Add new configuration interface for changing API reboot
+  criteria's.
+  API extended. For more details please refer to the appropriate UTP entry.
+
+V4.3.0 - 2010-02-05
+common:
+- New error code(s) added:
+  + DSL_WRN_NOT_RECOMMENDED_CONFIG = 20
+Bug fix(es):
+- Danube (SMS01300427) Showtime Lock doesn't work.
+  Showtime lock handling fixed.
+- Common (SMS01371264) negative DSL_OPT_NOISE_MARGIN_DELTA_DS should trigger a
+  warning (it does not).
+  Special warning "DSL_WRN_NOT_RECOMMENDED_CONFIG" return added in case of
+  negative values configured.
+- Common (SMS01354000) XTSE sanity checks not applied if -i option of
+  dsl_cpe_control is used.
+  XTSE sanity checks handling fixed during CPE API driver initialization.
+- Danube (SMS01371266) API triggers a FW download (although it should not).
+  Default nSnrMarginRebootMode changed from "DSL_SNRM_REBOOT_AUTOMODE_API" to
+  "DSL_SNRM_REBOOT_AUTOMODE_FW". Handling fixed. Documentation corrected.
+- Danube/VRx (SMS01379873) Support of Annex J (handling binaries with different
+  numbering scheme).
+  API handling extended to accept application type (Annex B/J = 0x0).
+
+V4.2.0 - 2010-01-13
+-
+
+V4.0.9 - 2009-12-29
+common:
+- LED module implementation moved to a deprecated functionality.
+- VRx implementation added:
+  + FW version decode corrected according to the latest concept.
+  + Last Exception Codes support added
+- Added multiple VR9 messages to the white list
+  + CMD_VENDORID_O_GET
+  + CMD_SYSVENDORID_O_GET
+  + CMD_SYSVENDORVERSIONNUMO_GET
+  + CMD_SYSVENDORSERIALNUM_O_GET
+  + CMD_AUXINVENTORYINFO_O_GET
+  + CMD_TR1CONTROLSET
+  + CMD_CRC_STATSNE_GET
+  + CMD_CRC_STATSFE_GET
+  + CMD_FEC_STATSNE_GET
+  + CMD_FEC_STATSFE_GET
+  + CMD_CRC_STATSNE_SET
+  + CMD_CRC_STATSFE_SET
+  + CMD_FEC_STATSNE_SET
+  + CMD_FEC_STATSFE_SET
+  + CMD_LINEPERFCOUNTNE_GET
+  + CMD_LINEPERFCOUNTFE_GET
+  + CMD_LINEPERFCOUNTNE_SET,
+  + CMD_LINEPERFCOUNTFE_SET,
+  + CMD_SYSVENDORID_R_SET
+  + CMD_SYSVENDORVERSIONNUM_R_SET
+  + CMD_AUXINVENTORYINFO_R_SET
+  + CMD_ALGORITHMCONTROLSET
+  + CMD_MODEMFSM_FAILREASONGET
+Bug fix(es):
+- Common (N/A) missing symbol "debug_level" during CPE API driver startup.
+  "debug_level" variable handling fixed.
+
+V4.0.8 - 2009-12-03
+common:
+- VRx implementation added:
+  + FW version decode corrected according to the latest MCAT.
+- Corrected showtime entry handling to inform ATM/PTM driver. Removed call from
+  showtime polling cycle (is called only once).
+- Added multiple VR9 messages to the white list
+  + CMD_FRAMEDATAEXT2DS_GET
+  + CMD_FRAMEDATAEXT2US_GET
+  + CMD_BEARERCHSDS_GET
+  + CMD_BEARERCHSUS_GET
+  + CMD_VERSIONINFOGET
+  + CMD_LINESTATUSDS_GET
+  + CMD_LINESTATUSUS_GET
+  + CMD_XTSE_STATUSGET
+  + CMD_BAT_TABLEENTRIESGET
+  + CMD_BANDCONTROL_DS_GET
+  + CMD_BANDCONTROL_US_GET
+  + CMD_SNR_NE_TABLEENTRIESGET
+  + CMD_HS_SELECTEDPROFILEVDSL2GET
+  + CMD_REINITNE_CONFIGURE
+- Activate ATM/PTM driver intercommunication by default
+
+V4.0.7 - 2009-11-27
+Bug fix(es):
+- Common (SMS01273903) Extension of DSL_FIO_DBG_LAST_EXCEPTION_CODES_GET
+  (CLI: lecg).
+  Danube implementation updated: nError2 code handling added on the API
+  level, firmware CMV STAT 23 0 handling removed.
+
+V4.0.6 - 2009-11-23
+common:
+- New IOCTL(s) added:
+  + DSL_FIO_G997_RATE_ADAPTATION_STATUS_GET
+Bug fix(es):
+- Danube (SMS01264426) Control of DS target margin adjustment.
+  Danube implementation extended according to the specified concept. For more
+  details please refer to the appropriate UTP entry.
+
+V4.0.5 - 2009-11-20
+common:
+- New IOCTL(s) added:
+  + DSL_FIO_PILOT_TONES_STATUS_GET
+- New configure option(s) added:
+  + "--enable-pilot-tones-status"/"INCLUDE_PILOT_TONES_STATUS"
+Bug fix(es):
+- Common (SMS01263395) Reporting of showtime pilot tones.
+  Implementation added according to the specified concept. For more details
+  please refer to the appropriate UTP entry.
+
+V4.0.4 - 2009-11-13
+Bug fix(es):
+- Danube (SMS01218167) bitswap status reporting seems to be broken.
+  "bBitswapEnable" US status parameter handling added (CMV OPTN 2 0, bit#15).
+  Line Features periodical status update during the showtime state added.
+  General concept for the BitSwap status information will be defined/clarified
+  later.
+- Danube (SMS01222754) g997dsnrg: nMeasurementTime = 0.
+  INFO 79/80 2 CMV handling added to get SNRMT parameter. INFO 80 2 CMV is
+  currently supported only in the Loop Diagnostic state to get the SNRMT US
+  parameter. A separate UTP will address this issue to the FW team.
+
+V4.0.3 - 2009-11-12
+common:
+- Changed copyright header to Lantiq version
+
+V4.0.2 - 2009-11-03
+common:
+- VRx device specific minor adaptations: white list handling added for the MCAT
+  messages.
+- VRx MCAT header files updated according to the MCAT ver.1.0.2.
+
+V4.0.1 - 2009-10-23
+common:
+- VRx device specific implementation added:
+  + ATM/PTM Showtime Entry/Exit signalling added. Draft implementation placed
+    under "INCLUDE_DSL_ATM_PTM_INTERFACE_SUPPORT" internal configuration option
+Bug fix(es):
+- VRX (SMS01263029) Endianess issue within DSL_DRV_XXX_AdslChStatusGet().
+  nAdsl1Mode variable type changed to DSL_uint8_t.
+
+V4.0.0 - 2009-10-09
+common:
+- FW message layer added for VRX devices (...SendMsg...)
+- New configuration option "--enable-vrx" added.
+- New file(s) added:
+  + drv_dsl_cpe_msg_vrx.c
+  + drv_dsl_cpe_vrx_ceoc.c
+  + drv_dsl_cpe_device_vrx.c
+  + drv_dsl_cpe_api_g997_vrx.c
+  + drv_dsl_cpe_msg_vrx.h
+  + drv_dsl_cpe_device_vrx.h
+  + drv_dsl_cpe_vrx_ctx.h
+  + drv_dsl_cpe_vrx_msg_config_pmd.h
+  + drv_dsl_cpe_vrx_msg_const.h
+  + drv_dsl_cpe_vrx_msg_debug.h
+  + drv_dsl_cpe_vrx_msg_dmt_scope.h
+  + drv_dsl_cpe_vrx_msg_ghs_status.h
+  + drv_dsl_cpe_vrx_msg_olr.h
+  + drv_dsl_cpe_vrx_msg_perf_pmd.h
+  + drv_dsl_cpe_vrx_msg_tc_counters.h
+- Device specific implementation added:
+  + VRx device support layer added (draft version)
+

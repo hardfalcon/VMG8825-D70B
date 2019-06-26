@@ -1,0 +1,25 @@
+From d6b695674658cfa7304702b8a1b4dbe6ebecc049 Mon Sep 17 00:00:00 2001
+From: Maik Dybek <maik.dybek@sphairon.com>
+Date: Thu, 2 Aug 2012 10:19:09 +0200
+Subject: fix BLKTRACESTOP definition in case it is undefined
+
+---
+ block.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/block.c b/block.c
+index 807c849..e00c75b 100644
+--- a/block.c
++++ b/block.c
+@@ -54,7 +54,7 @@ struct blk_user_trace_setup {
+ #ifndef BLKTRACESTART
+ #define BLKTRACESTART _IO(0x12,116)
+ #endif
+-#ifndef BLKTRACESTART
++#ifndef BLKTRACESTOP
+ #define BLKTRACESTOP _IO(0x12,117)
+ #endif
+ #ifndef BLKTRACETEARDOWN
+-- 
+1.7.9.5
+

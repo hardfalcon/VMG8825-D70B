@@ -1,0 +1,97 @@
+From e89d46dbdcfb3a0b86657692993c367e9fd7b3ad Mon Sep 17 00:00:00 2001
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Thu, 5 May 2011 15:09:21 +0200
+Subject: [PATCH 5/5] Replace obsolete index function by strchr.
+
+---
+ cidgate/sip2ncid.c |   16 ++++++++--------
+ ncidd.c            |    4 ++--
+ 2 files changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/cidgate/sip2ncid.c b/cidgate/sip2ncid.c
+index f5b1dc4..39c58ff 100644
+--- a/cidgate/sip2ncid.c
++++ b/cidgate/sip2ncid.c
+@@ -229,7 +229,7 @@ int getOptions(int argc, char *argv[])
+                 listdevs = 1;
+                 break;
+             case 'n': /* [host][:port] must contain host or port or both */
+-                if ((ptr = index(optarg, (int) ':')))
++                if ((ptr = strchr(optarg, ':')))
+                 {
+                     if ((ncidport = atoi(ptr + 1)) == 0)
+                         errorExit(-101, "Invalid port number", optarg);
+@@ -245,7 +245,7 @@ int getOptions(int argc, char *argv[])
+                 }
+                 break;
+             case 's':
+-                if ((ptr = index(optarg, (int) ':')))
++                if ((ptr = strchr(optarg, ':')))
+                 {
+                     if ((sipport = atoi(ptr + 1)) == 0)
+                         errorExit(-101, "Invalid port number", optarg);
+@@ -465,7 +465,7 @@ int pcapListDevs(void)
+         }
+ 
+         /* If using WinPcap, path elements use '\' instead of '/' */
+-        while ((ptr = index(alldevsp->name, (int) '\\'))) *ptr = '/';
++        while ((ptr = strchr(alldevsp->name, '\\'))) *ptr = '/';
+ 
+         fprintf(stdout, "%s : %s\n", alldevsp->name, desc);
+         alldevsp = alldevsp->next;
+@@ -894,16 +894,16 @@ int parseLine(char *sipbuf, char *plabel, char *llabel,
+     if ((sptr = strstr((char *)linebuf, llabel)))
+     {
+         /* Terminate end of line */
+-        if ((elptr = index(sptr, (int) NL)))
++        if ((elptr = strchr(sptr, NL)))
+         {
+             *elptr = '\0';
+ 
+             if (name)
+             {
+                 /* Look for NAME in quotes */
+-                if ((*name = index(sptr, (int) QUOTE)))
++                if ((*name = strchr(sptr, QUOTE)))
+                 {
+-                    if ((eptr = index(++*name, (int) QUOTE)))
++                    if ((eptr = strchr(++*name, QUOTE)))
+                     {
+                         *eptr = '\0';
+                         sptr = ++eptr;
+@@ -934,7 +934,7 @@ int parseLine(char *sipbuf, char *plabel, char *llabel,
+             /* Look for calling number */
+             if ((sptr = strstr(sptr, SIPNUM)))
+             {
+-                if ((eptr = index(sptr, (int) SIPAT)))
++                if ((eptr = strchr(sptr, SIPAT)))
+                 {
+                     *eptr = '\0';
+                     *number = sptr + strlen(SIPNUM);;
+@@ -1016,7 +1016,7 @@ int getCallID(char *sipbuf, char *callid, int size)
+     {
+         /* using sizeof() will skip end space */
+         sptr += sizeof(CALLID);
+-        if ((eptr = index(sptr, (int) SIPAT)))
++        if ((eptr = strchr(sptr, SIPAT)))
+         {
+             len = eptr - sptr;
+             if (len < size)
+diff --git a/ncidd.c b/ncidd.c
+index 78e773a..d731125 100644
+--- a/ncidd.c
++++ b/ncidd.c
+@@ -1086,8 +1086,8 @@ void doPoll(int events, int mainsock)
+                                  */
+ 
+                                 /* Get word between "+++" and "..." */
+-                                sptr = index(buf, (int) '#') + 3;
+-                                *(eptr = index(buf, (int) '.')) = '\0';
++                                sptr = strchr (buf, '#') + 3;
++                                *(eptr = strchr (buf, '.')) = '\0';
+ 
+                                 sprintf(msgbuf, "Gateway (sd %d) sent CALLINFO for %s.\n",
+                                     polld[pos].fd, sptr);
+-- 
+1.7.4.1
+

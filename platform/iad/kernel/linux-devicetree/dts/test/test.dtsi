@@ -1,0 +1,11 @@
+#include "skeleton.dtsi"
+
+/ {
+	compatible = "test,test";
+
+	cpus {
+		cpu@0 {
+			compatible = "test,cpu";
+		};
+	};
+};

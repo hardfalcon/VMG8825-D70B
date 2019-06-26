@@ -1,0 +1,209 @@
+diff --git a/adig.c b/adig.c
+index 0700551184cd75166ba333b03b4d108ffe490951..a64de0de9431f0804388e7e29628223c525e22b1 100644
+--- a/adig.c
++++ b/adig.c
+@@ -95,7 +95,8 @@ static const struct nv flags[] = {
+   { "igntc",            ARES_FLAG_IGNTC },
+   { "norecurse",        ARES_FLAG_NORECURSE },
+   { "stayopen",         ARES_FLAG_STAYOPEN },
+-  { "noaliases",        ARES_FLAG_NOALIASES }
++  { "noaliases",        ARES_FLAG_NOALIASES },
++  { "dontwait",         ARES_FLAG_CANCELONSUCCESS }
+ };
+ static const int nflags = sizeof(flags) / sizeof(flags[0]);
+ 
+@@ -182,7 +183,7 @@ int main(int argc, char **argv)
+ {
+   ares_channel channel;
+   int c, i, optmask = ARES_OPT_FLAGS, dnsclass = C_IN, type = T_A;
+-  int status, nfds, count;
++  int status, nfds, count, do_parallel=0;
+   struct ares_options options;
+   struct hostent *hostent;
+   fd_set read_fds, write_fds;
+@@ -207,7 +208,7 @@ int main(int argc, char **argv)
+   options.flags = ARES_FLAG_NOCHECKRESP;
+   options.servers = NULL;
+   options.nservers = 0;
+-  while ((c = ares_getopt(argc, argv, "a:A:b:df:s:c:t:T:U:P:i:r:R")) != -1)
++  while ((c = ares_getopt(argc, argv, "a:A:b:df:s:c:t:T:U:P:pi:r:R")) != -1)
+     {
+       switch (c)
+         {
+@@ -364,6 +365,10 @@ int main(int argc, char **argv)
+           /* Rotate the if multiple queries are made */
+           optmask |= ARES_OPT_ROTATE;
+           break;
++      case 'p':
++          /* use the build in ARES_OPT_SENDPARALLEL option */
++          optmask |= ARES_OPT_SEND_PARALLEL;
++          break;
+       }
+     }
+   argc -= optind;
+@@ -841,9 +846,10 @@ static void usage(void)
+ {
+   fprintf(stderr, "version: %s\n", ARES_VERSION_STR);
+   fprintf(stderr, "usage: adig [-f flag] [-s server] [-c class] [-a timeout in s ] [-A timeout in ms] [ -b retries] "
+-          "[-t type] [-T tcp-port] [-U udp-port] [-P priority] [-i intf] [-r resolver-file] [-R] name ...\n");
++          "[-t type] [-T tcp-port] [-U udp-port] [-P priority] [-i intf] [-r resolver-file] [-p] [-R] name ...\n");
+   fprintf(stderr, "version: %s\n", ARES_VERSION_STR);
+   fprintf(stderr, "note: c-ares dns packet send priority library default is %d\n", ARES_DEFAULT_SOCKET_SEND_PRIORITY);
++  fprintf(stderr, "note: -p option does dns queries in parallel (like dnsmasq)\n");
+   exit(1);
+ }
+ 
+diff --git a/ares.h b/ares.h
+index 3f15c306b5c54af900335f74bc93d38453b35dbb..f2933aae1edc583231e988b9788ca5fa5c803ab3 100644
+--- a/ares.h
++++ b/ares.h
+@@ -140,6 +140,7 @@ extern "C" {
+ #define ARES_FLAG_NOALIASES     (1 << 6)
+ #define ARES_FLAG_NOCHECKRESP   (1 << 7)
+ #define ARES_FLAG_EDNS          (1 << 8)
++#define ARES_FLAG_CANCELONSUCCESS (1 << 9)
+ 
+ /* Option mask values */
+ #define ARES_OPT_FLAGS          (1 << 0)
+@@ -159,6 +160,7 @@ extern "C" {
+ #define ARES_OPT_ROTATE         (1 << 14)
+ #define ARES_OPT_EDNSPSZ        (1 << 15)
+ #define ARES_OPT_SOCK_PRIO      (1 << 16)
++#define ARES_OPT_SEND_PARALLEL  (1 << 17)
+ 
+ /* Nameinfo flag values */
+ #define ARES_NI_NOFQDN                  (1 << 0)
+diff --git a/ares_init.c b/ares_init.c
+index b7ef135255d0cf68dd3d250ead7c99a121e2c61e..b42281134fe0c07e8f8f6495379d1b63e919fad7 100644
+--- a/ares_init.c
++++ b/ares_init.c
+@@ -520,6 +520,10 @@ static int init_by_options(ares_channel channel,
+     channel->nsort = options->nsort;
+   }
+ 
++  if ((optmask & ARES_OPT_SEND_PARALLEL)) {
++      channel->flags |= ARES_FLAG_NOCHECKRESP;
++  }
++
+   channel->optmask = optmask;
+ 
+   return ARES_SUCCESS;
+diff --git a/ares_process.c b/ares_process.c
+index 049df93bfa1fedd543291462d45f20df26904d6d..a789c8eeaefe89787140b474a2902e37901c3537 100644
+--- a/ares_process.c
++++ b/ares_process.c
+@@ -623,6 +623,16 @@ static void process_answer(ares_channel channel, unsigned char *abuf,
+     }
+ 
+   end_query(channel, query, ARES_SUCCESS, abuf, alen);
++
++  /* If we send the same query to multiple NSSERVERS, then
++     it makes sense to cancel all other queries on this channel after
++     the first successful query response.
++     Note: Subsequent and late dns answers lead to
++     "ICMP Destination unreachable" client answers" since src-port gets closed!
++  */
++  if ((channel->flags & ARES_FLAG_CANCELONSUCCESS)) {
++    ares_cancel(channel);
++  }
+ }
+ 
+ /* Close all the connections that are no longer usable. */
+@@ -720,11 +730,16 @@ static void skip_server(ares_channel channel, struct query *query,
+ static void next_server(ares_channel channel, struct query *query,
+                         struct timeval *now)
+ {
++  int t = channel->tries;
++
++  if (!(channel->optmask & ARES_OPT_SEND_PARALLEL)) {
++    t = t * channel->nservers;
++  }
+   /* We need to try each server channel->tries times. We have channel->nservers
+    * servers to try. In total, we need to do channel->nservers * channel->tries
+    * attempts. Use query->try to remember how many times we already attempted
+    * this query. Use modular arithmetic to find the next server to try. */
+-  while (++(query->try_count) < (channel->nservers * channel->tries))
++  while (++(query->try_count) < t)
+     {
+       struct server_state *server;
+ 
+@@ -829,7 +844,9 @@ void ares__send_query(ares_channel channel, struct query *query,
+         }
+     }
+     timeplus = channel->timeout << (query->try_count / channel->nservers);
+-    timeplus = (timeplus * (9 + (rand () & 7))) / 16;
++    if (!(channel->optmask | ARES_OPT_SEND_PARALLEL)) {
++      timeplus = (timeplus * (9 + (rand () & 7))) / 16;
++    }
+     query->timeout = *now;
+     ares__timeadd(&query->timeout,
+                   timeplus);
+diff --git a/ares_query.c b/ares_query.c
+index 4bc9c2560f0ce40f4f38fea4eb1d238d2d577320..cdb3f214150a6b5dc10d33f2436e963b37fc7648 100644
+--- a/ares_query.c
++++ b/ares_query.c
+@@ -114,6 +114,7 @@ void ares_query(ares_channel channel, const char *name, int dnsclass,
+   struct qquery *qquery;
+   unsigned char *qbuf;
+   int qlen, rd, status;
++  int i = 0;
+ 
+   /* Compose the query. */
+   rd = !(channel->flags & ARES_FLAG_NORECURSE);
+@@ -128,19 +129,31 @@ void ares_query(ares_channel channel, const char *name, int dnsclass,
+ 
+   channel->next_id = generate_unique_id(channel);
+ 
+-  /* Allocate and fill in the query structure. */
+-  qquery = malloc(sizeof(struct qquery));
+-  if (!qquery)
+-    {
+-      ares_free_string(qbuf);
+-      callback(arg, ARES_ENOMEM, 0, NULL, 0);
+-      return;
+-    }
+-  qquery->callback = callback;
+-  qquery->arg = arg;
++  if (channel->optmask & ARES_OPT_SEND_PARALLEL) {
++      i = 0;
++      channel->rotate = 1;
++  } else {
++      i = channel->nservers - 1;
++  }
++
++  for (i; i < channel->nservers; i++) {
++      /* Allocate and fill in the query structure. */
++      qquery = malloc(sizeof(struct qquery));
++      if (!qquery)
++        {
++          ares_free_string(qbuf);
++          callback(arg, ARES_ENOMEM, 0, NULL, 0);
++          return;
++        }
++      qquery->callback = callback;
++      qquery->arg = arg;
++
++      /* Send it off.  qcallback will be called when we get an answer. */
++      ares_send(channel, qbuf, qlen, qcallback, qquery);
++  }
++  if (channel->optmask & ARES_OPT_SEND_PARALLEL)
++      channel->rotate = 0;
+ 
+-  /* Send it off.  qcallback will be called when we get an answer. */
+-  ares_send(channel, qbuf, qlen, qcallback, qquery);
+   ares_free_string(qbuf);
+ }
+ 
+diff --git a/ares_version.h b/ares_version.h
+index 44dde8f1c963f317bb74498155f437fec0bd7246..02e894ccae431bc4c1d46975edf931d4c49cac2e 100644
+--- a/ares_version.h
++++ b/ares_version.h
+@@ -11,7 +11,7 @@
+ #define ARES_VERSION ((ARES_VERSION_MAJOR<<16)|\
+                        (ARES_VERSION_MINOR<<8)|\
+                        (ARES_VERSION_PATCH))
+-#define ARES_VERSION_STR "1.10.0-sph-1.5"
++#define ARES_VERSION_STR "1.10.0-sph-1.6"
+ 
+ #if (ARES_VERSION >= 0x010700)
+ #  define CARES_HAVE_ARES_LIBRARY_INIT 1

@@ -1,0 +1,4 @@
+include bsp/lantiq/xway-vdsp.scc
+include bsp/lantiq-ugw/xrx200-up.scc
+
+kconf xrx200-vdsp.cfg

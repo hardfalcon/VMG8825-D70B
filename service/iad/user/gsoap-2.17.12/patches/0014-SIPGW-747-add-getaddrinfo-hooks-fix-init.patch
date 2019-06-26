@@ -1,0 +1,524 @@
+From: Stefan Lindner <stefan.lindner@sphairon.com>
+Date: Mon, 11 Feb 2013 10:54:52 +0100
+Subject: SIPGW-747: add getaddrinfo hooks, fix init
+
+---
+ gsoap/stdsoap2.c   | 62 +++++++++++++++++++++++++++++++-------------------
+ gsoap/stdsoap2.cpp | 66 +++++++++++++++++++++++++++++++++++-------------------
+ gsoap/stdsoap2.h   |  2 ++
+ 3 files changed, 84 insertions(+), 46 deletions(-)
+
+diff --git a/gsoap/stdsoap2.c b/gsoap/stdsoap2.c
+index 6ad74e8..6fe84a1 100644
+--- a/gsoap/stdsoap2.c
++++ b/gsoap/stdsoap2.c
+@@ -216,6 +216,9 @@ static int tcp_init(struct soap*);
+ static const char *tcp_error(struct soap*);
+ #ifndef WITH_IPV6
+ static int tcp_gethost(struct soap*, const char *addr, struct in_addr *inaddr);
++#else
++static int tcp_getaddrinfo(struct soap*, const char*, const char*, const struct addrinfo *, struct addrinfo **);
++static void tcp_freeaddrinfo(struct soap*, struct addrinfo *);
+ #endif
+ static SOAP_SOCKET tcp_connect(struct soap*, const char *endpoint, const char *host, int port);
+ static SOAP_SOCKET tcp_accept(struct soap*, SOAP_SOCKET, struct sockaddr*, int*);
+@@ -3410,8 +3413,12 @@ soap_done(struct soap *soap)
+ #ifndef WITH_NOIO
+ #ifndef WITH_IPV6
+   soap->fresolve = tcp_gethost;
++  soap->fgetaddrinfo = NULL;
++  soap->ffreeaddrinfo = NULL;
+ #else
+   soap->fresolve = NULL;
++  soap->fgetaddrinfo = tcp_getaddrinfo;
++  soap->ffreeaddrinfo = tcp_freeaddrinfo;
+ #endif
+   soap->faccept = tcp_accept;
+   soap->fopen = tcp_connect;
+@@ -3624,6 +3631,15 @@ tcp_gethost(struct soap *soap, const char *addr, struct in_addr *inaddr)
+ }
+ #endif
+ #endif
++#else
++static int tcp_getaddrinfo(struct soap *soap, const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res)
++{
++    return getaddrinfo(node, service, hints, res);
++}
++static void tcp_freeaddrinfo(struct soap *soap, struct addrinfo *addrinfo)
++{
++    freeaddrinfo(addrinfo);
++}
+ #endif
+ 
+ /******************************************************************************/
+@@ -3662,9 +3678,9 @@ tcp_connect(struct soap *soap, const char *endpoint, const char *host, int port)
+     hints.ai_socktype = SOCK_STREAM;
+   soap->errmode = 2;
+   if (soap->proxy_host)
+-    err = getaddrinfo(soap->proxy_host, soap_int2s(soap, soap->proxy_port), &hints, &res);
++    err = soap->fgetaddrinfo(soap, soap->proxy_host, soap_int2s(soap, soap->proxy_port), &hints, &res);
+   else
+-    err = getaddrinfo(host, soap_int2s(soap, port), &hints, &res);
++    err = soap->fgetaddrinfo(soap, host, soap_int2s(soap, port), &hints, &res);
+   if (err)
+   { soap_set_sender_error(soap, SOAP_GAI_STRERROR(err), "getaddrinfo failed in tcp_connect()", SOAP_TCP_ERROR);
+     return SOAP_INVALID_SOCKET;
+@@ -3695,7 +3711,7 @@ again:
+     soap->errnum = soap_socket_errno(fd);
+     soap_set_sender_error(soap, tcp_error(soap), "socket failed in tcp_connect()", SOAP_TCP_ERROR);
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return SOAP_INVALID_SOCKET;
+   }
+@@ -3719,7 +3735,7 @@ again:
+       soap_set_sender_error(soap, tcp_error(soap), "setsockopt SO_LINGER failed in tcp_connect()", SOAP_TCP_ERROR);
+       soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-      freeaddrinfo(ressave);
++      soap->ffreeaddrinfo(soap, ressave);
+ #endif
+       return SOAP_INVALID_SOCKET;
+     }
+@@ -3729,7 +3745,7 @@ again:
+     soap_set_sender_error(soap, tcp_error(soap), "setsockopt failed in tcp_connect()", SOAP_TCP_ERROR);
+     soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return SOAP_INVALID_SOCKET;
+   }
+@@ -3738,7 +3754,7 @@ again:
+     soap_set_sender_error(soap, tcp_error(soap), "setsockopt SO_KEEPALIVE failed in tcp_connect()", SOAP_TCP_ERROR);
+     soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return SOAP_INVALID_SOCKET;
+   }
+@@ -3747,7 +3763,7 @@ again:
+     soap_set_sender_error(soap, tcp_error(soap), "setsockopt SO_SNDBUF failed in tcp_connect()", SOAP_TCP_ERROR);
+     soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return SOAP_INVALID_SOCKET;
+   }
+@@ -3756,7 +3772,7 @@ again:
+     soap_set_sender_error(soap, tcp_error(soap), "setsockopt SO_RCVBUF failed in tcp_connect()", SOAP_TCP_ERROR);
+     soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return SOAP_INVALID_SOCKET;
+   }
+@@ -3766,7 +3782,7 @@ again:
+     soap_set_sender_error(soap, tcp_error(soap), "setsockopt TCP_KEEPIDLE failed in tcp_connect()", SOAP_TCP_ERROR);
+     soap->fclosesocket(soap, (SOAP_SOCKET)fd);
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return SOAP_INVALID_SOCKET;
+   }
+@@ -3777,7 +3793,7 @@ again:
+     soap_set_sender_error(soap, tcp_error(soap), "setsockopt TCP_KEEPINTVL failed in tcp_connect()", SOAP_TCP_ERROR);
+     soap->fclosesocket(soap, (SOAP_SOCKET)fd);
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return SOAP_INVALID_SOCKET;
+   }
+@@ -3788,7 +3804,7 @@ again:
+     soap_set_sender_error(soap, tcp_error(soap), "setsockopt TCP_KEEPCNT failed in tcp_connect()", SOAP_TCP_ERROR);
+     soap->fclosesocket(soap, (SOAP_SOCKET)fd);
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return SOAP_INVALID_SOCKET;
+   }
+@@ -3799,7 +3815,7 @@ again:
+     soap_set_sender_error(soap, tcp_error(soap), "setsockopt TCP_NODELAY failed in tcp_connect()", SOAP_TCP_ERROR);
+     soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return SOAP_INVALID_SOCKET;
+   }
+@@ -3846,7 +3862,7 @@ again:
+     { soap_set_sender_error(soap, tcp_error(soap), "get proxy host by name failed in tcp_connect()", SOAP_TCP_ERROR);
+       soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-      freeaddrinfo(ressave);
++      soap->ffreeaddrinfo(soap, ressave);
+ #endif
+       return SOAP_INVALID_SOCKET;
+     }
+@@ -3857,7 +3873,7 @@ again:
+     { soap_set_sender_error(soap, tcp_error(soap), "get host by name failed in tcp_connect()", SOAP_TCP_ERROR);
+       soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-      freeaddrinfo(ressave);
++      soap->ffreeaddrinfo(soap, ressave);
+ #endif
+       return SOAP_INVALID_SOCKET;
+     }
+@@ -3868,7 +3884,7 @@ again:
+   if ((soap->omode & SOAP_IO_UDP))
+   {
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return fd;
+   }
+@@ -3901,7 +3917,7 @@ again:
+         if ((int)fd >= (int)FD_SETSIZE)
+         { soap->error = SOAP_FD_EXCEEDED;
+ #ifdef WITH_IPV6
+-          freeaddrinfo(ressave);
++          soap->ffreeaddrinfo(soap, ressave);
+ #endif
+           return SOAP_INVALID_SOCKET;	/* Hint: MUST increase FD_SETSIZE */
+         }
+@@ -3929,7 +3945,7 @@ again:
+             soap_set_sender_error(soap, "Timeout", "connect failed in tcp_connect()", SOAP_TCP_ERROR);
+             soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-            freeaddrinfo(ressave);
++            soap->ffreeaddrinfo(soap, ressave);
+ #endif
+             return SOAP_INVALID_SOCKET;
+           }
+@@ -3940,7 +3956,7 @@ again:
+             soap_set_sender_error(soap, tcp_error(soap), "connect failed in tcp_connect()", SOAP_TCP_ERROR);
+             soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-            freeaddrinfo(ressave);
++            soap->ffreeaddrinfo(soap, ressave);
+ #endif
+             return SOAP_INVALID_SOCKET;
+           }
+@@ -3954,7 +3970,7 @@ again:
+         soap_set_sender_error(soap, tcp_error(soap), "connect failed in tcp_connect()", SOAP_TCP_ERROR);
+         soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-        freeaddrinfo(ressave);
++        soap->ffreeaddrinfo(soap, ressave);
+ #endif
+         return SOAP_INVALID_SOCKET;
+       }
+@@ -3972,7 +3988,7 @@ again:
+         soap_set_sender_error(soap, tcp_error(soap), "connect failed in tcp_connect()", SOAP_TCP_ERROR);
+         soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-        freeaddrinfo(ressave);
++        soap->ffreeaddrinfo(soap, ressave);
+ #endif
+         return SOAP_INVALID_SOCKET;
+       }
+@@ -3982,7 +3998,7 @@ again:
+   }
+ #ifdef WITH_IPV6
+   soap->peerlen = 0; /* IPv6: already connected so use send() */
+-  freeaddrinfo(ressave);
++  soap->ffreeaddrinfo(soap, ressave);
+ #endif
+ #ifndef WITH_LEAN
+   if (soap->recv_timeout || soap->send_timeout)
+@@ -4270,14 +4286,14 @@ soap_bind(struct soap *soap, const char *host, int port, int backlog)
+     hints.ai_socktype = SOCK_STREAM;
+   hints.ai_flags = AI_PASSIVE;
+   soap->errmode = 2;
+-  err = getaddrinfo(host, soap_int2s(soap, port), &hints, &addrinfo);
++  err = soap->fgetaddrinfo(soap, host, soap_int2s(soap, port), &hints, &res);
+   if (addrinfo)
+   { res = *addrinfo;
+     memcpy(&soap->peer, addrinfo->ai_addr, addrinfo->ai_addrlen);
+     soap->peerlen = addrinfo->ai_addrlen;
+     res.ai_addr = (struct sockaddr*)&soap->peer;
+     res.ai_addrlen = soap->peerlen;
+-    freeaddrinfo(addrinfo);
++    soap->ffreeaddrinfo(soap, addrinfo);
+   }
+   if (err || !addrinfo)
+   { soap_set_receiver_error(soap, SOAP_GAI_STRERROR(err), "getaddrinfo failed in soap_bind()", SOAP_TCP_ERROR);
+diff --git a/gsoap/stdsoap2.cpp b/gsoap/stdsoap2.cpp
+index 6b512df..07213e0 100644
+--- a/gsoap/stdsoap2.cpp
++++ b/gsoap/stdsoap2.cpp
+@@ -216,6 +216,9 @@ static int tcp_init(struct soap*);
+ static const char *tcp_error(struct soap*);
+ #ifndef WITH_IPV6
+ static int tcp_gethost(struct soap*, const char *addr, struct in_addr *inaddr);
++#else
++static int tcp_getaddrinfo(struct soap*, const char*, const char*, const struct addrinfo *, struct addrinfo **);
++static void tcp_freeaddrinfo(struct soap*, struct addrinfo *);
+ #endif
+ static SOAP_SOCKET tcp_connect(struct soap*, const char *endpoint, const char *host, int port);
+ static SOAP_SOCKET tcp_accept(struct soap*, SOAP_SOCKET, struct sockaddr*, int*);
+@@ -3410,8 +3413,12 @@ soap_done(struct soap *soap)
+ #ifndef WITH_NOIO
+ #ifndef WITH_IPV6
+   soap->fresolve = tcp_gethost;
++  soap->fgetaddrinfo = NULL;
++  soap->ffreeaddrinfo = NULL;
+ #else
+   soap->fresolve = NULL;
++  soap->fgetaddrinfo = tcp_getaddrinfo;
++  soap->ffreeaddrinfo = tcp_freeaddrinfo;
+ #endif
+   soap->faccept = tcp_accept;
+   soap->fopen = tcp_connect;
+@@ -3624,6 +3631,15 @@ tcp_gethost(struct soap *soap, const char *addr, struct in_addr *inaddr)
+ }
+ #endif
+ #endif
++#else
++static int tcp_getaddrinfo(struct soap *soap, const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res)
++{
++    return getaddrinfo(node, service, hints, res);
++}
++static void tcp_freeaddrinfo(struct soap *soap, struct addrinfo *addrinfo)
++{
++    freeaddrinfo(addrinfo);
++}
+ #endif
+ 
+ /******************************************************************************/
+@@ -3662,9 +3678,9 @@ tcp_connect(struct soap *soap, const char *endpoint, const char *host, int port)
+     hints.ai_socktype = SOCK_STREAM;
+   soap->errmode = 2;
+   if (soap->proxy_host)
+-    err = getaddrinfo(soap->proxy_host, soap_int2s(soap, soap->proxy_port), &hints, &res);
++    err = soap->fgetaddrinfo(soap, soap->proxy_host, soap_int2s(soap, soap->proxy_port), &hints, &res);
+   else
+-    err = getaddrinfo(host, soap_int2s(soap, port), &hints, &res);
++    err = soap->fgetaddrinfo(soap, host, soap_int2s(soap, port), &hints, &res);
+   if (err)
+   { soap_set_sender_error(soap, SOAP_GAI_STRERROR(err), "getaddrinfo failed in tcp_connect()", SOAP_TCP_ERROR);
+     return SOAP_INVALID_SOCKET;
+@@ -3695,7 +3711,7 @@ again:
+     soap->errnum = soap_socket_errno(fd);
+     soap_set_sender_error(soap, tcp_error(soap), "socket failed in tcp_connect()", SOAP_TCP_ERROR);
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return SOAP_INVALID_SOCKET;
+   }
+@@ -3719,7 +3735,7 @@ again:
+       soap_set_sender_error(soap, tcp_error(soap), "setsockopt SO_LINGER failed in tcp_connect()", SOAP_TCP_ERROR);
+       soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-      freeaddrinfo(ressave);
++      soap->ffreeaddrinfo(soap, ressave);
+ #endif
+       return SOAP_INVALID_SOCKET;
+     }
+@@ -3729,7 +3745,7 @@ again:
+     soap_set_sender_error(soap, tcp_error(soap), "setsockopt failed in tcp_connect()", SOAP_TCP_ERROR);
+     soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return SOAP_INVALID_SOCKET;
+   }
+@@ -3738,7 +3754,7 @@ again:
+     soap_set_sender_error(soap, tcp_error(soap), "setsockopt SO_KEEPALIVE failed in tcp_connect()", SOAP_TCP_ERROR);
+     soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return SOAP_INVALID_SOCKET;
+   }
+@@ -3747,7 +3763,7 @@ again:
+     soap_set_sender_error(soap, tcp_error(soap), "setsockopt SO_SNDBUF failed in tcp_connect()", SOAP_TCP_ERROR);
+     soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return SOAP_INVALID_SOCKET;
+   }
+@@ -3756,7 +3772,7 @@ again:
+     soap_set_sender_error(soap, tcp_error(soap), "setsockopt SO_RCVBUF failed in tcp_connect()", SOAP_TCP_ERROR);
+     soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return SOAP_INVALID_SOCKET;
+   }
+@@ -3766,7 +3782,7 @@ again:
+     soap_set_sender_error(soap, tcp_error(soap), "setsockopt TCP_KEEPIDLE failed in tcp_connect()", SOAP_TCP_ERROR);
+     soap->fclosesocket(soap, (SOAP_SOCKET)fd);
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return SOAP_INVALID_SOCKET;
+   }
+@@ -3777,7 +3793,7 @@ again:
+     soap_set_sender_error(soap, tcp_error(soap), "setsockopt TCP_KEEPINTVL failed in tcp_connect()", SOAP_TCP_ERROR);
+     soap->fclosesocket(soap, (SOAP_SOCKET)fd);
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return SOAP_INVALID_SOCKET;
+   }
+@@ -3788,7 +3804,7 @@ again:
+     soap_set_sender_error(soap, tcp_error(soap), "setsockopt TCP_KEEPCNT failed in tcp_connect()", SOAP_TCP_ERROR);
+     soap->fclosesocket(soap, (SOAP_SOCKET)fd);
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return SOAP_INVALID_SOCKET;
+   }
+@@ -3799,7 +3815,7 @@ again:
+     soap_set_sender_error(soap, tcp_error(soap), "setsockopt TCP_NODELAY failed in tcp_connect()", SOAP_TCP_ERROR);
+     soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return SOAP_INVALID_SOCKET;
+   }
+@@ -3846,7 +3862,7 @@ again:
+     { soap_set_sender_error(soap, tcp_error(soap), "get proxy host by name failed in tcp_connect()", SOAP_TCP_ERROR);
+       soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-      freeaddrinfo(ressave);
++      soap->ffreeaddrinfo(soap, ressave);
+ #endif
+       return SOAP_INVALID_SOCKET;
+     }
+@@ -3857,7 +3873,7 @@ again:
+     { soap_set_sender_error(soap, tcp_error(soap), "get host by name failed in tcp_connect()", SOAP_TCP_ERROR);
+       soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-      freeaddrinfo(ressave);
++      soap->ffreeaddrinfo(soap, ressave);
+ #endif
+       return SOAP_INVALID_SOCKET;
+     }
+@@ -3868,7 +3884,7 @@ again:
+   if ((soap->omode & SOAP_IO_UDP))
+   {
+ #ifdef WITH_IPV6
+-    freeaddrinfo(ressave);
++    soap->ffreeaddrinfo(soap, ressave);
+ #endif
+     return fd;
+   }
+@@ -3901,7 +3917,7 @@ again:
+         if ((int)fd >= (int)FD_SETSIZE)
+         { soap->error = SOAP_FD_EXCEEDED;
+ #ifdef WITH_IPV6
+-          freeaddrinfo(ressave);
++          soap->ffreeaddrinfo(soap, ressave);
+ #endif
+           return SOAP_INVALID_SOCKET;	/* Hint: MUST increase FD_SETSIZE */
+         }
+@@ -3929,7 +3945,7 @@ again:
+             soap_set_sender_error(soap, "Timeout", "connect failed in tcp_connect()", SOAP_TCP_ERROR);
+             soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-            freeaddrinfo(ressave);
++            soap->ffreeaddrinfo(soap, ressave);
+ #endif
+             return SOAP_INVALID_SOCKET;
+           }
+@@ -3940,7 +3956,7 @@ again:
+             soap_set_sender_error(soap, tcp_error(soap), "connect failed in tcp_connect()", SOAP_TCP_ERROR);
+             soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-            freeaddrinfo(ressave);
++            soap->ffreeaddrinfo(soap, ressave);
+ #endif
+             return SOAP_INVALID_SOCKET;
+           }
+@@ -3954,7 +3970,7 @@ again:
+         soap_set_sender_error(soap, tcp_error(soap), "connect failed in tcp_connect()", SOAP_TCP_ERROR);
+         soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-        freeaddrinfo(ressave);
++        soap->ffreeaddrinfo(soap, ressave);
+ #endif
+         return SOAP_INVALID_SOCKET;
+       }
+@@ -3972,7 +3988,7 @@ again:
+         soap_set_sender_error(soap, tcp_error(soap), "connect failed in tcp_connect()", SOAP_TCP_ERROR);
+         soap->fclosesocket(soap, fd);
+ #ifdef WITH_IPV6
+-        freeaddrinfo(ressave);
++        soap->ffreeaddrinfo(soap, ressave);
+ #endif
+         return SOAP_INVALID_SOCKET;
+       }
+@@ -3982,7 +3998,7 @@ again:
+   }
+ #ifdef WITH_IPV6
+   soap->peerlen = 0; /* IPv6: already connected so use send() */
+-  freeaddrinfo(ressave);
++  soap->ffreeaddrinfo(soap, ressave);
+ #endif
+ #ifndef WITH_LEAN
+   if (soap->recv_timeout || soap->send_timeout)
+@@ -4270,14 +4286,14 @@ soap_bind(struct soap *soap, const char *host, int port, int backlog)
+     hints.ai_socktype = SOCK_STREAM;
+   hints.ai_flags = AI_PASSIVE;
+   soap->errmode = 2;
+-  err = getaddrinfo(host, soap_int2s(soap, port), &hints, &addrinfo);
++  err = soap->fgetaddrinfo(soap, host, soap_int2s(soap, port), &hints, &addrinfo);
+   if (addrinfo)
+   { res = *addrinfo;
+     memcpy(&soap->peer, addrinfo->ai_addr, addrinfo->ai_addrlen);
+     soap->peerlen = addrinfo->ai_addrlen;
+     res.ai_addr = (struct sockaddr*)&soap->peer;
+     res.ai_addrlen = soap->peerlen;
+-    freeaddrinfo(addrinfo);
++    soap->ffreeaddrinfo(soap, addrinfo);
+   }
+   if (err || !addrinfo)
+   { soap_set_receiver_error(soap, SOAP_GAI_STRERROR(err), "getaddrinfo failed in soap_bind()", SOAP_TCP_ERROR);
+@@ -6636,8 +6652,12 @@ soap_init(struct soap *soap)
+   soap->ipv4_multicast_if = NULL;
+ #ifndef WITH_IPV6
+   soap->fresolve = tcp_gethost;
++  soap->fgetaddrinfo = NULL;
++  soap->ffreeaddrinfo = NULL;
+ #else
+   soap->fresolve = NULL;
++  soap->fgetaddrinfo = tcp_getaddrinfo;
++  soap->ffreeaddrinfo = tcp_freeaddrinfo;
+ #endif
+   soap->faccept = tcp_accept;
+   soap->fopen = tcp_connect;
+diff --git a/gsoap/stdsoap2.h b/gsoap/stdsoap2.h
+index 9e0692d..377e88d 100644
+--- a/gsoap/stdsoap2.h
++++ b/gsoap/stdsoap2.h
+@@ -1612,6 +1612,8 @@ struct SOAP_STD_API soap
+   int (*fparsehdr)(struct soap*, const char*, const char*);
+   int (*fheader)(struct soap*);
+   int (*fresolve)(struct soap*, const char*, struct in_addr* inaddr);
++  int (*fgetaddrinfo)(struct soap*, const char*, const char*, const struct addrinfo *, struct addrinfo **);
++  void (*ffreeaddrinfo)(struct soap*, struct addrinfo *addrinfo);
+   int (*fconnect)(struct soap*, const char*, const char*, int);
+   int (*fdisconnect)(struct soap*);
+   int (*fopensocket)(struct soap*, int, int, int);
+--
+

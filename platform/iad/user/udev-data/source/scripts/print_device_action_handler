@@ -1,0 +1,197 @@
+#!/bin/sh
+# script to notify services when print function has been added/removed
+# using usb-state-manage
+SERVICE=print_device_action_handler
+
+LOG_INFO()
+{
+    logger -p user.info -t $SERVICE "$*"
+}
+
+LOG_ERROR()
+{
+    logger -p user.error -t $SERVICE "$*"
+}
+
+LOG_STATUS()
+{
+    logger -p user.notice -t $SERVICE "$*"
+}
+
+USB_STATE_MANAGER=`which usb-state-manage`
+USB_STATE_CACHE=usb_state_manager_arguments
+SYSFS=/sys
+PRINTER_TYPE=3
+
+CACHE_DIR="/etc/udev/cache.d"
+
+    LOG_INFO "$*"
+case $# in
+    2)
+	ACTION=$1
+	DEVICE=$2
+	;;
+    *)
+        LOG_ERROR "Unsupported Number of Arguments: $# for \"$DEVICE\" given!"
+        exit 0
+	;;
+esac
+
+# on 2.6.20 there we get 
+# XXX - TODO
+# so here we have to dereference linked node "device"
+# with hubs, we have a little different view here:
+# ...
+# usb path: bus x -> root-hub (port1) -> user hub (port 3) -> Printer
+
+# on 2.6.32 we get:
+# /devices/pci0000:00/0000:00:0f.2/usb3/3-u/3-u:A.0/usb/lp0
+
+pathtype=`echo $DEVICE | cut -f2 -d'/'`
+
+case "$pathtype" in
+    class)
+
+
+        ;;
+    devices)
+
+        ;;
+    *)
+        LOG_ERROR "Unsupported Argument \"$DEVICE\" given!"
+        ;;
+esac
+
+do_parse()
+{
+    DEVPATH=$SYSFS$1
+    CURPATH=$DEVPATH/../..
+#enter @ kernelIF for usb/lp* - on error use cached vector
+    [ -d $CURPATH ] || return 0;
+    cd $CURPATH
+#    [ $? -eq 0 ] || return 0;
+#on success extract for caching
+#prepare FAX detection and discrimination
+    IEEE1284=`cat ieee1284_id`
+    IS_FAX=`cat ieee1284_id|grep -i fax`
+    IS_PRINTER_TYPE=`cat ieee1284_id|grep -i CLS:PRINTER`
+    [ ${#IS_FAX}   -eq 0 ] || PRINTER_TYPE=255
+    [ ${#IEEE1284} -eq 0 ] || LOG_INFO "$IEEE1284"
+    if [ -f /etc/udev/add_all_class_printer_devices ] ; then
+        [ ${#IS_PRINTER_TYPE} -eq 0 ] || PRINTER_TYPE=3
+    fi
+    IFID=`cat bInterfaceNumber`
+#step to Device from IF
+    cd ..
+    [ $? -eq 0 ] || return 0;
+    CURPATH=`pwd`
+    PORTID=$((${CURPATH##*[-.]}))
+    BUSID=`cat busnum`
+    DEVID=`cat devnum`
+    CID=`cat bConfigurationValue`
+}
+
+printer()
+{
+    local action=$1
+    # add just creates the links we need
+    # rem just calls USB_STATE_MANAGER with rem
+    # notify just calls the USB_STATE_MANAGER with add
+
+    case "$1" in
+	add)
+            # first look if we have all the right information
+	    [ ${#BUSID} -ne 0 ] || return 0;
+	    [ ${#DEVID} -ne 0 ] || return 0;
+	    # first we write to cache file
+	    # then we read from it
+
+
+	    do_write_cache $DEVPATH
+	    do_read_cache $DEVPATH
+	    ;;
+	rem)
+	    # we just need the information from the cache file
+	    do_read_cache $DEVPATH
+	    ;;
+	*)	
+	    LOG_ERROR "Wrong arguments given!"
+	    return;
+	    ;;
+    esac
+    
+    # do not proceed if we miss something
+    [ ${#RD_CACHE} -ne 0 ] || return 1;
+    [ -f $USB_STATE_MANAGER ] || return 2;
+    [ ${#USB_STATE_MANAGER} -gt 8 ] || return 2;
+
+    if [ ${#IS_PRINTER_TYPE} -ne 0 ]; then
+        if [ "${PRINTER_TYPE}" = "255" ]; then
+            LOG_INFO "Detected USB Printer with Fax operation as unsupported device!"
+        fi
+    fi
+
+    LOG_INFO "${USB_STATE_MANAGER} $action ${RD_CACHE}"
+    $USB_STATE_MANAGER "$action" $RD_CACHE
+
+    ret=$?
+    [ $ret -ne 0 ] || return 0;
+    case "$1" in						# # 
+	add)
+	    LOG_ERROR "Failed to register printer $RD_CACHE with $ret"
+	    ;;
+	rem)
+	    LOG_ERROR "Failed to unregister printer $RD_CACHE with $ret"
+	    ;;
+    esac
+    return 1
+}
+
+do_write_cache()
+{
+    local file=$1/$USB_STATE_CACHE
+    [ -d $CACHE_DIR/$1 ] || mkdir -p $CACHE_DIR/$1
+
+#    LOG_INFO "Writing Cache to $CACHE_DIR/$file"
+    echo -n "$PRINTER_TYPE $PORTID $BUSID $DEVID $IFID" > $CACHE_DIR/$file
+}
+
+do_read_cache()
+{
+    local file=$1/$USB_STATE_CACHE
+    [ -d ${CACHE_DIR}/$1 ] || return;
+    [ -f ${CACHE_DIR}/$file ] || return;
+
+    RD_CACHE=$(cat ${CACHE_DIR}/$file)
+#    LOG_INFO "Reading Cache to $CACHE_DIR/$file"
+}
+
+remove_cache()
+{
+    local file=$1/$USB_STATE_CACHE
+    [ -f ${CACHE_DIR}/$file ] || return;
+    rm -f ${CACHE_DIR}/$file
+}
+
+case "$1" in
+	add)
+	    do_parse $DEVICE
+#	    LOG_INFO "Device Path is $DEVPATH with $DEVID, $IFID"
+	    chown -R root:usb /dev/bus/usb/*$BUSID/*
+	    printer add
+	    echo $PRINTOUT
+	    ;;
+	remove|rem|del)
+	    do_parse $DEVICE
+	    printer rem
+	    if [ $? -eq 0 ]; then
+		remove_cache $DEVPATH
+	    fi
+	    ;;
+
+	*)
+            LOG_ERROR "Called with wrong arguments"
+	    ;;
+esac
+
+exit 0

@@ -1,0 +1,852 @@
+Document file - DO NOT EDIT
+
+<BEGIN> BUILD_PPC860gnu_BUILDRULE
+drv_mei_cpe.out
+<END>
+
+<BEGIN> BUILD_PPC860gnu_MACRO_AR
+arppc
+<END>
+
+<BEGIN> BUILD_PPC860gnu_MACRO_ARCHIVE
+$(PRJ_DIR)/PPC860gnu/drv_mei_cpe.a
+<END>
+
+<BEGIN> BUILD_PPC860gnu_MACRO_AS
+ccppc
+<END>
+
+<BEGIN> BUILD_PPC860gnu_MACRO_CC
+ccppc
+<END>
+
+<BEGIN> BUILD_PPC860gnu_MACRO_CFLAGS
+-g \
+	-mcpu=860 \
+	-ansi \
+	-nostdinc \
+	-DRW_MULTI_THREAD \
+	-D_REENTRANT \
+	-fvolatile \
+	-fno-builtin \
+	-fno-for-scope \
+	-Wall \
+	-Wshadow \
+	-Wpointer-arith \
+	-Waggregate-return \
+	-Wredundant-decls \
+	-DCPU=PPC860 \
+	-DVXWORKS \
+	-D__PROTOTYPE_5_0 \
+	-DIKOS_EMULATION=0 \
+	-DVRX_MEI_SW_EMUL=0 \
+	-DDSL_LINES_PER_DEVICE=1 \
+	-DDSL_MAX_DEVICE_NUMBER=2 \
+	-DVRX_GENERIC_PROC_FS \
+	-I$(WIND_BASE)/target/h \
+	-I$(PRJ_DIR)/../src \
+	-I$(PRJ_DIR)/../../target/mpc8xx/src \
+	-I$(PRJ_DIR)/../../common/src \
+	-I$(PRJ_DIR)/../src/auto_header
+<END>
+
+<BEGIN> BUILD_PPC860gnu_MACRO_CFLAGS_AS
+-g \
+	-mcpu=860 \
+	-ansi \
+	-nostdinc \
+	-fvolatile \
+	-fno-builtin \
+	-fno-for-scope \
+	-P \
+	-x \
+	assembler-with-cpp \
+	-I. \
+	-I$(WIND_BASE)/target/h \
+	-DCPU=PPC860
+<END>
+
+<BEGIN> BUILD_PPC860gnu_MACRO_CPP
+ccppc -E -P -xc
+<END>
+
+<BEGIN> BUILD_PPC860gnu_MACRO_LD
+ldppc
+<END>
+
+<BEGIN> BUILD_PPC860gnu_MACRO_LDDEPS
+
+<END>
+
+<BEGIN> BUILD_PPC860gnu_MACRO_LDFLAGS
+-X -N
+<END>
+
+<BEGIN> BUILD_PPC860gnu_MACRO_LD_PARTIAL_FLAGS
+-X -r
+<END>
+
+<BEGIN> BUILD_PPC860gnu_MACRO_NM
+nmppc
+<END>
+
+<BEGIN> BUILD_PPC860gnu_MACRO_OPTION_DEFINE_MACRO
+-D
+<END>
+
+<BEGIN> BUILD_PPC860gnu_MACRO_OPTION_INCLUDE_DIR
+-I
+<END>
+
+<BEGIN> BUILD_PPC860gnu_MACRO_POST_BUILD_RULE
+
+<END>
+
+<BEGIN> BUILD_PPC860gnu_MACRO_PRJ_LIBS
+
+<END>
+
+<BEGIN> BUILD_PPC860gnu_MACRO_SIZE
+sizeppc
+<END>
+
+<BEGIN> BUILD_PPC860gnu_RO_DEPEND_PATH
+{$(WIND_BASE)/target/h/} \
+	{$(WIND_BASE)/target/src/} \
+	{$(WIND_BASE)/target/config/}
+<END>
+
+<BEGIN> BUILD_PPC860gnu_TC
+::tc_PPC860gnu
+<END>
+
+<BEGIN> BUILD_RULE_archive
+
+<END>
+
+<BEGIN> BUILD_RULE_drv_mei_cpe.out
+
+<END>
+
+<BEGIN> BUILD_RULE_objects
+
+<END>
+
+<BEGIN> BUILD__CURRENT
+archive_easy83002
+<END>
+
+<BEGIN> BUILD__LIST
+PPC860gnu archive_easy88000 archive_easy83002 archive_easy88002
+<END>
+
+<BEGIN> BUILD_archive_BUILDRULE
+archive
+<END>
+
+<BEGIN> BUILD_archive_easy83002_BUILDRULE
+archive
+<END>
+
+<BEGIN> BUILD_archive_easy83002_MACRO_AR
+arppc
+<END>
+
+<BEGIN> BUILD_archive_easy83002_MACRO_ARCHIVE
+$(PRJ_DIR)/archive_easy83002/drv_mei_cpe.a
+<END>
+
+<BEGIN> BUILD_archive_easy83002_MACRO_AS
+ccppc
+<END>
+
+<BEGIN> BUILD_archive_easy83002_MACRO_CC
+ccppc
+<END>
+
+<BEGIN> BUILD_archive_easy83002_MACRO_CFLAGS
+-DVRX_DRV_CLEAR_EOC_ENABLE \
+	-DVRX_EXPORT_INTERNAL_API \
+	-g \
+	-mcpu=860 \
+	-ansi \
+	-nostdinc \
+	-DRW_MULTI_THREAD \
+	-D_REENTRANT \
+	-fvolatile \
+	-fno-builtin \
+	-fno-for-scope \
+	-Wall \
+	-Wshadow \
+	-Wpointer-arith \
+	-Waggregate-return \
+	-Wredundant-decls \
+	-DCPU=PPC860 \
+	-DVXWORKS \
+	-D__PROTOTYPE_5_0 \
+	-DIKOS_EMULATION=0 \
+	-DVRX_MEI_SW_EMUL=0 \
+	-DVRX_DRV_NFC_BUFFER=4 \
+	-DDSL_LINES_PER_DEVICE=1 \
+	-DDSL_MAX_DEVICE_NUMBER=2 \
+	-DVRX_GENERIC_PROC_FS \
+	-I$(WIND_BASE)/target/h \
+	-I$(PRJ_DIR)/../src \
+	-I$(PRJ_DIR)/../../target/mpc8xx/src \
+	-I$(PRJ_DIR)/../../common/src \
+	-I$(PRJ_DIR)/../src/auto_header \
+	-I$(PRJ_DIR)/../../../comacsd_lib/lib_ifxos/src/include
+<END>
+
+<BEGIN> BUILD_archive_easy83002_MACRO_CFLAGS_AS
+-g \
+	-mcpu=860 \
+	-ansi \
+	-nostdinc \
+	-fvolatile \
+	-fno-builtin \
+	-fno-for-scope \
+	-P \
+	-x \
+	assembler-with-cpp \
+	-I. \
+	-I$(WIND_BASE)/target/h \
+	-DCPU=PPC860
+<END>
+
+<BEGIN> BUILD_archive_easy83002_MACRO_CPP
+ccppc -E -P -xc
+<END>
+
+<BEGIN> BUILD_archive_easy83002_MACRO_LD
+ldppc
+<END>
+
+<BEGIN> BUILD_archive_easy83002_MACRO_LDDEPS
+
+<END>
+
+<BEGIN> BUILD_archive_easy83002_MACRO_LDFLAGS
+-X -N
+<END>
+
+<BEGIN> BUILD_archive_easy83002_MACRO_LD_PARTIAL_FLAGS
+-X -r
+<END>
+
+<BEGIN> BUILD_archive_easy83002_MACRO_MAKEFLAGS
+-ws
+<END>
+
+<BEGIN> BUILD_archive_easy83002_MACRO_NM
+nmppc
+<END>
+
+<BEGIN> BUILD_archive_easy83002_MACRO_OPTION_DEFINE_MACRO
+-D
+<END>
+
+<BEGIN> BUILD_archive_easy83002_MACRO_OPTION_INCLUDE_DIR
+-I
+<END>
+
+<BEGIN> BUILD_archive_easy83002_MACRO_POST_BUILD_RULE
+
+<END>
+
+<BEGIN> BUILD_archive_easy83002_MACRO_PRJ_LIBS
+
+<END>
+
+<BEGIN> BUILD_archive_easy83002_MACRO_SIZE
+sizeppc
+<END>
+
+<BEGIN> BUILD_archive_easy83002_RO_DEPEND_PATH
+{$(WIND_BASE)/target/h/} \
+	{$(WIND_BASE)/target/src/} \
+	{$(WIND_BASE)/target/config/}
+<END>
+
+<BEGIN> BUILD_archive_easy83002_TC
+::tc_PPC860gnu
+<END>
+
+<BEGIN> BUILD_archive_easy88000_BUILDRULE
+archive
+<END>
+
+<BEGIN> BUILD_archive_easy88000_MACRO_AR
+arppc
+<END>
+
+<BEGIN> BUILD_archive_easy88000_MACRO_ARCHIVE
+$(PRJ_DIR)/archive_easy88000/drv_mei_cpe.a
+<END>
+
+<BEGIN> BUILD_archive_easy88000_MACRO_AS
+ccppc
+<END>
+
+<BEGIN> BUILD_archive_easy88000_MACRO_CC
+ccppc
+<END>
+
+<BEGIN> BUILD_archive_easy88000_MACRO_CFLAGS
+-g \
+	-mcpu=860 \
+	-ansi \
+	-nostdinc \
+	-DRW_MULTI_THREAD \
+	-D_REENTRANT \
+	-fvolatile \
+	-fno-builtin \
+	-fno-for-scope \
+	-Wall \
+	-Wshadow \
+	-Wpointer-arith \
+	-Waggregate-return \
+	-Wredundant-decls \
+	-DCPU=PPC860 \
+	-DVXWORKS \
+	-D__PROTOTYPE_5_0 \
+	-Wredundant-decls \
+	-DIKOS_EMULATION=0 \
+	-DVRX_MEI_SW_EMUL=0 \
+	-DVRX_DRV_NFC_BUFFER=8 \
+	-DDSL_LINES_PER_DEVICE=2 \
+	-DDSL_MAX_DEVICE_NUMBER=4 \
+	-DVRX_GENERIC_PROC_FS \
+	-I$(WIND_BASE)/target/h \
+	-I$(PRJ_DIR)/../src \
+	-I$(PRJ_DIR)/../../target/mpc8xx/src \
+	-I$(PRJ_DIR)/../../common/src \
+	-I$(PRJ_DIR)/../src/auto_header \
+	-I$(PRJ_DIR)/../../../comacsd_lib/lib_ifxos/src/include
+<END>
+
+<BEGIN> BUILD_archive_easy88000_MACRO_CFLAGS_AS
+-g \
+	-mcpu=860 \
+	-ansi \
+	-nostdinc \
+	-fvolatile \
+	-fno-builtin \
+	-fno-for-scope \
+	-P \
+	-x \
+	assembler-with-cpp \
+	-I. \
+	-I$(WIND_BASE)/target/h \
+	-DCPU=PPC860
+<END>
+
+<BEGIN> BUILD_archive_easy88000_MACRO_CPP
+ccppc -E -P -xc
+<END>
+
+<BEGIN> BUILD_archive_easy88000_MACRO_LD
+ldppc
+<END>
+
+<BEGIN> BUILD_archive_easy88000_MACRO_LDDEPS
+
+<END>
+
+<BEGIN> BUILD_archive_easy88000_MACRO_LDFLAGS
+-X -N
+<END>
+
+<BEGIN> BUILD_archive_easy88000_MACRO_LD_PARTIAL_FLAGS
+-X -r
+<END>
+
+<BEGIN> BUILD_archive_easy88000_MACRO_MAKEFLAGS
+-ws
+<END>
+
+<BEGIN> BUILD_archive_easy88000_MACRO_NM
+nmppc
+<END>
+
+<BEGIN> BUILD_archive_easy88000_MACRO_OPTION_DEFINE_MACRO
+-D
+<END>
+
+<BEGIN> BUILD_archive_easy88000_MACRO_OPTION_INCLUDE_DIR
+-I
+<END>
+
+<BEGIN> BUILD_archive_easy88000_MACRO_POST_BUILD_RULE
+
+<END>
+
+<BEGIN> BUILD_archive_easy88000_MACRO_PRJ_LIBS
+
+<END>
+
+<BEGIN> BUILD_archive_easy88000_MACRO_SIZE
+sizeppc
+<END>
+
+<BEGIN> BUILD_archive_easy88000_RO_DEPEND_PATH
+{$(WIND_BASE)/target/h/} \
+	{$(WIND_BASE)/target/src/} \
+	{$(WIND_BASE)/target/config/}
+<END>
+
+<BEGIN> BUILD_archive_easy88000_TC
+::tc_PPC860gnu
+<END>
+
+<BEGIN> BUILD_archive_easy88002_BUILDRULE
+archive
+<END>
+
+<BEGIN> BUILD_archive_easy88002_MACRO_AR
+arppc
+<END>
+
+<BEGIN> BUILD_archive_easy88002_MACRO_ARCHIVE
+$(PRJ_DIR)/archive_easy88002/drv_mei_cpe.a
+<END>
+
+<BEGIN> BUILD_archive_easy88002_MACRO_AS
+ccppc
+<END>
+
+<BEGIN> BUILD_archive_easy88002_MACRO_CC
+ccppc
+<END>
+
+<BEGIN> BUILD_archive_easy88002_MACRO_CFLAGS
+-DVRX_DEBUG \
+	-g \
+	-mcpu=860 \
+	-ansi \
+	-nostdinc \
+	-DRW_MULTI_THREAD \
+	-D_REENTRANT \
+	-fvolatile \
+	-fno-builtin \
+	-fno-for-scope \
+	-Wall \
+	-Wshadow \
+	-Wpointer-arith \
+	-Waggregate-return \
+	-Wredundant-decls \
+	-DCPU=PPC860 \
+	-DVXWORKS \
+	-D__PROTOTYPE_5_0 \
+	-Wredundant-decls \
+	-DIKOS_EMULATION=0 \
+	-DVRX_MEI_SW_EMUL=0 \
+	-DVRX_DRV_NFC_BUFFER=8 \
+	-DDSL_LINES_PER_DEVICE=2 \
+	-DDSL_MAX_DEVICE_NUMBER=4 \
+	-DVRX_GENERIC_PROC_FS \
+	-I$(WIND_BASE)/target/h \
+	-I$(PRJ_DIR)/../src \
+	-I$(PRJ_DIR)/../../target/mpc8xx/src \
+	-I$(PRJ_DIR)/../../common/src \
+	-I$(PRJ_DIR)/../src/auto_header \
+	-I$(PRJ_DIR)/../../../comacsd_lib/lib_ifxos/src/include
+<END>
+
+<BEGIN> BUILD_archive_easy88002_MACRO_CFLAGS_AS
+-g \
+	-mcpu=860 \
+	-ansi \
+	-nostdinc \
+	-fvolatile \
+	-fno-builtin \
+	-fno-for-scope \
+	-P \
+	-x \
+	assembler-with-cpp \
+	-I. \
+	-I$(WIND_BASE)/target/h \
+	-DCPU=PPC860
+<END>
+
+<BEGIN> BUILD_archive_easy88002_MACRO_CPP
+ccppc -E -P -xc
+<END>
+
+<BEGIN> BUILD_archive_easy88002_MACRO_LD
+ldppc
+<END>
+
+<BEGIN> BUILD_archive_easy88002_MACRO_LDDEPS
+
+<END>
+
+<BEGIN> BUILD_archive_easy88002_MACRO_LDFLAGS
+-X -N
+<END>
+
+<BEGIN> BUILD_archive_easy88002_MACRO_LD_PARTIAL_FLAGS
+-X -r
+<END>
+
+<BEGIN> BUILD_archive_easy88002_MACRO_MAKEFLAGS
+-ws
+<END>
+
+<BEGIN> BUILD_archive_easy88002_MACRO_NM
+nmppc
+<END>
+
+<BEGIN> BUILD_archive_easy88002_MACRO_OPTION_DEFINE_MACRO
+-D
+<END>
+
+<BEGIN> BUILD_archive_easy88002_MACRO_OPTION_INCLUDE_DIR
+-I
+<END>
+
+<BEGIN> BUILD_archive_easy88002_MACRO_POST_BUILD_RULE
+
+<END>
+
+<BEGIN> BUILD_archive_easy88002_MACRO_PRJ_LIBS
+
+<END>
+
+<BEGIN> BUILD_archive_easy88002_MACRO_SIZE
+sizeppc
+<END>
+
+<BEGIN> BUILD_archive_easy88002_RO_DEPEND_PATH
+{$(WIND_BASE)/target/h/} \
+	{$(WIND_BASE)/target/src/} \
+	{$(WIND_BASE)/target/config/}
+<END>
+
+<BEGIN> BUILD_archive_easy88002_TC
+::tc_PPC860gnu
+<END>
+
+<BEGIN> BUILD_archive_MACRO_AR
+arppc
+<END>
+
+<BEGIN> BUILD_archive_MACRO_ARCHIVE
+$(PRJ_DIR)/archive/drv_mei_cpe.a
+<END>
+
+<BEGIN> BUILD_archive_MACRO_AS
+ccppc
+<END>
+
+<BEGIN> BUILD_archive_MACRO_CC
+ccppc
+<END>
+
+<BEGIN> BUILD_archive_MACRO_CFLAGS
+-g \
+	-mcpu=860 \
+	-ansi \
+	-nostdinc \
+	-DRW_MULTI_THREAD \
+	-D_REENTRANT \
+	-fvolatile \
+	-fno-builtin \
+	-fno-for-scope \
+	-DCPU=PPC860 \
+	-DVXWORKS \
+	-D__PROTOTYPE_5_0 \
+	-DIKOS_EMULATION=0 \
+	-DVRX_MEI_SW_EMUL=0 \
+	-DDSL_LINES_PER_DEVICE=1 \
+	-DDSL_MAX_DEVICE_NUMBER=2 \
+	-DVRX_GENERIC_PROC_FS \
+	-I. \
+	-I$(WIND_BASE)/target/h \
+	-I$(PRJ_DIR)/../src \
+	-I$(PRJ_DIR)/../../target/mpc8xx/src \
+	-I$(PRJ_DIR)/../../common/src \
+	-I$(PRJ_DIR)/../src/auto_header
+<END>
+
+<BEGIN> BUILD_archive_MACRO_CFLAGS_AS
+-g \
+	-mcpu=860 \
+	-ansi \
+	-nostdinc \
+	-fvolatile \
+	-fno-builtin \
+	-fno-for-scope \
+	-P \
+	-x \
+	assembler-with-cpp \
+	-I. \
+	-I$(WIND_BASE)/target/h \
+	-DCPU=PPC860
+<END>
+
+<BEGIN> BUILD_archive_MACRO_CPP
+ccppc -E -P -xc
+<END>
+
+<BEGIN> BUILD_archive_MACRO_LD
+ldppc
+<END>
+
+<BEGIN> BUILD_archive_MACRO_LDDEPS
+
+<END>
+
+<BEGIN> BUILD_archive_MACRO_LDFLAGS
+-X -N
+<END>
+
+<BEGIN> BUILD_archive_MACRO_LD_PARTIAL_FLAGS
+-X -r
+<END>
+
+<BEGIN> BUILD_archive_MACRO_NM
+nmppc
+<END>
+
+<BEGIN> BUILD_archive_MACRO_OPTION_DEFINE_MACRO
+-D
+<END>
+
+<BEGIN> BUILD_archive_MACRO_OPTION_INCLUDE_DIR
+-I
+<END>
+
+<BEGIN> BUILD_archive_MACRO_POST_BUILD_RULE
+
+<END>
+
+<BEGIN> BUILD_archive_MACRO_PRJ_LIBS
+
+<END>
+
+<BEGIN> BUILD_archive_MACRO_SIZE
+sizeppc
+<END>
+
+<BEGIN> BUILD_archive_RO_DEPEND_PATH
+{$(WIND_BASE)/target/h/} \
+	{$(WIND_BASE)/target/src/} \
+	{$(WIND_BASE)/target/config/}
+<END>
+
+<BEGIN> BUILD_archive_TC
+::tc_PPC860gnu
+<END>
+
+<BEGIN> CORE_INFO_TYPE
+::prj_vxApp
+<END>
+
+<BEGIN> CORE_INFO_VERSION
+2.0
+<END>
+
+
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_atmoam_common.c_objects
+drv_mei_cpe_atmoam_common.o
+<END>
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_atmoam_common.c_tool
+C/C++ compiler
+<END>
+
+
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_clear_eoc_common.c_objects
+drv_mei_cpe_clear_eoc_common.o
+<END>
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_clear_eoc_common.c_tool
+C/C++ compiler
+<END>
+
+
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_common.c_objects
+drv_mei_cpe_common.o
+<END>
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_common.c_tool
+C/C++ compiler
+<END>
+
+
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_dbg.c_objects
+drv_mei_cpe_dbg.o
+<END>
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_dbg.c_tool
+C/C++ compiler
+<END>
+
+
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_dbg_access.c_objects
+drv_mei_cpe_dbg_access.o
+<END>
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_dbg_access.c_tool
+C/C++ compiler
+<END>
+
+
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_dbg_driver.c_objects
+drv_mei_cpe_dbg_driver.o
+<END>
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_dbg_driver.c_tool
+C/C++ compiler
+<END>
+
+
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_device_cntrl.c_objects
+drv_mei_cpe_device_cntrl.o
+<END>
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_device_cntrl.c_tool
+C/C++ compiler
+<END>
+
+
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_download.c_objects
+drv_mei_cpe_download.o
+<END>
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_download.c_tool
+C/C++ compiler
+<END>
+
+
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_download_dma_cs.c_objects
+drv_mei_cpe_download_dma_cs.o
+<END>
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_download_dma_cs.c_tool
+C/C++ compiler
+<END>
+
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_driver_msg.c_objects
+drv_mei_cpe_driver_msg.o
+<END>
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_driver_msg.c_tool
+C/C++ compiler
+<END>
+
+
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_generic_proc.c_objects
+drv_mei_cpe_generic_proc.o
+<END>
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_generic_proc.c_tool
+C/C++ compiler
+<END>
+
+
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_msg_process.c_objects
+drv_mei_cpe_msg_process.o
+<END>
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_msg_process.c_tool
+C/C++ compiler
+<END>
+
+
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_rom_handler.c_objects
+drv_mei_cpe_rom_handler.o
+<END>
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_rom_handler.c_tool
+C/C++ compiler
+<END>
+
+
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_vxworks.c_objects
+drv_mei_cpe_vxworks.o
+<END>
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_vxworks.c_tool
+C/C++ compiler
+<END>
+
+
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_vxworks_bsp.c_objects
+drv_mei_cpe_vxworks_bsp.o
+<END>
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_vxworks_bsp.c_tool
+C/C++ compiler
+<END>
+
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/mei_cpe_drv_test_fct.c_objects
+mei_cpe_drv_test_fct.o
+<END>
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/mei_cpe_drv_test_fct.c_tool
+C/C++ compiler
+<END>
+
+
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/mei_cpe_drv_test_vxworks.c_objects
+mei_cpe_drv_test_vxworks.o
+<END>
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/mei_cpe_drv_test_vxworks.c_tool
+C/C++ compiler
+<END>
+
+
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_api_intern.c_objects
+drv_mei_cpe_api_intern.o
+<END>
+
+<BEGIN> FILE_$(PRJ_DIR)/../src/drv_mei_cpe_api_intern.c_tool
+C/C++ compiler
+<END>
+
+<BEGIN> PROJECT_FILES
+$(PRJ_DIR)/../src/mei_cpe_drv_test_vxworks.c \
+	$(PRJ_DIR)/../src/drv_mei_cpe_msg_process.c \
+	$(PRJ_DIR)/../src/drv_mei_cpe_vxworks.c \
+	$(PRJ_DIR)/../src/drv_mei_cpe_vxworks_bsp.c \
+	$(PRJ_DIR)/../src/drv_mei_cpe_generic_proc.c \
+	$(PRJ_DIR)/../src/drv_mei_cpe_download.c \
+	$(PRJ_DIR)/../src/drv_mei_cpe_download_dma_cs.c \
+	$(PRJ_DIR)/../src/drv_mei_cpe_rom_handler.c \
+	$(PRJ_DIR)/../src/mei_cpe_drv_test_fct.c \
+	$(PRJ_DIR)/../src/drv_mei_cpe_common.c \
+	$(PRJ_DIR)/../src/drv_mei_cpe_device_cntrl.c \
+	$(PRJ_DIR)/../src/drv_mei_cpe_driver_msg.c \
+	$(PRJ_DIR)/../src/drv_mei_cpe_clear_eoc_common.c \
+	$(PRJ_DIR)/../src/drv_mei_cpe_atmoam_common.c \
+	$(PRJ_DIR)/../src/drv_mei_cpe_dbg_driver.c \
+	$(PRJ_DIR)/../src/drv_mei_cpe_dbg_access.c \
+	$(PRJ_DIR)/../src/drv_mei_cpe_dbg.c \
+	$(PRJ_DIR)/../src/drv_mei_cpe_api_intern.c
+<END>
+
+<BEGIN> userComments
+MEI CPE Driver
+<END>
+

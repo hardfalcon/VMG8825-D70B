@@ -1,0 +1,113 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Mon, 14 Feb 2011 18:05:49 +0100
+Subject: adds send_/recv_config and option "set buffer size for ATM socket"
+
+Signed-off-by: Olaf.Boettcher@sphairon.com
+---
+ pppd/plugins/pppoatm/pppoatm.c | 56 ++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 54 insertions(+), 2 deletions(-)
+
+diff --git a/pppd/plugins/pppoatm/pppoatm.c b/pppd/plugins/pppoatm/pppoatm.c
+index db21def..0a6c75b 100644
+--- a/pppd/plugins/pppoatm/pppoatm.c
++++ b/pppd/plugins/pppoatm/pppoatm.c
+@@ -31,6 +31,7 @@ const char pppd_version[] = VERSION;
+ 
+ static struct sockaddr_atmpvc pvcaddr;
+ static char *qosstr = NULL;
++static char *bufferstr = NULL;
+ static bool llc_encaps = 0;
+ static bool vc_encaps = 0;
+ static int device_got_set = 0;
+@@ -50,6 +51,8 @@ static option_t pppoa_options[] = {
+ 	  "use VC multiplexing for PPPoATM (default)", 1},
+ 	{ "qos", o_string, &qosstr,
+ 	  "set QoS for PPPoATM connection", 1},
++	{ "buffer", o_string, &bufferstr,
++	  "set buffer size for ATM socket", 1},
+ 	{ NULL }
+ };
+ 
+@@ -133,6 +136,11 @@ static int connect_pppoatm(void)
+ 	int fd;
+ 	struct atm_qos qos;
+ 
++	static int snd_bufsize=0;
++	static int rcv_bufsize=0;
++	static char *tmpbuf1;
++	static char *tmpbuf2;
++
+ 	/*system ("/sbin/modprobe -q pppoatm");*/
+ 
+ 	if (!device_got_set)
+@@ -155,6 +163,22 @@ static int connect_pppoatm(void)
+ 	qos.aal = ATM_AAL5;
+ 	if (setsockopt(fd, SOL_ATM, SO_ATMQOS, &qos, sizeof(qos)) < 0)
+ 		fatal("setsockopt(SO_ATMQOS): %m");
++
++	if (bufferstr != NULL) {
++	tmpbuf1=strtok(bufferstr,",");
++	tmpbuf2=strtok(NULL,",");
++	if (tmpbuf1 != NULL) {
++		snd_bufsize=atoi(tmpbuf1);
++		if (setsockopt(fd, SOL_SOCKET,SO_SNDBUF, &snd_bufsize , sizeof(snd_bufsize)) < 0)
++			fatal("setsockopt(SO_SNDBUF): %m");
++	}
++	if (tmpbuf2 != NULL) {
++		rcv_bufsize=atoi(tmpbuf2);
++		if (setsockopt(fd, SOL_SOCKET,SO_RCVBUF, &rcv_bufsize , sizeof(rcv_bufsize)) < 0)
++			fatal("setsockopt(SO_SNDBUF): %m");
++	    }
++	}
++
+ 	/* TODO: accept on SVCs... */
+ 	if (connect(fd, (struct sockaddr *) &pvcaddr,
+ 	    sizeof(struct sockaddr_atmpvc)))
+@@ -172,6 +196,34 @@ static void disconnect_pppoatm(void)
+ 	close(pppoa_fd);
+ }
+ 
++static void send_config_pppoa(int mtu,
++			      u_int32_t asyncmap,
++			      int pcomp,
++			      int accomp)
++{
++	int sock;
++	struct ifreq ifr;
++	if (mtu > pppoatm_max_mtu)
++		warn("Couldn't increase MTU to %d", mtu);
++	sock = socket(AF_INET, SOCK_DGRAM, 0);
++	if (sock < 0)
++		fatal("Couldn't create IP socket: %m");
++	strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
++	ifr.ifr_mtu = mtu;
++	if (ioctl(sock, SIOCSIFMTU, (caddr_t) &ifr) < 0)
++		fatal("ioctl(SIOCSIFMTU): %m");
++	(void) close (sock);
++}
++
++static void recv_config_pppoa(int mru,
++			      u_int32_t asyncmap,
++			      int pcomp,
++			      int accomp)
++{
++	if (mru > pppoatm_max_mru)
++		warn("Couldn't increase MRU to %d", mru);
++}
++
+ void plugin_init(void)
+ {
+ #if defined(__linux__)
+@@ -193,8 +245,8 @@ struct channel pppoa_channel = {
+     disconnect: &disconnect_pppoatm,
+     establish_ppp: &generic_establish_ppp,
+     disestablish_ppp: &generic_disestablish_ppp,
+-    send_config: NULL,
+-    recv_config: NULL,
++    send_config: &send_config_pppoa,
++    recv_config: &recv_config_pppoa,
+     close: NULL,
+     cleanup: NULL
+ };
+--
+

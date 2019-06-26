@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2014-2019 Sphairon GmbH (a Zyxel company)
+ */
+
+/dts-v1/;
+
+#include "xrx330-vmg8847.dtsi"
+
+/ {
+	model = "Zyxel vmg8847 series [514]";
+	compatible = "zyxel,vmg8847", "lantiq,grx390", "lantiq,xway";
+};
+
+&pcie0 {
+	lantiq,inbound-swap = <1>;
+};

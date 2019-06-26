@@ -1,0 +1,35 @@
+#
+# DirectConnect Datapath Driver
+#
+
+config HW_DCMODE0_XRX500
+	tristate "Datapath HW DC mode0 xRX500"
+	depends on DIRECTCONNECT_DP_API
+	default m if SOC_GRX500
+	---help---
+	  Enable driver for datapath DC mode0 xRX500
+
+config HW_DCMODE1_XRX330
+	tristate "Datapath HW DC mode1 xRX330"
+	depends on DIRECTCONNECT_DP_API
+	default m if SOC_XWAY
+	---help---
+	  Enable driver for datapath DC mode1 xRX330
+
+config SW_DCMODE1_BUILTIN
+	bool "Datapath SW DC mode1 built-in"
+	depends on DIRECTCONNECT_DP_API
+	default y
+	---help---
+	  If enabled, the driver for datapath SW DC mode1 will be built into
+	  the directconnect_dp module instead of creating a separate module.
+
+config DIRECTCONNECT_DP_DBG
+	bool "Datapath Debug Tool"
+	depends on DIRECTCONNECT_DP_API
+	default n
+	---help---
+	  Directconnect Datapath Debug Tool is used to provide simple debug proc tool
+	  Each flag can be enabled/disabled easily
+	  Once this flag is enabled, the debugging information will be printed out
+	  otherwise, no debugging information for this flag will be printed

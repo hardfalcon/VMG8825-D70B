@@ -1,0 +1,52 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Tue, 3 May 2011 13:21:51 +0200
+Subject: Fix for cookie encoding in communication with Axiros Axess.
+
+Signed-off-by: Daniel Egger <daniel.egger@sphairon.com>
+---
+ gsoap/stdsoap2.c   | 9 ++++++++-
+ gsoap/stdsoap2.cpp | 9 ++++++++-
+ 2 files changed, 16 insertions(+), 2 deletions(-)
+
+diff --git a/gsoap/stdsoap2.c b/gsoap/stdsoap2.c
+index 0986088..025e174 100644
+--- a/gsoap/stdsoap2.c
++++ b/gsoap/stdsoap2.c
+@@ -12182,7 +12182,14 @@ soap_encode_cookie(const char *s, char *t, size_t len)
+ { register int c;
+   register size_t n = len;
+   while ((c = *s++) && --n > 0)
+-  { if (c > ' ' && c < 128 && !strchr("()<>@,;:\\\"/[]?={}", c))
++  {
++    /* foerstej 13.09.07:
++    ** don't change encoding of special characters "()<>@,;:\\\"/[]?={}"!
++    ** otherwise we have auth problems with Arcor's ACS
++    **
++    ** if (c > ' ' && c < 128 && !strchr("()<>@,;:\\\"/[]?={}", c))
++    */
++    if (c > ' ' && c < 128)
+       *t++ = c;
+     else if (n > 2)
+     { *t++ = '%';
+diff --git a/gsoap/stdsoap2.cpp b/gsoap/stdsoap2.cpp
+index a31a257..3653aad 100644
+--- a/gsoap/stdsoap2.cpp
++++ b/gsoap/stdsoap2.cpp
+@@ -12183,7 +12183,14 @@ soap_encode_cookie(const char *s, char *t, size_t len)
+ { register int c;
+   register size_t n = len;
+   while ((c = *s++) && --n > 0)
+-  { if (c > ' ' && c < 128 && !strchr("()<>@,;:\\\"/[]?={}", c))
++  {
++    /* foerstej 13.09.07:
++    ** don't change encoding of special characters "()<>@,;:\\\"/[]?={}"!
++    ** otherwise we have auth problems with Arcor's ACS
++    **
++    ** if (c > ' ' && c < 128 && !strchr("()<>@,;:\\\"/[]?={}", c))
++    */
++    if (c > ' ' && c < 128)
+       *t++ = c;
+     else if (n > 2)
+     { *t++ = '%';
+--
+

@@ -1,0 +1,34 @@
+From: Maik Dybek <maik.dybek@sphairon.com>
+Date: Thu, 27 May 2010 16:50:46 +0200
+Subject: br2684ctl: define ENCAPS VC FCS and LLC FCS for danube
+
+This patch is meant to get a widely consistent API. So br2684ctl shall know
+about all (somewhere) implemented features. Then it's part of the kernel to
+support them as expected or cry if it does not. Error handling in such
+cases should be done by the kernel. This code is scheduled to become part
+of the kernel.
+---
+ src/br2684/br2684ctl.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/src/br2684/br2684ctl.c b/src/br2684/br2684ctl.c
+index 3f0a607..2e64690 100644
+--- a/src/br2684/br2684ctl.c
++++ b/src/br2684/br2684ctl.c
+@@ -17,6 +17,14 @@
+ #define BR2684_FLAG_ROUTED    (1<<16) /* payload is routed, not bridged */
+ #endif
+ 
++/* This feature was introduced with mpc8323 and must be explicitially ported
++ * to all other kernels.
++ */
++#ifndef CONFIG_MPC8323
++#define BR2684_ENCAPS_VC_FCS	(3)
++#define BR2684_ENCAPS_LLC_FCS	(4)
++#endif
++
+ /* Written by Marcell GAL <cell@sch.bme.hu> to make use of the */
+ /* ioctls defined in the br2684... kernel patch */
+ /* Compile with cc -o br2684ctl br2684ctl.c -latm */
+--
+

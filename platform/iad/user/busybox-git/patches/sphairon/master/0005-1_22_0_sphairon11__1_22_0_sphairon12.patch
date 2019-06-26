@@ -1,0 +1,39 @@
+diff --git a/Makefile b/Makefile
+index 687b636f64a43ce5548fa593ff1bc8d47146f47f..f25fbb37e91bf94d6ef526143aaf9c1b26e1fd57 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,7 +1,7 @@
+ VERSION = 1
+ PATCHLEVEL = 22
+ SUBLEVEL = 1
+-EXTRAVERSION = -sphairon11
++EXTRAVERSION = -sphairon12
+ NAME = Unnamed
+ 
+ # *DOCUMENTATION*
+diff --git a/sphairon/config.generic b/sphairon/config.generic
+index 9dd3334875129e3dd8c699a5e6fdf246b4da9311..12fea0a335284ab493fdee1a80c1acea4cb4b1d3 100644
+--- a/sphairon/config.generic
++++ b/sphairon/config.generic
+@@ -280,7 +280,7 @@ CONFIG_STTY=y
+ CONFIG_SYNC=y
+ # CONFIG_TAC is not set
+ CONFIG_TAIL=y
+-# CONFIG_FEATURE_FANCY_TAIL is not set
++CONFIG_FEATURE_FANCY_TAIL=y
+ CONFIG_TEE=y
+ CONFIG_FEATURE_TEE_USE_BLOCK_IO=y
+ CONFIG_TRUE=y
+diff --git a/sphairon/config.host b/sphairon/config.host
+index 0db1bb4e7a31cc94f04fa4b8c62fc7d95caa834a..b0cb765b3a5413a499ba748d55a13e4cfe18a50e 100644
+--- a/sphairon/config.host
++++ b/sphairon/config.host
+@@ -280,7 +280,7 @@ CONFIG_STTY=y
+ CONFIG_SYNC=y
+ # CONFIG_TAC is not set
+ CONFIG_TAIL=y
+-# CONFIG_FEATURE_FANCY_TAIL is not set
++CONFIG_FEATURE_FANCY_TAIL=y
+ CONFIG_TEE=y
+ CONFIG_FEATURE_TEE_USE_BLOCK_IO=y
+ CONFIG_TRUE=y

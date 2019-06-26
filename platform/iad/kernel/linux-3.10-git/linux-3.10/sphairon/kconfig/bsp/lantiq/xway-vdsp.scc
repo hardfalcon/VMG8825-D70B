@@ -1,0 +1,3 @@
+include arch/mips/vpe-loader.scc
+
+kconf xway-vdsp.cfg

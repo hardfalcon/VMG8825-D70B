@@ -1,0 +1,47 @@
+From 5cc6b4ffb2a067a2c8e0af7d4a7e74dcf633d2e3 Mon Sep 17 00:00:00 2001
+From: Maik Dybek <maik.dybek@sphairon.com>
+Date: Fri, 21 May 2010 10:10:56 +0200
+Subject: make -jN Makefile fix
+
+---
+ Makefile |   12 +++++++-----
+ 1 files changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 6c39faa..e0b0de1 100644
+--- a/Makefile
++++ b/Makefile
+@@ -151,8 +151,12 @@ static: extensions/ebt_*.c extensions/ebtable_*.c ebtables.c communication.c ebt
+ tmp1:=$(shell printf $(BINDIR) | sed 's/\//\\\//g')
+ tmp2:=$(shell printf $(SYSCONFIGDIR) | sed 's/\//\\\//g')
+ tmp3:=$(shell printf $(PIPE) | sed 's/\//\\\//g')
++
++$(DESTDIR)$(INITDIR) $(DESTDIR)$(SYSCONFIGDIR) $(DESTDIR)$(BINDIR) $(DESTDIR)$(LIBDIR):
++	mkdir -p $@
++
+ .PHONY: scripts
+-scripts: ebtables-save ebtables.sysv ebtables-config
++scripts: ebtables-save ebtables.sysv ebtables-config | $(DESTDIR)$(INITDIR) $(DESTDIR)$(SYSCONFIGDIR) $(DESTDIR)$(BINDIR)
+ 	cat ebtables-save | sed 's/__EXEC_PATH__/$(tmp1)/g' > ebtables-save_
+ 	$(INSTALL) -m 0755 -o root -g root ebtables-save_ $(DESTDIR)$(BINDIR)/ebtables-save
+ 	cat ebtables.sysv | sed 's/__EXEC_PATH__/$(tmp1)/g' | sed 's/__SYSCONFIG__/$(tmp2)/g' > ebtables.sysv_
+@@ -172,14 +176,12 @@ $(ETHERTYPESFILE): ethertypes
+ 	$(INSTALL) -m 0644 -o root -g root $< $(DESTDIR)$@
+ 
+ .PHONY: exec
+-exec: ebtables ebtables-restore
+-	mkdir -p $(DESTDIR)$(BINDIR)
++exec: ebtables ebtables-restore | $(DESTDIR)$(BINDIR)
+ 	$(INSTALL) -m 0755 -o root -g root $(PROGNAME) $(DESTDIR)$(BINDIR)/$(PROGNAME)
+ 	$(INSTALL) -m 0755 -o root -g root ebtables-restore $(DESTDIR)$(BINDIR)/ebtables-restore
+ 
+ .PHONY: install
+-install: $(MANDIR)/man8/ebtables.8 $(ETHERTYPESFILE) exec scripts
+-	mkdir -p $(DESTDIR)$(LIBDIR)
++install: $(MANDIR)/man8/ebtables.8 $(ETHERTYPESFILE) exec scripts | $(DESTDIR)$(LIBDIR)
+ 	$(INSTALL) -m 0755 extensions/*.so $(DESTDIR)$(LIBDIR)
+ 	$(INSTALL) -m 0755 *.so $(DESTDIR)$(LIBDIR)
+ 
+-- 
+1.7.3.3
+

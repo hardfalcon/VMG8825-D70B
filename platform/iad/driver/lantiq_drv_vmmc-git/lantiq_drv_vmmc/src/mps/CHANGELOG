@@ -1,0 +1,349 @@
+--------------------------------------------------------------------------------
+version 4.0.4.0  |  2015-08-13  |  Voice System Package 4.36
+--------------------------------------------------------------------------------
+FIX Ensure that for layout 2 the memory for the voice mailboxes is allocated
+    from the DMA pool. Only addresses from this range can be used by the
+    firmware. [VOICECPE_SW-980]
+
+--------------------------------------------------------------------------------
+version 4.0.3.0  |  2015-07-03  |  Voice System Package 4.36 RC9
+--------------------------------------------------------------------------------
+FIX Increased the number of fd for debugging to allow access to 14 channels.
+    [VOICECPE_SW-974]
+FIX Corrected open and close of the last voice channel from kernel space.
+    [VOICECPE_SW-967]
+
+--------------------------------------------------------------------------------
+version 4.0.2.0  |  2015-06-19  |  Voice System Package 4.36 RC7
+--------------------------------------------------------------------------------
+FIX Changed counting of buffers given to the FW. Corrected init values of the
+    buffer manager. [VOICECPE_SW-937] [VOICECPE_SW-949]
+FIX Include the configuration from VMMC driver when VMMC_WITH_MPS is set.
+    [VOICECPE_SW-955]
+FIX Indicate to the FW in the MPS configuration options if the driver is
+    configured without SLIC support. [VOICECPE_SW-955] [HDT-43814]
+
+--------------------------------------------------------------------------------
+version 4.0.1.0  |  2015-04-27  |  Voice System Package 4.36 RC4
+--------------------------------------------------------------------------------
+CHG Support special FW without any SLIC functions. With the configure option
+    --disable-slic the driver will not reserve the GPIO to reset the SmartSLIC.
+    [VOICECPE_SW-798]
+FIX Prevent possible fifo errors should the fifo size not have a power of two.
+CHG Extended the number of possible voice channels to 14. [VOICECPE_SW-922]
+
+--------------------------------------------------------------------------------
+version 4.0.0.0  |  2015-03-05  |
+--------------------------------------------------------------------------------
+NEW Add the new mailbox descriptor setup for config exchange between driver
+    and FW.
+    The new descriptor layout is described in the corresponding document.
+    Clean-up / re-order of the driver init sequence.
+    The mailbox layout is readout from the FW and configured accordingly.
+    [VOICECPE_SW-923]
+
+-------------------------------------------------------------------------------
+version 3.x.x.x  |  2014-07-11  |  Created xrx500 branch
+-------------------------------------------------------------------------------
+CHG Removed support of legacy API of the Linux procfs. Support only seqfile for
+    all procfs output. Removed procfs interface used only for bringup tests.
+    [VOICECPE_SW-744]
+
+--------------------------------------------------------------------------------
+version 2.2.11.0 |  2014-03-21  |  Voice System Package 4.33 release
+--------------------------------------------------------------------------------
+CHG Removed usage of the AD1 status register beause the FW with event mailbox
+    does not use it. [VOICECPE_SW-720]
+CHG As platform driver allocate the clock and memory resources using the Linux
+    API. [VOICECPE_SW-727]
+
+--------------------------------------------------------------------------------
+version 2.2.10.0 |  2014-02-14  |  Voice System Package 4.33 RC6
+--------------------------------------------------------------------------------
+NEW Support compilation as Linux platform driver with configuration via device
+    tree. Unified driver to support all XRX200 and XRX300 devices with just a
+    single binary. [VOICECPE_SW-723][VOICECPE_SW-673]
+CHG Removed support of the Danube platform from the driver.
+CHG Prepared Linux device tree support by introducing variables for key values.
+    [VOICECPE_SW-673] [VOICECPE_SW-723]
+CHG Removed support for FW without event mailbox. [VOICECPE_SW-720]
+
+--------------------------------------------------------------------------------
+version 2.2.9.0  |  2013-12-06  |  Voice System Package 4.33 RC2
+--------------------------------------------------------------------------------
+NEW Added identification of GRX330 silicon. [VOICECPE_SW-691]
+CHG Removed setup of the 8kHz timer that provides the hearbeat for the voice-FW.
+    The current voice-FW configures the timer itself. [VOICECPE_SW-695]
+
+--------------------------------------------------------------------------------
+version 2.2.8.0  |  2013-11-22  |  Voice System Package 4.33 RC1
+--------------------------------------------------------------------------------
+CHG Adaptions to UGW 6.1 including support of Linux kernel up to 3.10.12.
+    [VOICECPE_SW-673]
+
+--------------------------------------------------------------------------------
+version 2.2.7.0  |  2013-08-13  |
+--------------------------------------------------------------------------------
+FIX Resolved warnings reported by greenhills compiler. [VOICECPE_SW-571]
+CHG Adapted to changed include filenames of drivers in UGW6.1. [VOICECPE_SW-666]
+NEW Additions for the FALCON platform.
+FIX Incorrect calculation of number of buffers to send to Voice CPU in case if
+    mailbox space is smaller than the minimum possible Address Pointer Message
+    size (3 words). [VOICECPE_SW-609]
+
+--------------------------------------------------------------------------------
+version 2.2.6.0  |  2013-02-06  |
+--------------------------------------------------------------------------------
+CHG Support of Linux versions from 3.x onwards. [VOICECPE_SW-594]
+NEW Added support for XWAY(TM) xRX300 family. [VOICECPE_SW-370]
+    Added the XRX300 firmware version identifier.
+    Updated the pin reservation for the SSI bus.
+CHG Integrated patches from FALCON project. [VOICECPE_SW-379]
+FIX Added error check to prevent overwriting memory in case of corrupted data
+    in the mailbox.
+FIX Cleanup automake from warnings reported by "autoreconf -Wall"
+    JIRA_RND [VOICECPE_SW-328]
+NEW Configurable FW test feature: --enable-test-cmd-notry [VOICECPE_SW-189]:
+    on command write if there is no space in the command downstream mailbox the
+    FIO_MPS_MB_WRITE ioctl returns immediately with error code -EIO without
+    additional write tries. Mailbox content console trace is suppressed.
+    Implemented upon FW team request. Disabled per default.
+CHG for xRX platforms: reservation of all GPIO lines used by SmartSLIC (GPIO31,
+    GPIO8, GPIO34, GPIO35, GPIO36). Previously only SSLIC RESET (GPIO31) was
+    reserved. [VOICECPE_SW-187]
+CHG Character device registration/unregistration in the style of linux 2.6.x;
+    Dynamic major number allocation.
+CHG Patches from Falcon project: FALCON system support and linux-2.6.39
+    adaptation
+CHG Updated configure arguments.
+
+--------------------------------------------------------------------------------
+version 2.2.3.1  |  2011-02-25  |   TAPI 4.6.0 (aka 3.14.0) release
+--------------------------------------------------------------------------------
+FIX Compile warnings
+
+--------------------------------------------------------------------------------
+version 2.2.3.0  |  2011-02-24  |   TAPI 3.14.0 RC3
+--------------------------------------------------------------------------------
+CHG Exported function 'ifx_mps_cache_inv' for common usage.
+CHG Linux 2.6.32.11 adaptations for UGW5.1
+
+--------------------------------------------------------------------------------
+version 2.2.2.5  |  2010-xx-xx  |
+--------------------------------------------------------------------------------
+CHG Reactivated code optimisation of the cache operations after correcting the
+    memory access in the FW. Requires FW 4.2.0 for ARX and 2.1.0 for VRX.
+
+--------------------------------------------------------------------------------
+version 2.2.2.4  |  2010-10-01  |   TAPI 3.12.0 maintenance release for UGW 4.3
+--------------------------------------------------------------------------------
+CHG Removed again one of the code optimisation of the cache operations to
+    workaround a missalignment between voice FW and this driver.
+
+--------------------------------------------------------------------------------
+version 2.2.2.3  |  2010-08-10  |        TAPI 3.12.0 maintenance release RC2
+--------------------------------------------------------------------------------
+CHG Code optimization based upon cache operations code review.
+
+--------------------------------------------------------------------------------
+version 2.2.2.2  |  2010-08-07  |
+--------------------------------------------------------------------------------
+NEW AR9/VR9: read cache configuration from MIPS registers. Upon read result the
+    decision is made whether to do cache operations in the MPS driver or not.
+CHG Workaround for write reordering on MIPS multicore: writing to on-chip SRAM
+    and off-chip SDRAM can be reordered in time, resulting in broken data passed
+    to voice CPU. Workaround in downstream direction: write back (and
+    invalidate) all used cache lines, sync, read back uncached the last u32
+    word, sync. The symmetric approach is used by voice CPU in upstream
+    direction.
+
+--------------------------------------------------------------------------------
+version 2.2.2.1  |  2010-08-04  |        TAPI 3.12.0 maintenance release RC1
+--------------------------------------------------------------------------------
+CHG Cache operations changed from linux kernel exported API to local
+    implementation - to overcome kernel version dependency.
+
+--------------------------------------------------------------------------------
+version 2.2.2.0  |  2010-07-13  |        TAPI 3.12.0 AR9 maintenance release
+--------------------------------------------------------------------------------
+FIX Compile errors when using gcc 4.3.3 toolchain with CodeSourcery enhancements
+CHG intentation
+FIX Removed disabling inerrupts before functions that may sleep.
+FIX Removed compile warnings.
+CHG Invalidate cache of each memory segment provided to firmware as Address
+    Pointer Message.
+NEW Firmware platform verification based on image metadata.
+FIX KSEG0 cast in buffer owner accounting.
+CHG enhanced CPU1 base address check.
+NEW Added CRLF check on make distcheck.
+
+--------------------------------------------------------------------------------
+version 2.2.1.0  |  2009-12-14  |
+--------------------------------------------------------------------------------
+CHG pointers changed to volatile in addition to content in mps_fifo structure.
+CHG suppressed default trace output for downstream mailbox write errors.
+FIX incorrect number of fifo write retries in interrupt context leading
+    to writing to a full data downstream mailbox and data loss on FW side.
+FIX workaround for BootROM issue - actual decryption of n+4 bytes if n bytes
+    were passed to decryption. Critical in case of new firmware image format.
+
+--------------------------------------------------------------------------------
+version 2.2.0.3  |  2009-11-27  |        TAPI 3.11.0 preAlpha for UGW 4.2
+--------------------------------------------------------------------------------
+NEW Support of new EDSP firmware image format, CRC32 checksum verification
+FIX AR9/VR9: no VPE1 reset on FIO_MPS_RESET ioctl
+CHG Removed console printout for discarded events. VoIP FW development team
+    request.
+--------------------------------------------------------------------------------
+version 2.2.0.0  |  2009-11-11  |              TAPI 3.11.0.1
+--------------------------------------------------------------------------------
+CHG IFXOS porting
+FIX buffer leak during TAPI reset and external buffer management, e.g.
+    lib_bufferpool. Function callback mechanism to free all data buffers that
+    are used by voice firmware during TAPI reset.
+CHG UEIP patch applied
+CHG AR9/VR9: added watchdog timeout range check
+CHG removed obsolete devfs support
+CHG AR9/VR9: EDSP firmware checksum calculation and exception dump on a console
+    in case of FW ready timeout, FW watchdog or FW version read timout
+CHG compile switch for VR9 platform
+FIX Danube and AR9: after starting of CPU1 (VPE1) wait until FW raises a DL_END
+    bit (MPS_RAD0SR) before reading back the FW version - for syncronization
+FIX stop AR9 firmware watchdog mechanism on module cleanup and during firmware
+    download
+CHG Danube: adapt to new ifx_cp1_get_size() (returns in units of bytes now)
+    and ifx_cp1_get_base()
+
+--------------------------------------------------------------------------------
+version 2.1.1.1  |  2009-07-16  |              TAPI 3.10.1
+--------------------------------------------------------------------------------
+NEW discard firmware events in case if no space in the event sw fifo
+    (--enable-test-evt-discard, internal development use only)
+FIX missing local_irq_restore() in case of event sw fifo write error
+
+--------------------------------------------------------------------------------
+version 2.1.1.0  |  2009-07-02  |              TAPI 3.10.1 internal
+--------------------------------------------------------------------------------
+NEW implemented shared access to the DD_MBX interrupt
+CHG improved interrupt handling, handled only enabled/masked interrupts
+
+--------------------------------------------------------------------------------
+version 2.1.0.1  |  2009-06-04  |              TAPI 3.10.0 release
+--------------------------------------------------------------------------------
+no changes
+
+--------------------------------------------------------------------------------
+version 2.1.0.1  |  2009-05-28  |              TAPI 3.10 rc2
+--------------------------------------------------------------------------------
+CHG (AR9) Added SmartSLIC reset in case of AR9 firmware watchdog
+CHG (AR9) Re-enabled AR9 watchdog mechanism
+FIX removed fastbuf pool initialization in case of external buffer management
+
+--------------------------------------------------------------------------------
+version 2.1.0.0  |  2009-05-11  |              TAPI 3.10 rc1
+--------------------------------------------------------------------------------
+NEW Increased number of logical voice channels from 6 to 8
+
+--------------------------------------------------------------------------------
+version 2.0.10.0 |  2009-03-25  |              TAPI 3.09 release
+--------------------------------------------------------------------------------
+FIX Temporary workaround for GPTC timer calibration by accessing CON_1_A and
+    CON_1_B registers directly. To be removed if GPTC calibration would move
+    to EDSP firmware
+CHG disable watchdog registration/handling for AR9 (instable in the BSP)
+
+--------------------------------------------------------------------------------
+version 2.0.9.0  |  2009-03-06  |
+--------------------------------------------------------------------------------
+CHG Common GPTC timer configuration routine for AR9 and Danube; function
+    interface exported by GPTC driver is used
+NEW Added GPTC TIMER1A configuration for AR9
+
+--------------------------------------------------------------------------------
+version 2.0.8.0  |  2009-01-20  |
+--------------------------------------------------------------------------------
+FIX Added debug output for the case when the command mailbox stays full for
+    at least 10ms and return a different error code.
+
+--------------------------------------------------------------------------------
+version 2.0.7.0  |  2009-01-15  |
+--------------------------------------------------------------------------------
+FIX AR9: Added GPTC TIMER1A stop function in module cleanup routine
+FIX autoconf version requirements
+
+--------------------------------------------------------------------------------
+version 2.0.6.0  |  2008-12-17  |
+--------------------------------------------------------------------------------
+FIX Kernel crash on `cat /proc/driver/ifx_mps/fastbuf` in case of common
+    VMMC+MPS driver: added buffer management function poiner check in
+    ifx_mps_fastbuf_get_proc()
+
+--------------------------------------------------------------------------------
+version 2.0.5.0  |  2008-12-05  |
+--------------------------------------------------------------------------------
+FIX AR9&Danube: FW download routine - accessing image size word in user space
+    without copying it to kernel space
+CHG renamed NEWS to CHANGELOG
+
+--------------------------------------------------------------------------------
+version 2.0.4.0  |  2008-12-01  |
+--------------------------------------------------------------------------------
+NEW AR9: added reservation of TIMER1A
+NEW Danube: added probing of GPTC_CON1B register before GPTC configuration
+
+--------------------------------------------------------------------------------
+version 2.0.3.0  |  2008-10-22  |
+--------------------------------------------------------------------------------
+FIX rmmod - call of remove_proc_entry() on non-empty directory.
+NEW license update
+CHG distribution package name doesn't contain tapi-x.x.x anymore
+CHG remove check for absolute path in configure.in
+
+--------------------------------------------------------------------------------
+version 2.0.2.0  |  2008-10-06  |
+--------------------------------------------------------------------------------
+NEW AR9: added Watchdog Timer support.
+NEW Danube: improved MPS restart procedure (to fix hanging up of CPU1).
+NEW Danube: removed code branches for GPTC initialization in linux2.4 and
+    linux2.6. GPTC configuration is done in MPS by writing directly to GPTC
+    registers.
+NEW remove --prefix option from distcheck configure options to avoid removal
+    of installed binaries on distcheck.
+
+--------------------------------------------------------------------------------
+version 2.0.1.0  |  2008-06-10  |                TAPI 3.7.1
+--------------------------------------------------------------------------------
+AR9 bringup.
+drv_mps_version.h introduced.
+Bugfix: incorrect event mailbox size at startup (AR9 only).
+NEW common VMMC and MPS build system.
+NEW improved firmware download procedure.
+
+--------------------------------------------------------------------------------
+version 2.0.0.0  |  2008-04-24  |                TAPI 3.7.1
+--------------------------------------------------------------------------------
+no changes
+
+--------------------------------------------------------------------------------
+version 2.0.0.0  |  2008-04-11  |
+--------------------------------------------------------------------------------
+Files renamed to drv_mps_vmmc_* to follow IFX driver coding guideline.
+Danube and Amazon-S specific code separated in a different files.
+New build system introduced.
+EDSP firmware size is not hardcoded anymore, but obtained from BSP via function
+call.
+Bugfix: implausible command mailbox history (/proc/driver/ifx_mps/history).
+Code cleanup.
+NEW added defines for chipid (Danube/Twinpass)
+
+--------------------------------------------------------------------------------
+version 1.2.8    |  2008-02-06  |
+--------------------------------------------------------------------------------
+FIX merge in fixes from SIN stream
+
+--------------------------------------------------------------------------------
+version 1.2.7    |  2008-01-xx  |
+--------------------------------------------------------------------------------
+CHG Added support for 6 data channels needed for DECT support.
+FIX Exported symbol that was missing when not built as a kernel module.
+CHG Use enum values instead of constants in the dev-fs registration.

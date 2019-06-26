@@ -1,0 +1,727 @@
+diff --git a/Makefile b/Makefile
+index d5beb045920bafc7e226668dbb5fa504b8fe657c..5526d7249a668d8a123bae490f15bdbbe0389277 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,7 +1,7 @@
+ VERSION = 1
+ PATCHLEVEL = 20
+ SUBLEVEL = 0
+-EXTRAVERSION =
++EXTRAVERSION = sphairon1
+ NAME = Unnamed
+ 
+ # *DOCUMENTATION*
+diff --git a/include/applets.src.h b/include/applets.src.h
+index 252a060fb19445fdfc83b509b6abf3fe0ad37c46..cafc5e0f89d5c65311e3a4fa613c0480cd8425c7 100644
+--- a/include/applets.src.h
++++ b/include/applets.src.h
+@@ -217,6 +217,7 @@ IF_LN(APPLET_NOEXEC(ln, ln, BB_DIR_BIN, BB_SUID_DROP, ln))
+ IF_LOAD_POLICY(APPLET(load_policy, BB_DIR_USR_SBIN, BB_SUID_DROP))
+ IF_LOADFONT(APPLET(loadfont, BB_DIR_USR_SBIN, BB_SUID_DROP))
+ IF_LOADKMAP(APPLET(loadkmap, BB_DIR_SBIN, BB_SUID_DROP))
++IF_LOCK(APPLET(lock, BB_DIR_BIN, BB_SUID_DROP))
+ IF_LOGGER(APPLET(logger, BB_DIR_USR_BIN, BB_SUID_DROP))
+ /* Needs to be run by root or be suid root - needs to change uid and gid: */
+ IF_LOGIN(APPLET(login, BB_DIR_BIN, BB_SUID_REQUIRE))
+diff --git a/miscutils/Config.src b/miscutils/Config.src
+index b9fc196d8d6dee7024aabbbe41b0999455119795..d69c75e57a7a52126ae154583cd3e4d79636d6f4 100644
+--- a/miscutils/Config.src
++++ b/miscutils/Config.src
+@@ -419,6 +419,11 @@ config FEATURE_HDPARM_HDIO_GETSET_DMA
+ 	help
+ 	  Enables the 'hdparm -d' option to get/set using_dma flag.
+ 
++config LOCK
++	bool "lock"
++	help
++	  Small utility for using locks in scripts
++
+ config MAKEDEVS
+ 	bool "makedevs"
+ 	default y
+diff --git a/miscutils/Kbuild.src b/miscutils/Kbuild.src
+index 8c498643b1998738b79c793bcf29f1d0858e0749..456da9c7b0dc5be55f48eba6f6c2ca05d76ec476 100644
+--- a/miscutils/Kbuild.src
++++ b/miscutils/Kbuild.src
+@@ -29,6 +29,7 @@ lib-$(CONFIG_INOTIFYD)    += inotifyd.o
+ lib-$(CONFIG_FEATURE_LAST_SMALL)+= last.o
+ lib-$(CONFIG_FEATURE_LAST_FANCY)+= last_fancy.o
+ lib-$(CONFIG_LESS)        += less.o
++lib-$(CONFIG_LOCK)        += lock.o
+ lib-$(CONFIG_MAKEDEVS)    += makedevs.o
+ lib-$(CONFIG_MAN)         += man.o
+ lib-$(CONFIG_MICROCOM)    += microcom.o
+diff --git a/miscutils/lock.c b/miscutils/lock.c
+new file mode 100644
+index 0000000000000000000000000000000000000000..45e474a8b11fb28a0db861afcd0216023b8c94a3
+--- /dev/null
++++ b/miscutils/lock.c
+@@ -0,0 +1,137 @@
++/*
++ * Copyright (C) 2006 Felix Fietkau <nbd@openwrt.org>
++ *
++ * This is free software, licensed under the GNU General Public License v2.
++ */
++
++//usage:#define lock_trivial_usage
++//usage:       "[-suw] <filename>"
++//usage:#define lock_full_usage ""
++
++#include <sys/types.h>
++#include <sys/file.h>
++#include <sys/stat.h>
++#include <signal.h>
++#include <fcntl.h>
++#include <unistd.h>
++#include <stdio.h>
++#include "busybox.h"
++
++static int unlock = 0;
++static int shared = 0;
++static int waitonly = 0;
++static int fd;
++static char *file;
++
++static void usage(char *name)
++{
++	fprintf(stderr, "Usage: %s [-suw] <filename>\n"
++	                "	-s	Use shared locking\n"
++	                "	-u	Unlock\n"
++	                "	-w	Wait for the lock to become free, don't acquire lock\n"
++					"\n", name);
++	exit(1);
++}
++
++static void exit_unlock(int sig)
++{
++	flock(fd, LOCK_UN);
++	exit(0);
++}
++
++static int do_unlock(void)
++{
++	FILE *f;
++	int i;
++
++	if ((f = fopen(file, "r")) == NULL)
++		return 0;
++
++	fscanf(f, "%d", &i);
++	if (i > 0)
++		kill(i, SIGTERM);
++
++	fclose(f);
++
++	return 0;
++}
++
++static int do_lock(void)
++{
++	int pid;
++	char pidstr[8];
++
++	if ((fd = open(file, O_RDWR | O_CREAT | O_EXCL, 0700)) < 0) {
++		if ((fd = open(file, O_RDWR)) < 0) {
++			fprintf(stderr, "Can't open %s\n", file);
++			return 1;
++		}
++	}
++
++	if (flock(fd, (shared ? LOCK_SH : LOCK_EX)) < 0) {
++		fprintf(stderr, "Can't lock %s\n", file);
++		return 1;
++	}
++
++	pid = fork();
++
++	if (pid < 0)
++		return -1;
++
++	if (pid == 0) {
++		signal(SIGKILL, exit_unlock);
++		signal(SIGTERM, exit_unlock);
++		signal(SIGINT, exit_unlock);
++		if (waitonly)
++			exit_unlock(0);
++		else
++			while (1)
++				sleep(1);
++	} else {
++		if (!waitonly) {
++			lseek(fd, 0, SEEK_SET);
++			ftruncate(fd, 0);
++			sprintf(pidstr, "%d\n", pid);
++			write(fd, pidstr, strlen(pidstr));
++			close(fd);
++		}
++
++		return 0;
++	}
++	return 0;
++}
++
++int lock_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
++int lock_main(int argc, char **argv)
++{
++	char **args = &argv[1];
++	int c = argc - 1;
++
++	while ((*args != NULL) && (*args)[0] == '-') {
++		char *ch = *args;
++		while (*(++ch) > 0) {
++			switch(*ch) {
++				case 'w':
++					waitonly = 1;
++					break;
++				case 's':
++					shared = 1;
++					break;
++				case 'u':
++					unlock = 1;
++					break;
++			}
++		}
++		c--;
++		args++;
++	}
++
++	if (c != 1)
++		usage(argv[0]);
++
++	file = *args;
++	if (unlock)
++		return do_unlock();
++	else
++		return do_lock();
++}
+diff --git a/miscutils/watchdog.c b/miscutils/watchdog.c
+index ee28dc30d3d77dd22189a816f863917650cca2f2..a6b957b8d16bc674947045e3c2048a548ffb65df 100644
+--- a/miscutils/watchdog.c
++++ b/miscutils/watchdog.c
+@@ -64,6 +64,9 @@ int watchdog_main(int argc, char **argv)
+ 	if (!(opts & OPT_FOREGROUND))
+ 		bb_daemonize_or_rexec(DAEMON_CHDIR_ROOT, argv);
+ 
++	/* Create pidfile */
++	write_pidfile("/var/run/watchdog.pid");
++
+ 	if (opts & OPT_HTIMER)
+ 		htimer_duration = xatou_sfx(ht_arg, suffixes);
+ 	stimer_duration = htimer_duration / 2;
+diff --git a/networking/udhcp/dhcpc.c b/networking/udhcp/dhcpc.c
+index ddb328dd57de045045498652753df33c0dab6af3..c4f4d4c6b9b5168a3c0ec8cdc954d029a6c83ea0 100644
+--- a/networking/udhcp/dhcpc.c
++++ b/networking/udhcp/dhcpc.c
+@@ -674,7 +674,7 @@ static int raw_bcast_from_client_config_ifindex(struct dhcp_packet *packet)
+ 
+ /* Broadcast a DHCP discover packet to the network, with an optionally requested IP */
+ /* NOINLINE: limit stack usage in caller */
+-static NOINLINE int send_discover(uint32_t xid, uint32_t requested)
++static NOINLINE int send_discover(uint32_t xid, uint32_t requested, uint16_t secs)
+ {
+ 	struct dhcp_packet packet;
+ 
+@@ -685,6 +685,7 @@ static NOINLINE int send_discover(uint32_t xid, uint32_t requested)
+ 	init_packet(&packet, DHCPDISCOVER);
+ 
+ 	packet.xid = xid;
++	packet.secs = secs;
+ 	if (requested)
+ 		udhcp_add_simple_option(&packet, DHCP_REQUESTED_IP, requested);
+ 
+@@ -703,7 +704,7 @@ static NOINLINE int send_discover(uint32_t xid, uint32_t requested)
+  * "The client _broadcasts_ a DHCPREQUEST message..."
+  */
+ /* NOINLINE: limit stack usage in caller */
+-static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requested)
++static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requested, uint16_t secs)
+ {
+ 	struct dhcp_packet packet;
+ 	struct in_addr addr;
+@@ -727,6 +728,7 @@ static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requeste
+ 	init_packet(&packet, DHCPREQUEST);
+ 
+ 	packet.xid = xid;
++	packet.secs = secs;
+ 	udhcp_add_simple_option(&packet, DHCP_REQUESTED_IP, requested);
+ 
+ 	udhcp_add_simple_option(&packet, DHCP_SERVER_ID, server);
+@@ -744,7 +746,7 @@ static NOINLINE int send_select(uint32_t xid, uint32_t server, uint32_t requeste
+ 
+ /* Unicast or broadcast a DHCP renew message */
+ /* NOINLINE: limit stack usage in caller */
+-static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
++static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr, uint16_t secs)
+ {
+ 	struct dhcp_packet packet;
+ 
+@@ -770,6 +772,7 @@ static NOINLINE int send_renew(uint32_t xid, uint32_t server, uint32_t ciaddr)
+ 
+ 	packet.xid = xid;
+ 	packet.ciaddr = ciaddr;
++	packet.secs = secs;
+ 
+ 	/* Add options: maxsize,
+ 	 * optionally: hostname, fqdn, vendorclass,
+@@ -1346,6 +1349,8 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 		/* silence "uninitialized!" warning */
+ 		unsigned timestamp_before_wait = timestamp_before_wait;
+ 
++		unsigned transaction_start = transaction_start;
++
+ 		//bb_error_msg("sockfd:%d, listen_mode:%d", sockfd, listen_mode);
+ 
+ 		/* Was opening raw or udp socket here
+@@ -1379,6 +1384,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 		/* If timeout dropped to zero, time to become active:
+ 		 * resend discover/renew/whatever
+ 		 */
++		unsigned now = (unsigned)monotonic_sec();
+ 		if (retval == 0) {
+ 			/* When running on a bridge, the ifindex may have changed
+ 			 * (e.g. if member interfaces were added/removed
+@@ -1401,10 +1407,13 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 			switch (state) {
+ 			case INIT_SELECTING:
+ 				if (packet_num < discover_retries) {
+-					if (packet_num == 0)
++					if (packet_num == 0) {
+ 						xid = random_xid();
+-					/* broadcast */
+-					send_discover(xid, requested_ip);
++						transaction_start = now;
++					}
++
++					send_discover(xid, requested_ip, (now - transaction_start)); /* broadcast */
++
+ 					timeout = discover_timeout;
+ 					packet_num++;
+ 					continue;
+@@ -1429,9 +1438,12 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 				packet_num = 0;
+ 				continue;
+ 			case REQUESTING:
++				if (packet_num == 0)
++					transaction_start = now;
++
+ 				if (packet_num < discover_retries) {
+ 					/* send broadcast select packet */
+-					send_select(xid, server_addr, requested_ip);
++					send_select(xid, server_addr, requested_ip, (now - transaction_start));
+ 					timeout = discover_timeout;
+ 					packet_num++;
+ 					continue;
+@@ -1447,6 +1459,7 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 				/* 1/2 lease passed, enter renewing state */
+ 				state = RENEWING;
+ 				client_config.first_secs = 0; /* make secs field count from 0 */
++				transaction_start = now;
+ 				change_listen_mode(LISTEN_KERNEL);
+ 				log1("Entering renew state");
+ 				/* fall right through */
+@@ -1463,13 +1476,14 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 			 * Anyway, it does recover by eventually failing through
+ 			 * into INIT_SELECTING state.
+ 			 */
+-					send_renew(xid, server_addr, requested_ip);
++					send_renew(xid, server_addr, requested_ip, (now - transaction_start));
+ 					timeout >>= 1;
+ 					continue;
+ 				}
+ 				/* Timed out, enter rebinding state */
+ 				log1("Entering rebinding state");
+ 				state = REBINDING;
++				transaction_start = now;
+ 				/* fall right through */
+ 			case REBINDING:
+ 				/* Switch to bcast receive */
+@@ -1478,13 +1492,15 @@ int udhcpc_main(int argc UNUSED_PARAM, char **argv)
+ 				 * try to find DHCP server using broadcast */
+ 				if (timeout > 0) {
+ 					/* send a broadcast renew request */
+-					send_renew(xid, 0 /*INADDR_ANY*/, requested_ip);
++					send_renew(xid, 0 /*INADDR_ANY*/, requested_ip, (now - transaction_start));
+ 					timeout >>= 1;
+ 					continue;
+ 				}
+ 				/* Timed out, enter init state */
+ 				bb_info_msg("Lease lost, entering init state");
+ 				udhcp_run_script(NULL, "deconfig");
++				transaction_start = now;
++				change_listen_mode(LISTEN_RAW);
+ 				state = INIT_SELECTING;
+ 				client_config.first_secs = 0; /* make secs field count from 0 */
+ 				/*timeout = 0; - already is */
+diff --git a/shell/ash.c b/shell/ash.c
+index d197fa19a4d44cdad139b2f2224e617e72e2e567..037827a320a7659298c7a3bb74bb63002506088e 100644
+--- a/shell/ash.c
++++ b/shell/ash.c
+@@ -10178,6 +10178,10 @@ options(int cmdline)
+ 	int val;
+ 	int c;
+ 
++	/* eggerd: "Fix" shell to always read profile, some would consider this
++	 * a bug in our scripts .... */
++	isloginsh = 1;
++
+ 	if (cmdline)
+ 		minusc = NULL;
+ 	while ((p = *argptr) != NULL) {
+diff --git a/sysklogd/Config.src b/sysklogd/Config.src
+index b7a494eff07a89fcf2bbf98d8ccaf504ece05021..9ae8f97d91e0fd04204e9ba3abc3a8b59f285b52 100644
+--- a/sysklogd/Config.src
++++ b/sysklogd/Config.src
+@@ -92,6 +92,14 @@ config FEATURE_IPC_SYSLOG_BUFFER_SIZE
+ 	  This option sets the size of the circular buffer
+ 	  used to record system log messages.
+ 
++config FEATURE_SAS_FLASH_LOG
++	bool "Enable SAS flash log feature"
++	default n
++	depends on SYSLOGD
++	help
++	  This option enables the SAS flash log feature to
++	  write special facilities/priorities to a special messages file.
++
+ config LOGREAD
+ 	bool "logread"
+ 	default y
+diff --git a/sysklogd/klogd.c b/sysklogd/klogd.c
+index efa0e537ad501e4a1c8f303b94308da2e978ae61..7554f4173b7e43bc32f9e54802667cc12ed24ed6 100644
+--- a/sysklogd/klogd.c
++++ b/sysklogd/klogd.c
+@@ -215,6 +215,7 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
+ 		/* Process each newline-terminated line in the buffer */
+ 		start = log_buffer;
+ 		while (1) {
++			int is_fwlog = 0;
+ 			char *newline = strchrnul(start, '\n');
+ 
+ 			if (*newline == '\0') {
+@@ -245,10 +246,26 @@ int klogd_main(int argc UNUSED_PARAM, char **argv)
+ 				}
+ 				if (*start == '>')
+ 					start++;
++
++				/*
++				 * If this message comes from firewall (netfilter) we set
++				 * facility to LOG_LOCAL0 so the message is written to the
++				 * special status file specified for syslog with parameter -f.
++				 */
++				char *p = strstr(start, "firewall-nf");
++				if (p) {
++					is_fwlog = 1;
++					priority |= LOG_LOCAL0;
++					start = p + 12; /* skip firewall-nf prefix */
++				}
+ 			}
+ 			/* Log (only non-empty lines) */
+-			if (*start)
+-				syslog(priority, "%s", start);
++			if (*start) {
++				if (is_fwlog)
++					syslog(priority, "%s%s", "Firewall violation detected", start);
++				else
++					syslog(priority, "%s", start);
++			}
+ 
+ 			if (!newline)
+ 				break;
+diff --git a/sysklogd/syslogd.c b/sysklogd/syslogd.c
+index fc380d9f91bcfabc697489c9f6144b931cd02a5c..1c7d18e5747d39e915ab37517bc89a2de85bb054 100644
+--- a/sysklogd/syslogd.c
++++ b/sysklogd/syslogd.c
+@@ -140,6 +140,16 @@ IF_FEATURE_IPC_SYSLOG( \
+ ) \
+ IF_FEATURE_SYSLOGD_CFG( \
+ 	logRule_t *log_rules; \
++) \
++IF_FEATURE_SAS_FLASH_LOG( \
++	const char *flashlogFilePath;           \
++	int flashlogFD;                         \
++	int flashlogLevel;                      \
++	int flashlogLines;                      \
++	int flashlogBackupLines;                \
++	int flashlogFacility;                   \
++	unsigned flashlogFileSize;              \
++	unsigned curFlashlogFileSize;           \
+ )
+ 
+ struct init_globals {
+@@ -190,6 +200,15 @@ static const struct init_globals init_data = {
+ 	.SMwup = { {1, -1, IPC_NOWAIT} },
+ 	.SMwdn = { {0, 0}, {1, 0}, {1, +1} },
+ #endif
++#if ENABLE_FEATURE_SAS_FLASH_LOG
++	.flashlogFilePath = "",
++	.flashlogFD = -1,
++	.flashlogLevel = 8,
++	.flashlogLines = 0,
++	.flashlogBackupLines = 10000000,
++	.flashlogFacility = ~0 & LOG_FACMASK, // enable all facilities
++	.flashlogFileSize = 20 * 1024,
++#endif
+ };
+ 
+ #define G (*ptr_to_globals)
+@@ -213,6 +232,11 @@ enum {
+ 	IF_FEATURE_SYSLOGD_DUP(   OPTBIT_dup        ,)	// -D
+ 	IF_FEATURE_SYSLOGD_CFG(   OPTBIT_cfg        ,)	// -f
+ 
++	IF_FEATURE_SAS_FLASH_LOG( OPTBIT_flashoutfile       ,) // -f
++	IF_FEATURE_SAS_FLASH_LOG( OPTBIT_flashloglevel      ,) // -x
++	IF_FEATURE_SAS_FLASH_LOG( OPTBIT_flashlogbackuplines,) // -r
++	IF_FEATURE_SAS_FLASH_LOG( OPTBIT_flashlogfacility   ,) // -Y
++	IF_FEATURE_SAS_FLASH_LOG( OPTBIT_flashlogfilesize   ,) // -Z
+ 	OPT_mark        = 1 << OPTBIT_mark    ,
+ 	OPT_nofork      = 1 << OPTBIT_nofork  ,
+ 	OPT_outfile     = 1 << OPTBIT_outfile ,
+@@ -225,6 +249,11 @@ enum {
+ 	OPT_circularlog = IF_FEATURE_IPC_SYSLOG(    (1 << OPTBIT_circularlog)) + 0,
+ 	OPT_dup         = IF_FEATURE_SYSLOGD_DUP(   (1 << OPTBIT_dup        )) + 0,
+ 	OPT_cfg         = IF_FEATURE_SYSLOGD_CFG(   (1 << OPTBIT_cfg        )) + 0,
++	OPT_flashoutfile        = IF_FEATURE_SAS_FLASH_LOG( (1 << OPTBIT_flashoutfile       )) + 0,
++	OPT_flashloglevel       = IF_FEATURE_SAS_FLASH_LOG( (1 << OPTBIT_flashloglevel      )) + 0,
++	OPT_flashlogbackuplines = IF_FEATURE_SAS_FLASH_LOG( (1 << OPTBIT_flashlogbackuplines)) + 0,
++	OPT_flashlogfacility    = IF_FEATURE_SAS_FLASH_LOG( (1 << OPTBIT_flashlogfacility   )) + 0,
++	OPT_flashlogfilesize    = IF_FEATURE_SAS_FLASH_LOG( (1 << OPTBIT_flashlogfilesize   )) + 0,
+ };
+ #define OPTION_STR "m:nO:l:S" \
+ 	IF_FEATURE_ROTATE_LOGFILE("s:" ) \
+@@ -233,18 +262,21 @@ enum {
+ 	IF_FEATURE_REMOTE_LOG(    "L"  ) \
+ 	IF_FEATURE_IPC_SYSLOG(    "C::") \
+ 	IF_FEATURE_SYSLOGD_DUP(   "D"  ) \
+-	IF_FEATURE_SYSLOGD_CFG(   "f:"  )
++	IF_FEATURE_SYSLOGD_CFG(   "f:"  ) \
++	IF_FEATURE_SAS_FLASH_LOG( "f:x:r:Y:Z:")
+ #define OPTION_DECL *opt_m, *opt_l \
+ 	IF_FEATURE_ROTATE_LOGFILE(,*opt_s) \
+ 	IF_FEATURE_ROTATE_LOGFILE(,*opt_b) \
+ 	IF_FEATURE_IPC_SYSLOG(    ,*opt_C = NULL) \
+-	IF_FEATURE_SYSLOGD_CFG(   ,*opt_f = NULL)
++	IF_FEATURE_SYSLOGD_CFG(   ,*opt_f = NULL) \
++	IF_FEATURE_SAS_FLASH_LOG( ,*opt_x, *opt_r, *opt_Y, *opt_Z)
+ #define OPTION_PARAM &opt_m, &(G.logFile.path), &opt_l \
+ 	IF_FEATURE_ROTATE_LOGFILE(,&opt_s) \
+ 	IF_FEATURE_ROTATE_LOGFILE(,&opt_b) \
+ 	IF_FEATURE_REMOTE_LOG(	  ,&remoteAddrList) \
+ 	IF_FEATURE_IPC_SYSLOG(    ,&opt_C) \
+-	IF_FEATURE_SYSLOGD_CFG(   ,&opt_f)
++	IF_FEATURE_SYSLOGD_CFG(   ,&opt_f) \
++	IF_FEATURE_SAS_FLASH_LOG( ,&(G.flashlogFilePath), &opt_x, &opt_r, &opt_Y, &opt_Z)
+ 
+ 
+ #if ENABLE_FEATURE_SYSLOGD_CFG
+@@ -620,6 +652,82 @@ static void log_locally(time_t now, char *msg, logFile_t *log_file)
+ #endif
+ }
+ 
++/* Print a message to the flash log file. */
++#ifdef ENABLE_FEATURE_SAS_FLASH_LOG
++static void log_locally_flash(char *msg)
++{
++#ifdef SYSLOGD_WRLOCK
++	struct flock fl;
++#endif
++	int len = strlen(msg);
++
++	if (G.flashlogFD < 0) {
++		G.flashlogFD = open(G.flashlogFilePath, O_WRONLY | O_CREAT
++					| O_NOCTTY | O_APPEND | O_NONBLOCK,
++					0666);
++		if (G.flashlogFD < 0)
++			return;
++	}
++
++	struct stat statf;
++	fstat(G.flashlogFD, &statf);
++
++	/* bug (mostly harmless): can wrap around if file > 4gb */
++	G.curFlashlogFileSize = statf.st_size;
++
++#ifdef SYSLOGD_WRLOCK
++	fl.l_whence = SEEK_SET;
++	fl.l_start = 0;
++	fl.l_len = 1;
++	fl.l_type = F_WRLCK;
++	fcntl(G.flashlogFD, F_SETLKW, &fl);
++#endif
++
++	/* Handle flash log overflow */
++	if (G.flashlogFileSize && G.curFlashlogFileSize > G.flashlogFileSize) {
++		int i = strlen(G.flashlogFilePath) + 3 + 1;
++		char newFile[i];
++
++#ifdef SYSLOGD_WRLOCK
++		fl.l_type = F_UNLCK;
++		fcntl(G.flashlogFD, F_SETLKW, &fl);
++#endif
++		close(G.flashlogFD);
++
++		sprintf(newFile, "%s.0", G.flashlogFilePath);
++		unlink(newFile);
++		rename(G.flashlogFilePath, newFile);
++
++		G.flashlogFD = open(G.flashlogFilePath, O_WRONLY | O_CREAT
++					| O_NOCTTY | O_APPEND | O_NONBLOCK,
++					0666);
++
++		if (G.flashlogFD < 0)
++			return;
++
++		ftruncate(G.flashlogFD, 0);
++		G.curFlashlogFileSize = 0;
++	}
++
++	/* ... write in normal condition */
++	G.curFlashlogFileSize += full_write(G.flashlogFD, msg, len);
++	G.flashlogLines++;
++
++#ifdef SYSLOGD_WRLOCK
++	fl.l_type = F_UNLCK;
++	fcntl(G.flashlogFD, F_SETLKW, &fl);
++#endif
++
++	/* Backup all specified number of log lines */
++	if ((G.flashlogBackupLines != 0) &&
++		(G.flashlogLines % G.flashlogBackupLines) == 0) {
++		close(G.flashlogFD);
++		G.flashlogFD = -1;
++		system("write-sysconfig");
++	}
++}
++#endif
++
+ static void parse_fac_prio_20(int pri, char *res20)
+ {
+ 	const CODE *c_pri, *c_fac;
+@@ -692,6 +800,31 @@ static void timestamp_and_log(int pri, char *msg, int len)
+ #endif
+ 		log_locally(now, G.printbuf, &G.logFile);
+ 	}
++
++#ifdef ENABLE_FEATURE_SAS_FLASH_LOG
++	/*
++	* Only log if priority is more severe than the specified level (default 8)
++	* or facility bit is set in the specified value (default all facilities are enabled) but of
++	* course all of that only matters if we really specified a seperate filename
++	* to be written!
++	*/
++	if (LOG_PRI(pri) < G.flashlogLevel &&
++		LOG_FAC(pri) & G.flashlogFacility &&
++		strlen(G.flashlogFilePath)) {
++		/* We use the "small" format to save some space */
++		time_t t;
++		if (now) {
++			msg += 16;
++			t = now;
++		}
++		else
++			time(&t);
++
++		strftime(G.printbuf, sizeof(G.printbuf), "%F %T ", localtime(&t));
++		snprintf(&G.printbuf[20], sizeof(G.printbuf), " %s\n", msg);
++		log_locally_flash(G.printbuf);
++	}
++#endif
+ }
+ 
+ static void timestamp_and_log_internal(const char *msg)
+@@ -965,6 +1098,7 @@ int syslogd_main(int argc UNUSED_PARAM, char **argv)
+ 	if (opt_C) // -Cn
+ 		G.shm_size = xatoul_range(opt_C, 4, INT_MAX/1024) * 1024;
+ #endif
++
+ 	/* If they have not specified remote logging, then log locally */
+ 	if (ENABLE_FEATURE_REMOTE_LOG && !(opts & OPT_remotelog)) // -R
+ 		option_mask32 |= OPT_locallog;
+@@ -972,6 +1106,20 @@ int syslogd_main(int argc UNUSED_PARAM, char **argv)
+ 	parse_syslogdcfg(opt_f);
+ #endif
+ 
++#ifdef ENABLE_FEATURE_SAS_FLASH_LOG
++	if (opts & OPT_flashloglevel) // -x
++		G.flashlogLevel = xatou_range(opt_x, 1, 8);
++
++	if (opts & OPT_flashlogbackuplines) // -r
++		G.flashlogBackupLines = xatou_range(opt_r, 1, 100);
++
++	if (opts & OPT_flashlogfacility) // -Y
++		G.flashlogFacility = xatou_range(opt_Y, 1, 22);
++
++	if (opts & OPT_flashlogfilesize) // -Z
++		G.flashlogFileSize = xatou_range(opt_Z, 0, INT_MAX/1024) * 1024;
++#endif
++
+ 	/* Store away localhost's name before the fork */
+ 	G.hostname = safe_gethostname();
+ 	*strchrnul(G.hostname, '.') = '\0';
+diff --git a/util-linux/mount.c b/util-linux/mount.c
+index f1da30faccade2805cc98315b3262df684258b7c..a7ef454ca1ef2d8bf1c1832f34525be56bc06294 100644
+--- a/util-linux/mount.c
++++ b/util-linux/mount.c
+@@ -310,6 +310,7 @@ static const char mount_option_str[] =
+ 		"make-rslave\0"
+ 		"make-rprivate\0"
+ 		"make-runbindable\0"
++		"make-offset\0"
+ 	)
+ 
+ 	// Always understood.
+@@ -1337,7 +1338,9 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
+ 				"udp\0"
+ 				"lock\0"
+ 				"rdirplus\0"
+-				"acl\0";
++				"acl\0"
++				"v3\0"
++				"v2\0";
+ 			int val = 1;
+ 			if (!strncmp(opt, "no", 2)) {
+ 				val = 0;
+@@ -1390,6 +1393,12 @@ static NOINLINE int nfsmount(struct mntent *mp, long vfsflags, char *filteropts)
+ 			case 12: // acl
+ 				noacl = !val;
+ 				break;
++			case 13: //v3
++				nfsvers = 3;
++				break;
++			case 14: //v2
++				nfsvers = 2;
++				break;
+ 			default:
+ 				bb_error_msg("unknown nfs mount option: %s%s", val ? "" : "no", opt);
+ 				goto fail;
+@@ -1852,9 +1861,30 @@ static int singlemount(struct mntent *mp, int ignore_busy)
+ 	) {
+ 		// Do we need to allocate a loopback device for it?
+ 		if (ENABLE_FEATURE_MOUNT_LOOP && S_ISREG(st.st_mode)) {
++			int offset = 0;
++			char *opt;
++			/* parse options */
++			if (filteropts)	for (opt = strtok(filteropts, ","); opt; opt = strtok(NULL, ",")) {
++				char *opteq = strchr(opt, '=');
++				if (opteq) {
++					int val, idx;
++					static const char options[] ALIGN1 = "offset\0";
++
++					*opteq++ = '\0';
++
++					idx = index_in_strings(options, opt);
++					val = xatoi_positive(opteq);
++					switch (idx) {
++					case 0: // "offset"
++						offset = val;
++						continue;
++					}
++				}
++			}
++
+ 			loopFile = bb_simplify_path(mp->mnt_fsname);
+ 			mp->mnt_fsname = NULL; // will receive malloced loop dev name
+-			if (set_loop(&mp->mnt_fsname, loopFile, 0, /*ro:*/ 0) < 0) {
++			if (set_loop(&mp->mnt_fsname, loopFile, offset, /*ro:*/ 0) < 0) {
+ 				if (errno == EPERM || errno == EACCES)
+ 					bb_error_msg(bb_msg_perm_denied_are_you_root);
+ 				else

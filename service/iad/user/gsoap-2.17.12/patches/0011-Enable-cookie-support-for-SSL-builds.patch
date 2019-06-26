@@ -1,0 +1,27 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Tue, 3 May 2011 13:35:23 +0200
+Subject: Enable cookie support for SSL builds.
+
+Signed-off-by: Daniel Egger <daniel.egger@sphairon.com>
+---
+ gsoap/Makefile.in | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/gsoap/Makefile.in b/gsoap/Makefile.in
+index 41e1fb4..1c39361 100644
+--- a/gsoap/Makefile.in
++++ b/gsoap/Makefile.in
+@@ -120,9 +120,9 @@ libgsoapck_a_CFLAGS = $(SOAPCPP2_DEBUG) $(SOAPCPP2_NONAMESPACES) -D$(platform) -
+ libgsoapck___a_SOURCES = stdsoap2_ck_cpp.cpp
+ libgsoapck___a_CXXFLAGS = $(SOAPCPP2_DEBUG) $(SOAPCPP2_NONAMESPACES) -D$(platform) -DWITH_COOKIES
+ libgsoapssl_a_SOURCES = stdsoap2_ssl.c
+-libgsoapssl_a_CFLAGS = $(SOAPCPP2_DEBUG) $(SOAPCPP2_NONAMESPACES) -D$(platform) -DWITH_OPENSSL -DWITH_DOM -DWITH_GZIP
++libgsoapssl_a_CFLAGS = $(SOAPCPP2_DEBUG) $(SOAPCPP2_NONAMESPACES) -D$(platform) -DWITH_OPENSSL -DWITH_COOKIES -DWITH_DOM -DWITH_GZIP
+ libgsoapssl___a_SOURCES = stdsoap2_ssl_cpp.cpp
+-libgsoapssl___a_CXXFLAGS = $(SOAPCPP2_DEBUG) $(SOAPCPP2_NONAMESPACES) -D$(platform) -DWITH_OPENSSL -DWITH_DOM -DWITH_GZIP
++libgsoapssl___a_CXXFLAGS = $(SOAPCPP2_DEBUG) $(SOAPCPP2_NONAMESPACES) -D$(platform) -DWITH_OPENSSL -DWITH_COOKIES -DWITH_DOM -DWITH_GZIP
+ 
+ BUILT_SOURCES = stdsoap2_cpp.cpp $(lib_LIBRARIES)
+ 
+--
+

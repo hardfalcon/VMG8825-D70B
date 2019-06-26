@@ -1,0 +1,147 @@
+diff --git a/ares.h b/ares.h
+index 9b3f3764695a3305dc4e53d35da2c2d8b4867ea5..0328f26c2797a57bd194df5c9da69c79c448300d 100644
+--- a/ares.h
++++ b/ares.h
+@@ -302,10 +302,17 @@ CARES_EXTERN const char *ares_version(int *version);
+ 
+ CARES_EXTERN int ares_init(ares_channel *channelptr);
+ 
++CARES_EXTERN int ares_init2(ares_channel *channelptr, const char *resolv_conf_name);
++
+ CARES_EXTERN int ares_init_options(ares_channel *channelptr,
+                                    struct ares_options *options,
+                                    int optmask);
+ 
++CARES_EXTERN int ares_init_options2(ares_channel *channelptr,
++                                   struct ares_options *options,
++                                   int optmask,
++                                   const char *resolv_conf_name);
++
+ CARES_EXTERN int ares_save_options(ares_channel channel,
+                                    struct ares_options *options,
+                                    int *optmask);
+@@ -333,6 +340,18 @@ CARES_EXTERN void ares_set_local_ip6(ares_channel channel,
+ CARES_EXTERN void ares_set_local_dev(ares_channel channel,
+                                      const char* local_dev_name);
+ 
++/* local resolv_conf_name should be null terminated */
++CARES_EXTERN int ares_set_resolv_conf(ares_channel channel,
++                                     const char* resolv_conf_name);
++
++/* set udp port for resolver actions */
++CARES_EXTERN void ares_set_udp_port(ares_channel channel,
++                        int port);
++
++/* set tcp port for resolver actions */
++CARES_EXTERN void ares_set_tcp_port(ares_channel channel,
++                        int port);
++
+ CARES_EXTERN void ares_set_socket_callback(ares_channel channel,
+                                            ares_sock_create_callback callback,
+                                            void *user_data);
+diff --git a/ares_init.c b/ares_init.c
+index d23c1b0ca33885f91c671beda3f57868e34a4a31..1a7ce27b9a63fcefd583250fe954e45bb7d2709c 100644
+--- a/ares_init.c
++++ b/ares_init.c
+@@ -101,9 +101,20 @@ int ares_init(ares_channel *channelptr)
+   return ares_init_options(channelptr, NULL, 0);
+ }
+ 
++int ares_init2(ares_channel *channelptr, const char *resolv_conf_name)
++{
++  return ares_init_options2(channelptr, NULL, 0, resolv_conf_name);
++}
++
+ int ares_init_options(ares_channel *channelptr, struct ares_options *options,
+                       int optmask)
+ {
++    return ares_init_options2(channelptr, options, optmask, NULL);
++}
++
++int ares_init_options2(ares_channel *channelptr, struct ares_options *options,
++                      int optmask, const char *resolv_conf_name)
++{
+   ares_channel channel;
+   int i;
+   int status = ARES_SUCCESS;
+@@ -166,6 +177,10 @@ int ares_init_options(ares_channel *channelptr, struct ares_options *options,
+   memset(&channel->local_dev_name, 0, sizeof(channel->local_dev_name));
+   channel->local_ip4 = 0;
+   memset(&channel->local_ip6, 0, sizeof(channel->local_ip6));
++  memset(&channel->resolv_conf_name, 0, sizeof(channel->resolv_conf_name));
++  if (resolv_conf_name) {
++      strncpy(channel->resolv_conf_name, resolv_conf_name, 63);
++  }
+ 
+   /* Initialize our lists of queries */
+   ares__init_list_head(&(channel->all_queries));
+@@ -1154,11 +1169,12 @@ static int init_by_resolv_conf(ares_channel channel)
+     size_t linesize;
+     int error;
+ 
+-    /* Don't read resolv.conf and friends if we don't have to */
+-    if (ARES_CONFIG_CHECK(channel))
+-        return ARES_SUCCESS;
++    if (strlen(channel->resolv_conf_name) > 0) {
++        fp = fopen(channel->resolv_conf_name, "r");
++    } else {
++        fp = fopen(PATH_RESOLV_CONF, "r");
++    }
+ 
+-    fp = fopen(PATH_RESOLV_CONF, "r");
+     if (fp) {
+       while ((status = ares__read_line(fp, &line, &linesize)) == ARES_SUCCESS)
+       {
+@@ -1964,6 +1980,26 @@ void ares_set_local_dev(ares_channel channel,
+   channel->local_dev_name[sizeof(channel->local_dev_name) - 1] = 0;
+ }
+ 
++/* local resolv_conf_name should be null terminated */
++int ares_set_resolv_conf(ares_channel channel,
++                          const char* resolv_conf_name)
++{
++  strncpy(channel->resolv_conf_name, resolv_conf_name,
++          sizeof(channel->resolv_conf_name));
++  return init_by_resolv_conf(channel);
++}
++
++void ares_set_udp_port(ares_channel channel,
++                        int port)
++{
++  channel->udp_port = htons(port & 0xFFFF);
++}
++
++void ares_set_tcp_port(ares_channel channel,
++                        int port)
++{
++  channel->tcp_port = htons(port & 0xFFFF);
++}
+ 
+ void ares_set_socket_callback(ares_channel channel,
+                               ares_sock_create_callback cb,
+diff --git a/ares_private.h b/ares_private.h
+index f1991787e15c4cb8fed9dc9e620b9bf17c8a1c07..8d25bfd26a16a2909e59dce23933a677ca9b7fad 100644
+--- a/ares_private.h
++++ b/ares_private.h
+@@ -269,6 +269,8 @@ struct ares_channeldata {
+   unsigned int local_ip4;
+   unsigned char local_ip6[16];
+ 
++  char resolv_conf_name[64];
++
+   int optmask; /* the option bitfield passed in at init time */
+ 
+   /* Server addresses and communications state */
+diff --git a/ares_version.h b/ares_version.h
+index 3d24c0b1dd0a43d38dbfb4fce5b5dafea3e729fc..43ff92c01dd2b303e4efdd1a3636cfb8884083df 100644
+--- a/ares_version.h
++++ b/ares_version.h
+@@ -11,7 +11,7 @@
+ #define ARES_VERSION ((ARES_VERSION_MAJOR<<16)|\
+                        (ARES_VERSION_MINOR<<8)|\
+                        (ARES_VERSION_PATCH))
+-#define ARES_VERSION_STR "1.10.0-sph-0.1"
++#define ARES_VERSION_STR "1.10.0-sph-1.0"
+ 
+ #if (ARES_VERSION >= 0x010700)
+ #  define CARES_HAVE_ARES_LIBRARY_INIT 1

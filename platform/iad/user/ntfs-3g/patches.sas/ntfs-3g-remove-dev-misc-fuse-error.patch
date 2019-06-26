@@ -1,0 +1,23 @@
+---
+ src/ntfs-3g.c |    3 +++
+ 1 file changed, 3 insertions(+)
+
+--- a/src/ntfs-3g.c
++++ b/src/ntfs-3g.c
+@@ -3691,6 +3691,8 @@ static void create_dev_fuse(void)
+ {
+ 	mknod_dev_fuse("/dev/fuse");
+ 
++/* we are using uclibc, but not devfs */
++#if 0
+ #ifdef __UCLIBC__
+ 	{
+ 		struct stat st;
+@@ -3703,6 +3705,7 @@ static void create_dev_fuse(void)
+ 		mknod_dev_fuse("/dev/misc/fuse");
+ 	}
+ #endif
++#endif
+ }
+ 
+ static fuse_fstype get_fuse_fstype(void)

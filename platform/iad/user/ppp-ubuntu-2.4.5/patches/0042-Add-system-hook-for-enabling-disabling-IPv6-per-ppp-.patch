@@ -1,0 +1,109 @@
+From: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+Date: Tue, 27 Aug 2013 16:00:03 +0200
+Subject: Add system hook for enabling/disabling IPv6 per ppp interface
+
+Signed-off-by: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+---
+ pppd/main.c      |  7 +++++++
+ pppd/pppd.h      |  2 ++
+ pppd/sys-linux.c | 47 +++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 56 insertions(+)
+
+diff --git a/pppd/main.c b/pppd/main.c
+index 248b98a..b5ce5c6 100644
+--- a/pppd/main.c
++++ b/pppd/main.c
+@@ -754,6 +754,13 @@ set_ifunit(iskey)
+ 	create_linkpidfile(getpid());
+ 	create_pppdlinkpidfile(getpid());
+     }
++
++#ifdef INET6
++    if (ipv6cp_protent.enabled_flag)
++	sif6enable(ifname);
++    else
++	sif6disable(ifname);
++#endif
+ }
+ 
+ /*
+diff --git a/pppd/pppd.h b/pppd/pppd.h
+index 3cc60ed..9b0a10d 100644
+--- a/pppd/pppd.h
++++ b/pppd/pppd.h
+@@ -654,6 +654,8 @@ int  sif6addr __P((int, eui64_t, eui64_t));
+ 				/* Configure IPv6 addresses for i/f */
+ int  cif6addr __P((int, eui64_t, eui64_t));
+ 				/* Remove an IPv6 address from i/f */
++int  sif6enable __P((const char *));
++int  sif6disable __P((const char *));
+ #endif
+ int  sifdefaultroute __P((int, u_int32_t, u_int32_t, bool replace_default_rt));
+ 				/* Create default route through i/f */
+diff --git a/pppd/sys-linux.c b/pppd/sys-linux.c
+index 3ebb7ad..63074ec 100644
+--- a/pppd/sys-linux.c
++++ b/pppd/sys-linux.c
+@@ -1442,6 +1442,43 @@ static char *path_to_procfs(const char *tail)
+     return proc_path;
+ }
+ 
++/********************************************************************
++ *
++ * sysfs_set_if_conf - set sysfs interface attribute for given unit
++ */
++static char sysfs_path[MAXPATHLEN];
++static int sysfs_path_len;
++
++static int sysfs_set_if_conf(const char *intf, const char *proto, const char *attr,
++			     const char *value, size_t size)
++{
++    char *path;
++    char attr_path[128];
++    int fd;
++
++    slprintf(attr_path, sizeof(attr_path), "/sys/net/%s/conf/%s/%s",
++	     proto, intf, attr);
++
++    notice("setting sysfs attribute %s = %s", attr_path, value);
++
++    path = path_to_procfs(attr_path);
++    fd = open(path, O_WRONLY);
++    if (fd < 0) {
++	error("can't open sysfs attribute %s: %m", path);
++	return 0;
++    }
++
++    if (write(fd, value, size) != 1) {
++	error("can't write sysfs attribute %s: %m", path);
++	close(fd);
++	return 0;
++    }
++
++    close(fd);
++
++    return 1;
++}
++
+ /*
+  * /proc/net/route parsing stuff.
+  */
+@@ -2646,6 +2683,16 @@ int cif6addr (int unit, eui64_t our_eui64, eui64_t his_eui64)
+     }
+     return 1;
+ }
++
++int sif6enable(const char *intf_name)
++{
++    return sysfs_set_if_conf(intf_name, "ipv6", "disable_ipv6", "0", 1);
++}
++
++int sif6disable(const char *intf_name)
++{
++    return sysfs_set_if_conf(intf_name, "ipv6", "disable_ipv6", "1", 1);
++}
+ #endif /* INET6 */
+ 
+ /*
+--
+

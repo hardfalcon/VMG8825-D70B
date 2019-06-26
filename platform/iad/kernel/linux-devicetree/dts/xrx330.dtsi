@@ -1,0 +1,708 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2014-2019 Sphairon GmbH (a Zyxel company)
+ */
+
+#include "skeleton.dtsi"
+
+/ {
+	compatible = "lantiq,grx390", "lantiq,xway";
+
+	cpus {
+		cpu@0 {
+			compatible = "mips,mips34kc";
+		};
+	};
+
+	chosen {
+		bootargs = "console=ttyLTQ0,115200";
+	};
+
+	aliases {
+		serial0 = &asc1;
+		pcie0 = &pcie0;
+		pcie1 = &pcie1;
+		pcie2 = &pcie2;
+		usb0 = &usb0;
+		usb1 = &usb1;
+	};
+
+	fpi3 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "lantiq,fpi", "simple-bus";
+		reg = <0x10000000 0x8000000>;
+		ranges = <0x0 0x10000000 0x7ffffff>;
+
+		localbus: localbus@0 {
+			#address-cells = <2>;
+			#size-cells = <1>;
+			ranges = <0 0 0x0 0x3ffffff
+					1 0 0x4000000 0x1ffffff>;
+			compatible = "lantiq,localbus", "simple-bus";
+		};
+
+		ebu: ebu@6000000 {
+			compatible = "lantiq,ebu-xway";
+			reg = <0x6000000 0x100>,
+				<0x6000100 0x100>;
+			reg-names = "ebunand_reg", "hsnand_reg";
+		};
+	};
+
+	ahb3 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "simple-bus";
+		reg = <0x18000000 0x6000000>;
+		ranges = <0x0 0x18000000 0x5ffffff>;
+
+#if defined(IS_UGW_61)
+		pcie1: pcie@1900000 {
+			compatible = "lantiq,xrx330-pcie";
+			reg = <0x1900000 0x1000>;
+			interrupt-parent = <&icu0>;
+			interrupts = <57 17 18 19 20 49 50 51 52>;
+			status = "disabled";
+			lantiq,port = <1>;
+		};
+
+		pcie0: pcie@5900000 {
+			compatible = "lantiq,xrx330-pcie";
+			reg = <0x5900000 0x1000>;
+			interrupt-parent = <&icu0>;
+			interrupts = <161 144 145 146 147 163 164 165 38>;
+			status = "disabled";
+			lantiq,port = <0>;
+		};
+
+		pcie2: pcie@1b00000 {
+			compatible = "lantiq,xrx330-pcie";
+			reg = <0x1b00000 0x1000>;
+			interrupt-parent = <&icu0>;
+			interrupts = <61 27 71 89 90 84 5 86 87>;
+			status = "disabled";
+			lantiq,port = <2>;
+		};
+#else
+		pcie1: pcie@1900000 {
+			#address-cells = <3>;
+			#size-cells = <2>;
+			#interrupt-cells = <1>;
+			device_type = "pci";
+			compatible = "lantiq,pcie-xrx330";
+
+			reg = <0x1900000 0x1000
+				0x1000000 0x800000>;
+			reg-names = "csr", "cfg";
+
+			bus-range = <0x00 0xff>;
+			ranges = <0x02000000 0 0x00000000 0x00000000 0 0x01000000
+				0x01000000 0 0x01800000 0x01800000 0 0x00100000>;
+
+			interrupt-parent = <&icu0>;
+			interrupts = <49 50 51 52 57>;
+			interrupt-names = "msi0", "msi1", "msi2", "msi3", "ir";
+			interrupt-map-mask = <0 0 0 0x7>;
+			interrupt-map = <0 0 0 1 &icu0 17>,
+					<0 0 0 2 &icu0 18>,
+					<0 0 0 3 &icu0 19>,
+					<0 0 0 4 &icu0 20>;
+
+			resets = <&rcu 0 13>, <&rcu 0 27>;
+			reset-names = "phy", "core";
+
+			lantiq,phy = <&pciephy1>;
+			lantiq,msi = <&pciemsi1>;
+			lantiq,app = <&pcieapp1>;
+
+			lantiq,inbound-shift = <13>;
+			lantiq,outbound-shift = <8>;
+			status = "disabled";
+		};
+
+		pcie0: pcie@5900000 {
+			#address-cells = <3>;
+			#size-cells = <2>;
+			#interrupt-cells = <1>;
+			device_type = "pci";
+			compatible = "lantiq,pcie-xrx330";
+
+			reg = <0x5900000 0x1000
+				0x5000000 0x800000>;
+			reg-names = "csr", "cfg";
+
+			ranges = <0x02000000 0 0x04000000 0x04000000 0 0x01000000
+				0x01000000 0 0x05800000 0x05800000 0 0x00100000>;
+
+			interrupt-parent = <&icu0>;
+			interrupts = <163 164 165 38 161>;
+			interrupt-names = "msi0", "msi1", "msi2", "msi3", "ir";
+			interrupt-map-mask = <0 0 0 0x7>;
+			interrupt-map = <0 0 0 1 &icu0 144>,
+					<0 0 0 2 &icu0 145>,
+					<0 0 0 3 &icu0 146>,
+					<0 0 0 4 &icu0 147>;
+
+			resets = <&rcu 0 12>, <&rcu 0 22>;
+			reset-names = "phy", "core";
+
+			lantiq,phy = <&pciephy0>;
+			lantiq,msi = <&pciemsi0>;
+			lantiq,app = <&pcieapp0>;
+
+			lantiq,inbound-shift = <12>;
+			lantiq,outbound-shift = <4>;
+			status = "disabled";
+		};
+
+		pcie2: pcie@1b00000 {
+			#address-cells = <3>;
+			#size-cells = <2>;
+			#interrupt-cells = <1>;
+			device_type = "pci";
+			compatible = "lantiq,pcie-xrx330";
+
+			reg = <0x1B00000 0x1000
+				0x2800000 0x800000>;
+			reg-names = "csr", "cfg";
+
+			interrupt-parent = <&icu0>;
+			interrupts = <84 85 86 87 61>;
+			interrupt-names = "msi0", "msi1", "msi2", "msi3", "ir";
+			interrupt-map-mask = <0 0 0 0x7>;
+			interrupt-map = <0 0 0 1 &icu0 27>,
+					<0 0 0 2 &icu0 71>,
+					<0 0 0 3 &icu0 89>,
+					<0 0 0 4 &icu0 90>;
+
+			bus-range = <0x00 0xff>;
+			ranges = <0x02000000 0 0x03000000 0x03000000 0 0x01000000
+				0x01000000 0 0x01a00000 0x01a00000 0 0x00100000>;
+
+			resets = <&rcu 1 29>, <&rcu 1 28>;
+			reset-names = "phy", "core";
+
+			lantiq,phy = <&pciephy2>;
+			lantiq,msi = <&pciemsi2>;
+			lantiq,app = <&pcieapp2>;
+
+			lantiq,inbound-shift = <14>;
+			lantiq,outbound-shift = <17>;
+			status = "disabled";
+		};
+#endif
+
+		mtlk: mtlk@2000000 {
+			compatible ="lantiq,mtlk-xrx330";
+			reg = <0x2000000 0x800000>;
+			status = "disabled";
+			interrupt-parent = <&icu0>;
+			interrupts = <26>;
+		};
+
+		usif: usif@5a00000 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "lantiq,xrx330-usif-spi";
+			reg = <0x5a00000 0x100000>;
+			status = "disabled";
+		};
+	};
+
+	fpi2 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "lantiq,fpi", "simple-bus";
+		reg = <0x1e000000 0x1000000>;
+		ranges = <0x0 0x1e000000 0xffffff>;
+
+#if !defined(IS_UGW_61)
+		pcieapp2: pcie-app@100400 {
+			compatible = "lantiq,pcie-app-xrx330";
+			reg = <0x100400 0x100>;
+			reg-names = "app";
+		};
+
+		pcieapp1: pcie-app@100700 {
+			compatible = "lantiq,pcie-app-xrx330";
+			reg = <0x100700 0x100>;
+			reg-names = "app";
+		};
+#endif
+
+		spi: spi@100800 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "lantiq,xrx330-spi";
+			reg = <0x100800 0x100>;
+			interrupt-parent = <&icu0>;
+			interrupts = <22 23 24 25>;
+			interrupt-names = "spi_rx", "spi_tx", "spi_err", "spi_frm";
+			status = "disabled";
+		};
+
+#if !defined(IS_UGW_61)
+		pcieapp0: pcie-app@100900 {
+			compatible = "lantiq,pcie-app-xrx330";
+			reg = <0x100900 0x100>;
+			reg-names = "app";
+		};
+#endif
+
+		gptu: gptu@100a00 {
+			compatible = "lantiq,gptu-xway";
+			reg = <0x100a00 0x100>;
+			interrupt-parent = <&icu0>;
+			interrupts = <126 127 128 129 130 131>;
+		};
+
+		gpio: pinmux@100b10 {
+			#gpio-cells = <2>;
+			compatible = "lantiq,pinctrl-xrx330";
+			reg = <0x100b10 0xa0>;
+			gpio-controller;
+			interrupt-parent = <&icu0>;
+			interrupts = <166 135 66 40 41 42 38>;
+		};
+
+		stp: stp@100bb0 {
+			#gpio-cells = <2>;
+			compatible = "lantiq,gpio-stp-xr10";
+			reg = <0x100bb0 0x40>;
+			gpio-controller;
+			status = "disabled";
+		};
+
+		asc1: serial@100c00 {
+			compatible = "lantiq,asc";
+			reg = <0x100c00 0x400>;
+			interrupt-parent = <&icu0>;
+			interrupts = <112 113 114>;
+		};
+
+		usb0: usb@101000 {
+#if defined(IS_UGW_61)
+			compatible = "lantiq,xrx300-usb";
+			reg = <0x101000 0x1000>,
+				<0x120000 0x10000>,
+				<0x140000 0x20000>;
+			lantiq,oc-ctrl = <&usb0_oc>;
+#else
+			compatible = "lantiq,xrx330-usb";
+			reg = <0x101000 0x1000>;
+			over-current = <&usb0_oc>;
+			dr_mode = "host";
+			phys = <&usb0_phy>;
+			phy-names = "usb2-phy";
+#endif
+			interrupt-parent = <&icu0>;
+			interrupts = <62>;
+			status = "disabled";
+		};
+
+		deu: deu@103100 {
+			compatible = "lantiq,deu-lantiq";
+			reg = <0x103100 0xf00>;
+			lantiq,algo = "aes", "des", "arc4", "sha1", "md5", "sha1-hmac", "md5-hmac";
+			lantiq,dma-mode = <0>;
+			lantiq,sync-mode = <1>;
+		};
+
+		dma: dma@104100 {
+			compatible = "lantiq,dma-xway";
+			reg = <0x104100 0x800>;
+			interrupt-parent = <&icu0>;
+			interrupts = <72 73 74 75 76 77 78 79 80 81 82 83 97 98 99 100 101 70 88 93 136 137 138 139>;
+			lantiq,desc-num = <256>;
+			lantiq,dma-hw-poll = <1>;
+			lantiq,dma-pkt-arb = <0>;
+		};
+
+		usb1: usb@106000 {
+#if defined(IS_UGW_61)
+			compatible = "lantiq,xrx300-usb";
+			reg = <0x106000 0x01000>,
+				<0x1e0000 0x10000>,
+				<0x1c0000 0x20000>;
+			lantiq,oc-ctrl = <&usb1_oc>;
+#else
+			compatible = "lantiq,xrx330-usb";
+			reg = <0x106000 0x01000>;
+			over-current = <&usb1_oc>;
+			dr_mode = "host";
+			phys = <&usb1_phy>;
+			phy-names = "usb2-phy";
+#endif
+			interrupt-parent = <&icu0>;
+			interrupts = <91>;
+			status = "disabled";
+		};
+
+		mei: mei@116000 {
+			compatible = "lantiq,mei-xrx300";
+			reg = <0x116000 0x100>;
+			interrupt-parent = <&icu0>;
+			interrupts = <63 61>;
+		};
+
+		eth: eth@108000 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "lantiq,switch-xrx330", "simple-bus";
+			reg = <0x108000 0x3000>;
+
+#if defined(IS_UGW_61)
+			gphy@0 {
+				compatible = "lantiq,gphy-xrx300";
+				reg = <0>;
+				lantiq,phy-id = <0>;
+				status = "disabled";
+			};
+
+			gphy@1 {
+				compatible = "lantiq,gphy-xrx300";
+				reg = <1>;
+				lantiq,phy-id = <1>;
+				status = "disabled";
+			};
+
+			gphy@2 {
+				compatible = "lantiq,gphy-xrx300";
+				reg = <2>;
+				lantiq,phy-id = <2>;
+				status = "disabled";
+			};
+
+			gphy@3 {
+				compatible = "lantiq,gphy-xrx300";
+				reg = <3>;
+				lantiq,phy-id = <3>;
+				status = "disabled";
+			};
+#endif
+
+			mdio@0 {
+				#address-cells = <1>;
+				#size-cells = <0>;
+#if defined(IS_UGW_61)
+				compatible = "lantiq,switch-mdio-grx300";
+#else
+				compatible = "lantiq,switch-mdio";
+#endif
+				reg = <0>;
+			};
+
+			ethernet@0 {
+				compatible = "lantiq,switch-port";
+				reg = <0>;
+				status = "disabled";
+			};
+
+			ethernet@1 {
+				compatible = "lantiq,switch-port";
+				reg = <1>;
+				status = "disabled";
+			};
+
+			ethernet@2 {
+				compatible = "lantiq,switch-port";
+				reg = <2>;
+				status = "disabled";
+			};
+
+			ethernet@3 {
+				compatible = "lantiq,switch-port";
+				reg = <3>;
+				status = "disabled";
+			};
+
+			ethernet@4 {
+				compatible = "lantiq,switch-port";
+				reg = <4>;
+				status = "disabled";
+			};
+
+			ethernet@5 {
+				compatible = "lantiq,switch-port";
+				reg = <5>;
+				status = "disabled";
+			};
+		};
+
+		ppe: ppe@234000 {
+			compatible = "lantiq,ppe-xrx330";
+			interrupt-parent = <&icu0>;
+			interrupts = <32 95 69>;
+		};
+	};
+
+	sram {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "lantiq,sram", "simple-bus";
+		reg = <0x1f000000 0x880000>;
+		ranges = <0x0 0x1f000000 0x87ffff>;
+
+		eiu: eiu@101000 {
+			#interrupt-cells = <2>;
+			interrupt-controller;
+			compatible = "lantiq,eiu-xway";
+			reg = <0x101000 0x1000>;
+			interrupt-parent = <&icu0>;
+			interrupts = <166 135 66 40 41 42>;
+		};
+
+		pmu: pmu@102000 {
+			compatible = "lantiq,pmu-xway";
+			reg = <0x102000 0x1000>;
+		};
+
+		cgu: cgu@103000 {
+			compatible = "lantiq,cgu-xway";
+			reg = <0x103000 0x1000>;
+		};
+
+#if !defined(IS_UGW_61)
+		pciephy0: pcie-phy@106800 {
+			compatible = "lantiq,pcie-phy-xrx330";
+			reg = <0x106800 0x200>;
+			reg-names = "phy";
+		};
+
+		pciephy2: pcie-phy@106a00 {
+			compatible = "lantiq,pcie-phy-xrx330";
+			reg = <0x106a00 0x200>;
+			reg-names = "phy";
+		};
+#endif
+
+		ts: ts@106F00 {
+			compatible = "lantiq,ts-grx390";
+			reg = <0x106F00 0x10>;
+			interrupt-parent = <&icu0>;
+			interrupts = <143>;
+			lantiq,numofsensors = <0x1>;
+		};
+
+		rcu: reset-controller@203000 {
+			reg = <0x203000 0x1000>;
+
+			/* irq for thermal sensor */
+			interrupt-parent = <&icu0>;
+			interrupts = <115>;
+
+#if defined(IS_UGW_61)
+			compatible = "lantiq,rcu-xway";
+			#reset-cells = <1>;
+#else
+			#address-cells = <1>;
+			#size-cells = <1>;
+			compatible = "lantiq,rcu-xway", "simple-bus";
+			ranges = <0 0x203000 0x1000>;
+			#reset-cells = <2>;
+
+			usb0_phy: rcu-usb@18 {
+				compatible = "lantiq,xrx330-usb2-phy";
+				reg = <0x18 4>, <0x38 4>;
+				#phy-cells = <0>;
+
+				resets = <&rcu 1 4>, <&rcu 0 4>;
+				reset-names = "phy", "ctl";
+			};
+
+			usb1_phy: rcu-usb@34 {
+				compatible = "lantiq,xrx330-usb2-phy";
+				reg = <0x34 4>, <0x3C 4>;
+				#phy-cells = <0>;
+
+				resets = <&rcu 1 5>, <&rcu 0 3>;
+				reset-names = "phy", "ctl";
+			};
+
+			gphy0: gphy@20 {
+				compatible = "lantiq,xrx330-gphy";
+				reg = <0x20 4>;
+
+				resets = <&rcu 0 31>, <&rcu 1 7>;
+				reset-names = "hard", "soft";
+
+				status = "disabled";
+			};
+
+			gphy1: gphy@58 {
+				compatible = "lantiq,xrx330-gphy";
+				reg = <0x58 4>;
+
+				resets = <&rcu 0 29>, <&rcu 1 6>;
+				reset-names = "hard", "soft";
+
+				status = "disabled";
+			};
+
+			gphy2: gphy@ac {
+				compatible = "lantiq,xrx330-gphy";
+				reg = <0xac 4>;
+
+				resets = <&rcu 0 28>, <&rcu 1 8>;
+				reset-names = "hard", "soft";
+
+				status = "disabled";
+			};
+
+			gphy3: gphy@264 {
+				compatible = "lantiq,xrx330-gphy";
+				reg = <0x264 4>;
+
+				resets = <&rcu 0 10>, <&rcu 1 27>;
+				reset-names = "hard", "soft";
+
+				status = "disabled";
+			};
+#endif
+		};
+
+#if !defined(IS_UGW_61)
+		pciemsi1: pcie-msi@400000 {
+			compatible = "lantiq,pcie-msi-xrx330";
+			reg = <0x400000 0x100000
+				0x500000 0x400>;
+			reg-names = "msi", "pic";
+		};
+
+		pciemsi0: pcie-msi@600000 {
+			compatible = "lantiq,pcie-msi-xrx330";
+			reg = <0x600000 0x100000
+				0x700000 0x400>;
+			reg-names = "msi", "pic";
+		};
+
+		pciephy1: pcie-phy@700400 {
+			compatible = "lantiq,pcie-phy-xrx330";
+			reg = <0x700400 0x200>;
+			reg-names = "phy";
+		};
+
+		pciemsi2: pcie-msi@700a00 {
+			compatible = "lantiq,pcie-msi-xrx330";
+			reg = <0x700a00 0xFF600
+				0x700600 0x400>;
+			reg-names = "msi", "pic";
+		};
+#endif
+
+		mps: mps@107000 {
+			compatible = "lantiq,mps-xrx100";
+			reg = <0x107000 0x400>;
+			interrupt-parent = <&icu0>;
+			interrupts = <154 155>;
+			lantiq,mbx = <&mpsmbx>;
+		};
+
+		mpsmbx: mpsmbx@200000 {
+			reg = <0x200000 0x200>;
+		};
+	};
+
+	biu {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "lantiq,biu", "simple-bus";
+		reg = <0x1f880000 0x780000>;
+		ranges = <0x0 0x1f880000 0x77ffff>;
+
+		icu0: icu0@200 {
+			#interrupt-cells = <1>;
+			interrupt-controller;
+			compatible = "lantiq,icu";
+			reg = <0x200 0x28
+				0x228 0x28
+				0x250 0x28
+				0x278 0x28
+				0x2a0 0x28>;
+		};
+
+		icu1: icu1@300 {
+			#interrupt-cells = <1>;
+			interrupt-controller;
+			compatible = "lantiq,icu1";
+			reg = <0x300 0x28
+				0x328 0x28
+				0x350 0x28
+				0x378 0x28
+				0x3a0 0x28>;
+		};
+
+		wdt: watchdog@3f0 {
+			compatible = "lantiq,wdt";
+			reg = <0x3f0 0x10>;
+		};
+	};
+
+#if defined(IS_UGW_61)
+	usb0_oc: sph_usb_oc@0 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "sphairon,usb-oc";
+
+		interrupt-parent = <&icu0>;
+		interrupts = <68>;
+		status = "disabled";
+	};
+
+	usb1_oc: sph_usb_oc@1 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "sphairon,usb-oc";
+
+		interrupt-parent = <&icu0>;
+		interrupts = <64>;
+		status = "disabled";
+	};
+#else
+	usb_overcurrent {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "simple-bus";
+
+		usb0_oc: usb_oc@0 {
+			compatible = "usb-over-current";
+			reg = <0>;
+
+			interrupt-parent = <&icu0>;
+			interrupts = <68>;
+
+			status = "disabled";
+		};
+
+		usb1_oc: usb_oc@1 {
+			compatible = "usb-over-current";
+			reg = <1>;
+
+			interrupt-parent = <&icu0>;
+			interrupts = <64>;
+
+			status = "disabled";
+		};
+	};
+#endif
+
+	vdsl {
+		compatible = "lantiq,vdsl-vrx200";
+	};
+
+	cpuclocks {
+		compatible = "lantiq,scaling-frequencies";
+
+		cpuclocks_600: cpuclocks@600 {
+			status = "disabled";
+			lantiq,cpuclocks = <600000000 300000000 300000000 150000000>;
+			lantiq,ddrclocks = <300000000 300000000 150000000 150000000>;
+		};
+
+		cpuclocks_720: cpuclocks@720 {
+			lantiq,cpuclocks = <720000000 360000000 360000000 180000000>;
+			lantiq,ddrclocks = <360000000 360000000 180000000 180000000>;
+		};
+	};
+};

@@ -1,0 +1,206 @@
+diff --git a/Makefile b/Makefile
+index a40f70e39251cdbc309d61509f4d817eee20b9de..5077cc663a9c28e5daee085e4b4ee3b1f6fa66e3 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,7 +1,7 @@
+ VERSION = 1
+ PATCHLEVEL = 22
+ SUBLEVEL = 1
+-EXTRAVERSION = -sphairon9
++EXTRAVERSION = -sphairon10
+ NAME = Unnamed
+ 
+ # *DOCUMENTATION*
+diff --git a/networking/udhcp/Config.src b/networking/udhcp/Config.src
+index 6bfa398ea890ddeca244814dcecb1660b53b645d..5c620b2de6f4a839bc59aa41367cc015e2ed1045 100644
+--- a/networking/udhcp/Config.src
++++ b/networking/udhcp/Config.src
+@@ -121,6 +121,14 @@ config FEATURE_UDHCP_8021Q
+ 	  If selected, both client and server will support passing of VLAN
+ 	  ID and priority via options 132 and 133 as per 802.1Q.
+ 
++config FEATURE_UDHCP_VENDOR_SPEC_INFO
++	bool "Support for vendor specific information"
++	default n
++	depends on UDHCPC
++	help
++	  If selected, the client will support requesting and parsing of
++	  vendor specific information via option 43.
++
+ config UDHCPC_DEFAULT_SCRIPT
+ 	string "Absolute path to config script"
+ 	default "/usr/share/udhcpc/default.script"
+diff --git a/networking/udhcp/common.c b/networking/udhcp/common.c
+index fe322db4ffed64851528b9aae06a6760e90eb52a..38a970d25210a540f448a075274e226023713a9c 100644
+--- a/networking/udhcp/common.c
++++ b/networking/udhcp/common.c
+@@ -44,6 +44,9 @@ const struct dhcp_optflag dhcp_optflags[] = {
+ 	{ OPTION_STRING_HOST                      , 0x28 }, /* DHCP_NIS_DOMAIN    */
+ 	{ OPTION_IP | OPTION_LIST                 , 0x29 }, /* DHCP_NIS_SERVER    */
+ 	{ OPTION_IP | OPTION_LIST     | OPTION_REQ, 0x2a }, /* DHCP_NTP_SERVER    */
++#if ENABLE_FEATURE_UDHCP_VENDOR_SPEC_INFO
++	{ OPTION_VENDOR_SPEC_INFO                 , 0x2b }, /* DHCP_VENDOR_SPEC_INFO */
++#endif
+ 	{ OPTION_IP | OPTION_LIST                 , 0x2c }, /* DHCP_WINS_SERVER   */
+ 	{ OPTION_U32                              , 0x33 }, /* DHCP_LEASE_TIME    */
+ 	{ OPTION_IP                               , 0x36 }, /* DHCP_SERVER_ID     */
+@@ -111,6 +114,9 @@ const char dhcp_option_strings[] ALIGN1 =
+ 	"nisdomain" "\0"   /* DHCP_NIS_DOMAIN     */
+ 	"nissrv" "\0"      /* DHCP_NIS_SERVER     */
+ 	"ntpsrv" "\0"      /* DHCP_NTP_SERVER     */
++#if ENABLE_FEATURE_UDHCP_VENDOR_SPEC_INFO
++	"vendorspecinfo" "\0" /* DHCP_VENDOR_SPEC_INFO */
++#endif
+ 	"wins" "\0"        /* DHCP_WINS_SERVER    */
+ 	"lease" "\0"       /* DHCP_LEASE_TIME     */
+ 	"serverid" "\0"    /* DHCP_SERVER_ID      */
+@@ -153,6 +159,9 @@ const uint8_t dhcp_option_lengths[] ALIGN1 = {
+ 	[OPTION_DNS_STRING] = 1,  /* ignored by both udhcp_str2optset and xmalloc_optname_optval */
+ 	[OPTION_SIP_SERVERS] = 1,
+ #endif
++#if ENABLE_FEATURE_UDHCP_VENDOR_SPEC_INFO
++	[OPTION_VENDOR_SPEC_INFO] = 1, /* ignored by udhcp_str2optset */
++#endif
+ 	[OPTION_U8] =      1,
+ 	[OPTION_U16] =     2,
+ //	[OPTION_S16] =     2,
+diff --git a/networking/udhcp/common.h b/networking/udhcp/common.h
+index 5e70d609fd3fd2ba5dbf7fa4a0752e2aa7b2a13f..1d8a1bf2c3338239eb8d5ed2324687878f7ec1ec 100644
+--- a/networking/udhcp/common.h
++++ b/networking/udhcp/common.h
+@@ -96,6 +96,9 @@ enum {
+ 	OPTION_DNS_STRING,  /* RFC1035 compressed domain name list */
+ 	OPTION_SIP_SERVERS,
+ #endif
++#if ENABLE_FEATURE_UDHCP_VENDOR_SPEC_INFO
++	OPTION_VENDOR_SPEC_INFO,
++#endif
+ 
+ 	OPTION_TYPE_MASK = 0x0f,
+ 	/* Client requests this option by default */
+@@ -131,6 +134,7 @@ enum {
+ //#define DHCP_NIS_DOMAIN       0x28
+ //#define DHCP_NIS_SERVER       0x29
+ //#define DHCP_NTP_SERVER       0x2a
++#define DHCP_VENDOR_SPEC_INFO   0x2b
+ //#define DHCP_WINS_SERVER      0x2c
+ #define DHCP_REQUESTED_IP       0x32 /* sent by client if specific IP is wanted */
+ #define DHCP_LEASE_TIME         0x33
+diff --git a/networking/udhcp/dhcpc.c b/networking/udhcp/dhcpc.c
+index 7b8053e7f23b82639ab69ea7ca95af2fd23446a2..6940e9088cf9551bb346c182b890d1dfd4f057d9 100644
+--- a/networking/udhcp/dhcpc.c
++++ b/networking/udhcp/dhcpc.c
+@@ -110,6 +110,9 @@ static const uint8_t len_of_option_as_string[] = {
+ 	 */
+ 	[OPTION_SIP_SERVERS     ] = sizeof("255.255.255.255 "),
+ #endif
++#if ENABLE_FEATURE_UDHCP_VENDOR_SPEC_INFO
++	[OPTION_VENDOR_SPEC_INFO] = sizeof("opt255= "),
++#endif
+ //	[OPTION_BOOLEAN         ] = sizeof("yes "),
+ 	[OPTION_U8              ] = sizeof("255 "),
+ 	[OPTION_U16             ] = sizeof("65535 "),
+@@ -380,6 +383,53 @@ static NOINLINE char *xmalloc_optname_optval(uint8_t *option, const struct dhcp_
+ 			}
+ 			return ret;
+ #endif
++#if ENABLE_FEATURE_UDHCP_VENDOR_SPEC_INFO
++		/*
++		 * vendor-specific information:
++		 *
++		 *    Code   Len   Vendor-specific information
++		 *    +-----+-----+-----+-----+---
++		 *    |  43 |  n  |  i1 |  i2 | ...
++		 *    +-----+-----+-----+-----+---
++		 *
++		 * encapsulated vendor-specific extensions:
++		 *
++		 *    Code   Len   Data item        Code   Len   Data item       Code
++		 *    +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
++		 *    |  T1 |  n  |  d1 |  d2 | ... |  T2 |  n  |  D1 |  D2 | ... | ... |
++		 *    +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
++		 *
++		 * We convert it to a string
++		 * optCODE1=VAL1 optCODE2=VAL2 .. optCODEn=VALn
++		 */
++		case OPTION_VENDOR_SPEC_INFO: {
++			int ext_code, ext_len;
++			while (1) {
++				ext_code = *option++;
++
++				/* Only codes other than 0 or 255 may be used */
++				if (ext_code == 0 || ext_code == 255)
++					break;
++
++				ext_len = *option++;
++				len -= 2;
++
++				dest += sprintf(dest, "opt%d=", ext_code);
++				memcpy(dest, option, ext_len);
++				dest += ext_len;
++				option += ext_len;
++				len -= ext_len;
++
++				if (len <= 0)
++					break;
++
++				*dest++ = ' ';
++			}
++
++			*dest = 0;
++			return ret;
++		}
++#endif
+ 		} /* switch */
+ 
+ 		/* If we are here, try to format any remaining data
+diff --git a/sphairon/config.generic b/sphairon/config.generic
+index de596a51a824aa7bdefda90f043396facbddf3f8..97d9837bd017d788376f4a1addbc467c7a2bc3fb 100644
+--- a/sphairon/config.generic
++++ b/sphairon/config.generic
+@@ -808,7 +808,7 @@ CONFIG_IFUPDOWN_IFSTATE_PATH=""
+ # CONFIG_IPTUNNEL is not set
+ # CONFIG_IPRULE is not set
+ CONFIG_IPCALC=y
+-# CONFIG_FEATURE_IPCALC_FANCY is not set
++CONFIG_FEATURE_IPCALC_FANCY=y
+ # CONFIG_FEATURE_IPCALC_LONG_OPTIONS is not set
+ CONFIG_NETSTAT=y
+ # CONFIG_FEATURE_NETSTAT_WIDE is not set
+@@ -854,9 +854,10 @@ CONFIG_DHCPD_LEASES_FILE=""
+ CONFIG_UDHCPC=y
+ # CONFIG_FEATURE_UDHCPC_ARPING is not set
+ # CONFIG_FEATURE_UDHCP_PORT is not set
+-CONFIG_UDHCP_DEBUG=1
++CONFIG_UDHCP_DEBUG=9
+ CONFIG_FEATURE_UDHCP_RFC3397=y
+ CONFIG_FEATURE_UDHCP_8021Q=y
++CONFIG_FEATURE_UDHCP_VENDOR_SPEC_INFO=y
+ CONFIG_UDHCPC_DEFAULT_SCRIPT="/usr/share/udhcpc/default.script"
+ CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS=80
+ CONFIG_IFUPDOWN_UDHCPC_CMD_OPTIONS=""
+diff --git a/sphairon/config.host b/sphairon/config.host
+index 1232c19b7ebdf6111676bb436d8b13a3aa15f2a8..0db1bb4e7a31cc94f04fa4b8c62fc7d95caa834a 100644
+--- a/sphairon/config.host
++++ b/sphairon/config.host
+@@ -808,7 +808,7 @@ CONFIG_IFUPDOWN_IFSTATE_PATH=""
+ # CONFIG_IPTUNNEL is not set
+ # CONFIG_IPRULE is not set
+ CONFIG_IPCALC=y
+-# CONFIG_FEATURE_IPCALC_FANCY is not set
++CONFIG_FEATURE_IPCALC_FANCY=y
+ # CONFIG_FEATURE_IPCALC_LONG_OPTIONS is not set
+ CONFIG_NETSTAT=y
+ # CONFIG_FEATURE_NETSTAT_WIDE is not set
+@@ -854,9 +854,10 @@ CONFIG_DHCPD_LEASES_FILE=""
+ CONFIG_UDHCPC=y
+ # CONFIG_FEATURE_UDHCPC_ARPING is not set
+ # CONFIG_FEATURE_UDHCP_PORT is not set
+-CONFIG_UDHCP_DEBUG=1
++CONFIG_UDHCP_DEBUG=9
+ CONFIG_FEATURE_UDHCP_RFC3397=y
+ CONFIG_FEATURE_UDHCP_8021Q=y
++CONFIG_FEATURE_UDHCP_VENDOR_SPEC_INFO=y
+ CONFIG_UDHCPC_DEFAULT_SCRIPT="/usr/share/udhcpc/default.script"
+ CONFIG_UDHCPC_SLACK_FOR_BUGGY_SERVERS=80
+ CONFIG_IFUPDOWN_UDHCPC_CMD_OPTIONS=""

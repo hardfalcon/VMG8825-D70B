@@ -1,0 +1,1774 @@
+-------------------------------------------------------------------------------
+version  4.16.3.0  |  2016-12-02  |  Voice System Package 4.44 RC5
+-------------------------------------------------------------------------------
+CHG Select tar-pax format for distribution tarball. [VOICECPE_SW-1332]
+NEW New line feeding modes: IFX_TAPI_LINE_FEED_GROUND_START_TIP_OPEN and
+    IFX_TAPI_LINE_FEED_GROUND_START_TIP2GND to support the ground start method.
+    [VOICECPE_SW-1330]
+NEW Added fields bEventVolumeLimit, nEventVolMin and nEventVolMax to
+    IFX_TAPI_PKT_RTP_CFG_t. This allows setting an upper and lower limit to
+    the value in the volume field of RTP event packets. [VOICECPE_SW-1325]
+NEW Added field nRtpEventIntervalls to IFX_TAPI_PKT_RTP_CFG_t. This allows to
+    change the RTP event packet transmission intervall if the FW supports this.
+    [VOICECPE_SW-1324]
+
+-------------------------------------------------------------------------------
+version  4.16.2.0  |  2016-06-29  |  Voice System Package 4.44 RC4
+-------------------------------------------------------------------------------
+FIX Added enum value IFX_TAPI_DEV_TYPE_DUSLIC_XS for DUSLIC XS device.
+FIX Cleanup warnings from code analysis tools. [VOICECPE_SW-1177]
+FIX Remove code incorrectly added for compilation with stack protection option.
+    [VOICECPE_SW-1238] [VINETICLCSW-1229]
+FIX Corrected content of EXTRA_CFLAGS in src/Makefile.am. [VOICECPE_SW-1237]
+
+-------------------------------------------------------------------------------
+version  4.16.1.0  |  2016-06-03  |  Voice System Package 4.44 RC2
+-------------------------------------------------------------------------------
+CHG Added IFX_TAPI_EVENT_FAULT_FW_OBX_HDR_ERR event. [VOICECPE_SW-1196]
+FIX Corrected make rules for ghs compiler and fixed compiler warnings.
+    [VOICECPE_SW-1177]
+FIX Prevent that PCM channels cannot be deactivated after doing PCM configure
+    while the PCM channel is active. [VOICECPE_SW-1175]
+
+-------------------------------------------------------------------------------
+version  4.16.0.0  |  2016-04-20  |  Voice System Package 4.44 RC1
+-------------------------------------------------------------------------------
+FIX In Linux procfs fifo_status output suppress packet fifos and KPI fifos
+    for devices not generating packets.
+CHG Change the growth of the voice bufferpool to 32 buffers in each increase.
+FIX GRX500: Corrected check for allocation error in bufferpool allocation.
+    [VOICECPE_SW-1117]
+FIX Correct the number of elements returned with IFX_TAPI_CAP_LIST for
+    devices > 1. [VOICECPE_SW-1095]
+FIX Added new parameter to device_create() for Linux kernels after 2.6.26.
+    [VOICECPE_SW-1076]
+FIX Corrected minor numbers on Linux filedescriptors of devices following the
+    first one. [VOICECPE_SW-1072]
+FIX Cleaned up the voice packet upstream fifo handling. [VOICECPE_SW-1068]
+--- End of merge from SP4.36 into default branch.
+FIX Corrected wakeup on Linux filedescriptors for reading voice packets.
+    [VOICECPE_SW-1065]
+FIX Corrected likely lockup of a core in an Linux SMP system when reading voice
+    packets from the filedescriptor interface. [VOICECPE_SW-1065]
+--- Merged maintenance fixes from SP4.36 into default branch.
+NEW AMR Bandwidth-efficient mode support for AMR and AMR-WB [VINETICLCSW-1230]
+NEW Changes allow to compile with hardening options enabled [VINETICLCSW-1229]
+NEW NLT ACLM interface for DUSLIC-XS [VOICECPE_SW-979]
+--- End of merge from SP_4.40 branch into default branch.
+FIX Within CID1 for NTT ignore spurious hook events following line reversal on
+    SLIC200. [VOICECPE_SW-1054]
+NEW Added event IFX_TAPI_EVENT_INFO_SYSCLK_DOWN_FORCED to inform application
+    when the system forces a clock downscaling while the voice firmware is
+    still active. When receiving this event the application should consider
+    which resources it can stop and not accept new calls. [VOICECPE_SW-1024]
+--- Merged Version 4.15.3.2 from SP_4.40 branch into default branch.
+--- Increased version to 4.16.x.x
+--- Branched SP4.40. Reserved versions 4.15.3.x. for SP 4.40
+FIX drv_tapi_srtp.c added to common sources to be compiled for both kernel and
+    user spaces
+FIX Restore the phone detection suspend status of a channel when a linefeed set
+    on a neighbour channel was rejected due to an invalid transition.
+    [VOICECPE_SW-1018]
+FIX Resolved lockup upon executing IFX_TAPI_PKT_FLUSH caused by spinlock.
+    [VOICECPE_SW-1001]
+--- Merged Version 4.15.0.9 from SP_4.36 branch into default branch.
+FIX Extend TAPI driver to support SLIC 220. [VOICECPE_SW-1004]
+CHG Encapsulate the waitqueue usage within this TAPI driver. [VOICECPE_SW-1003]
+FIX Automatically suspend the phone detection search cycle when any neighbour
+    channel is active to prevent a faint clicking noise in the neighbour
+    channel. [VOICECPE_SW-958]
+FIX Removed limitation in the number of Linux character devices available for
+    the LL-driver. Also corrected the reservation of the device number range
+    for the filedescriptors. [VOICECPE_SW-941]
+CHG Removed support for Linux devfs. [VOICECPE_SW-984]
+FIX Crash in tapi driver after writing to character filedescriptor.
+    [VOICECPE_SW-943]
+FIX Double procfs registration possible with phone detection. [VOICECPE_SW-971]
+CHG Limit print rate of debug trace warning about KPI egress fifo full.
+CHG Corrected example in documentation how to use the IFX_TAPI_CAP_CHECK ioctl.
+NEW Added field nBurstNumber to IFX_TAPI_JB_STATISTICS_t. [VOICECPE_SW-887]
+NEW Added the new new destination value IFX_TAPI_MAP_TYPE_DATA as for use in
+    the IOCTLs IFX_TAPI_MAP_DATA_ADD and IFX_TAPI_MAP_DATA_REMOVE.
+    [VOICECPE_SW-953]
+FIX Resolved lockup upon executing IFX_TAPI_DEV_STOP caused by new spinlock.
+    [VOICECPE_SW-952]
+FIX Optimised the memory usage by adapting the bufferpool allocation to page
+    sizes. [VOICECPE_SW-950]
+ADD Spinlock syncronisation for SMP support. [VOICECPE_SW-912] [VOICECPE_SW-917]
+    [VOICECPE_SW-918]
+FIX Improved check for support of T2R capacitance measurement which is needed
+    by the phone detection. [VOICECPE_SW-938]
+FIX Removed flush_icache_range from allocation of memory for bufferpool.
+    [GRX500SYS-884]
+CHG For drivers supporting only one device allow channel numbers exceeding
+    nine which is the limit in the regular naming scheme. [VOICECPE_SW-922]
+CHG GRX500: Changed locking of bufferpools to be SMP save. [VOICECPE_SW-912]
+FIX GRX500: Free error in bufferpool implementation [VOICECPE_SW-907]
+FIX Corrected locking of CID sequence start against multiple calls.
+--- merged SP 4.36 branch.
+NEW Event IFX_TAPI_EVENT_DEBUG_FW_EVENTS for transperent FW events
+    [VINETICLCSW-1093]
+FIX Setting the timer in VxWorks with timeout value of 0.
+NEW Added warning message printout for IFX_TAPI_EVENT_T38_ERROR_... event
+    enable/disable in case of T.38 FAX feature using the stack inside the FW.
+CHG Switched VxWorks to use TAPI driver timers (previously used common driver
+    timers)
+--- Increased version to 4.15.1.0
+
+-------------------------------------------------------------------------------
+version  4.15.0.x  |  2015-06-04  |  Voice System Package 4.36 branch
+-------------------------------------------------------------------------------
+---  Branched SP4.36. Reserved versions 4.15.0.x. for SP 4.36
+NEW CID transparent message buffer error [VOICECPE_SW-901]
+CHG SRTP initialization [VOICECPE_SW-899]
+NEW SRTP events [VOICECPE_SW-881]
+NEW SRTP statistics in TAPI-HL [VOICECPE_SW-880]
+NEW Configure option for specifying SRTP library includes path
+    (--with-srtp-incl)
+CHG IFX_TAPI_PKT_SRTP_CAP_GET now device IOCTL [VOICECPE_SW-875]
+FIX Resolved kernel warning resulting from incorrect error handling in IOCTL
+    IFX_TAPI_DEV_START. [VOICECPE_SW-872]
+NEW SRTP lib support [VOICECPE_SW-845].
+
+-------------------------------------------------------------------------------
+version  4.15.0.0  |  2015-02-18  |  Voice System Package 4.36 RC1
+-------------------------------------------------------------------------------
+--- merged DXS_TAPI_SP_1.0 branch.
+CHG Separate workqueue used for deferred tasks to avoid deadlock when defered
+    task relies on TAPI timers [VOICECPE_SW-827]
+FIX When the CID1 NTT sequence stops with IFX_TAPI_EVENT_CID_TX_NOACK2_ERR due
+    to a missing on-hook respose of the phone the hook status is now corrected.
+    The hook state machine is then set to off-hook to be in sync with the line.
+    [VOICECPE_SW-793]
+CHG Documentation fixes and updates [VINETICLCSW-796] [VINETICLCSW-737]
+
+-------------------------------------------------------------------------------
+version  4.14.0.2  |  2014-09-16  |
+-------------------------------------------------------------------------------
+FIX Defer work realization for userspace [VINETICLCSW-1118]
+
+-------------------------------------------------------------------------------
+version  4.14.0.1  |  2014-08-29  |
+-------------------------------------------------------------------------------
+FIX Compilation fix for case if --enable-dial or --disable-dial not configured
+NEW Vinetic XS caps support [VINETICLCSW-1106]
+CHG Complete rework of the feature configuration within the driver.
+    Added configure options for the following features.
+    Tone generator support: --enable-tonegen
+    Ring cadence generator: --enable-ring-engine
+    MOS LQE calculation support: --enable-mos-lqe
+    Modem/FAX tone detector support: --enable-mftd
+    FXO support: --enable-fxo
+    SmartSLIC support: --enable-sslic
+    Line Echo Cancellation support: --enable-lec
+    Pulse dial and hook detection support: --enable-dial
+    The configuration file is now located in the include directory.
+    [VOICECPE_SW-665] [VOICECPE_SW-687]
+CHG Disabled the legacy FAX data pump feature by default and renamed the
+    configure option from --enable-fax to --enable-fdp. [VOICECPE_SW-500]
+FIX Changed the internal fifo implementation which is used for the upper packet
+    interface, the KPI interface, HDLC handling and event queueing. The fifo
+    can now directy store all needed attributes removing the need for an extra
+    bufferpool for this purpose and the locking needed for this.
+    [VOICECPE_SW-574]
+CHG Allow configuration of the duration of each ring cadence step via the
+    drv_config_user.h file. Define TAPI_RING_CADENCE_GRANULARITY to an
+    integer value defining the duration in milliseconds. [VOICECPE_SW-743]
+
+-------------------------------------------------------------------------------
+version  4.14.0.0  |  2014-05-16  |
+-------------------------------------------------------------------------------
+CHG Reset the TAPI last error whenever an IOCTL is called to prevent errors
+    to accumulate on the stack across different IOCTLs when IFX_TAPI_LASTERR
+    is not called in between to empty the stack. [VOICECPE_SW-730]
+FIX TAPIv3 only: For CID2 corrected starting of the delay between ACK detection
+    and data transmission. It now starts when the ACK tone is detected while
+    previously it started after the timeout during which an ACK could occur.
+    [VOICECPE_SW-739]
+FIX TAPIv3 only: For CID2 corrected implementation of time afterAckTimeout
+    which had no effect up to now. [VOICECPE_SW-738]
+FIX TAPIv3 only: Reduced the default CID times for dataOut2restoreTimeOffhook
+    to 55ms and afterAckTimeout to 0ms. [VOICECPE_SW-737]
+FIX Corrected documentation of CID type 2 ack2dataOutTime. [VOICECPE_SW-737]
+FIX Cleaned up the use of an extra list in phone detection that connected the
+    procfs files with the corresponding device. [VOICECPE_SW-719]
+NEW Added configure option --enable-pmc-if=X to select the type of interface
+    to use towards the PMC module. Using this also make will detect what needs
+    to be recompiled. [VOICECPE_SW-551]
+FIX Resolved compile problem when phone detection is disabled but registration
+    to clock frequency change is enabled. [VOICECPE_SW-704]
+FIX Added backward compatibility for procfs on kernels prior to 2.6.30.
+FIX Added forgotten mutual protection unlock in CID code. [VOICECPE_SW-706]
+CHG Adaptions to changed API of the clock frequency change mechanism in UGW6.1.
+    [VOICECPE_SW-704]
+FIX Resolved compile issue due to missing prototypes in QOS procfs interface.
+CHG description of nMCTS parameter changed [VINETICLCSW-1056]
+
+-------------------------------------------------------------------------------
+version  4.11.1.0  |  2014-04-14  |
+-------------------------------------------------------------------------------
+NEW IFX_TAPI_TONE_PLAY extended with bMuteOtherVoice [VINETICLCSW-1015]
+
+-------------------------------------------------------------------------------
+version  4.11.0.3  |  2014-02-27  |
+-------------------------------------------------------------------------------
+NEW IPv6 Error event [VINETICLCSW-998]
+NEW IPv6 Extension headers interface [VINETICLCSW-984]
+CHG Removed libtool prerequisite [VINETICLCSW-976]
+FIX Corrected the lock parameter given to the ..._ThreadKill() function.
+    [VOICECPE_SW-675]
+
+-------------------------------------------------------------------------------
+version  4.11.0.2  |  2013-12-18  |
+-------------------------------------------------------------------------------
+CHG Optimized memory usage [VINETICLCSW-916].
+
+-------------------------------------------------------------------------------
+version  4.11.0.1  |  2013-11-28  |
+-------------------------------------------------------------------------------
+CHG Replaced legacy proc file interface with seq_file interface
+NEW IFX_TAPI_EVENT_FXS_RING_ABORT [VINETICLCSW-922]
+    [VINETICLCSW-895]
+FIX CID cas2ackTime default value set to 200 ms [VINETICLCSW-940]
+CHG Added option to distribute the system load for processing timers of the
+    hook state machine by adding a small random increase to the timeouts.
+    This can help in systems with multiple devices where due to polling
+    operations a lot of hook events occur in parallel. This option is disabled
+    by default and can be configured in drv_tapi_dial.c. [VOICECPE_SW-685]
+
+-------------------------------------------------------------------------------
+version  4.11.0.0  |  2013-10-02  |
+-------------------------------------------------------------------------------
+FIX Reset the state of the capacitance measurement when an error is reported
+    by the LL-driver so that the measurement can be started again without
+    executing a stop first. [VOICECPE_SW-681]
+
+-------------------------------------------------------------------------------
+version  4.10.6.4  |  2013-12-12  |  DxT SP/EP 4.8
+-------------------------------------------------------------------------------
+FIX Corrected timer deletion in VxWorks [VOICECPE_SW-707]
+
+-------------------------------------------------------------------------------
+version  4.10.6.3  |  2013-11-27  |  DxT System Package 4.8 RC3
+-------------------------------------------------------------------------------
+CHG When IFX_TAPI_EVENT_ALL_DEVICES is used as argument to IFX_TAPI_EVENT_GET
+    to address any device which has an event available successive calls now
+    search the devices in a round robin manner to guarantee a fair service.
+    [VOICECPE_SW-693]
+CHG Added option to distribute the system load for processing timers of the
+    hook state machine by adding a small random increase to the timeouts.
+    This can help in systems with multiple devices where due to polling
+    operations a lot of hook events occur in parallel. This option is disabled
+    by default and can be configured in drv_tapi_dial.c. [VOICECPE_SW-685]
+
+-------------------------------------------------------------------------------
+version  4.10.6.2  |  2013-11-01  |  DxT System Package 4.8 RC2
+-------------------------------------------------------------------------------
+FIX Reset the state of the capacitance measurement when an error is reported
+    by the LL-driver so that the measurement can be started again without
+    executing a stop first. [VOICECPE_SW-681]
+
+-------------------------------------------------------------------------------
+version  4.10.6.1  |  2013-10-11  |  DxT System Package 4.8 RC1
+-------------------------------------------------------------------------------
+FIX Changed the Linux implementation of DXT_OS_ThreadKill() to wake the thread
+    to be killed with own its mutex. This avoids the interruption of the thread
+    with signals which is not possible for a certain combination of IFXOS and
+    the Linux kernel. [VOICECPE_SW-675]
+
+-------------------------------------------------------------------------------
+version  4.10.6.0  |  2013-10-02  |
+-------------------------------------------------------------------------------
+NEW userspace mode supported for DUSLIC-XT [VOICECPE_SW-622]
+NEW Added IFX_TAPI_EVENT_FXS_RINGPAUSE_CIDTX to inform application when to send
+    CID data. [VOICECPE_SW-664]
+
+-------------------------------------------------------------------------------
+version  4.10.5.1  |  2013-08-21  |
+-------------------------------------------------------------------------------
+NEW Linux PC LCC support [VINETICLCSW-928]
+NEW Features for Calibration and MWL
+    --enable-calibration --enable-mwl [VINETICLCSW-650]
+
+-------------------------------------------------------------------------------
+version  4.10.5.x  |  xxxx-xx-xx  |
+-------------------------------------------------------------------------------
+NEW Added support for autonomous recovery of short SSI bus faults due to ESD
+    events on the hardware. [VOICECPE_SW-635] [VOICECPE_SW-650]
+CHG Remove obsolete use of the Linux big kernel lock from TAPI_OS_ThreadKill()
+    function. [VOICECPE_SW-668]
+CHG Adapt to changes of IFXOS from 1.5.17 to 1.5.19 [VOICECPE_SW-667]
+NEW Tone generator can be enabled/disabled with new feature --enable-tonegen
+    also CPTD detectors --enable-cptd, optimization of other features
+    [VINETICLCSW-650]
+CHG Changed redundancy parameter in IFX_TAPI_ENC_CFG_SET to use values from
+    the enum IFX_TAPI_COD_REDUNDANCY_t. [VOICECPE_SW-653]
+NEW Added debugging support by printing details of an SSI crash.
+    [VOICECPE_SW-650]
+
+-------------------------------------------------------------------------------
+version  4.10.4.x  |  2013-06-04  |  Voice System Package 4.32 branch
+-------------------------------------------------------------------------------
+CHG Removed IFX_TAPI_COD_AMR_SET support and changed IFX_TAPI_COD_AMR_GET
+    to report only CMR code.
+NEW Now AMR redundancy can be set with IFX_TAPI_ENC_CFG_SET.
+NEW Added codecs IFX_TAPI_COD_TYPE_AMR_NB and IFX_TAPI_COD_TYPE_AMR_NB.
+    Now bitrate for AMR codecs should be set with separate field
+    in stucture IFX_TAPI_ENC_CFG_t. [VOICECPE_SW-626]
+NEW Added IFX_TAPI_PKT_RTCP_XR_BLOCK_GET ioctl. [VOICECPE_SW-599]
+NEW Added IFX_TAPI_CAP_NLIST in addition to the existing IFX_TAPI_CAP_LIST.
+    The new IOCTL takes a struct as parameter where the size of the array
+    parameter must be given. This prevents out of bounds access of the array.
+    IFX_TAPI_CAP_LIST is now deprecated. [VOICECPE_SW-290]
+CHG Add limit parameter to the initialisation of the bufferpool.
+    [VOICECPE_SW-575]
+NEW Added IFX_TAPI_LINE_FEED_GET ioctl. [VOICECPE_SW-597]
+NEW Added macros to check the TAPI API version at compile time of the
+    application. TAPI_VERSION_CODE and TAPI_API_VERSION work just as the Linux
+    defines of similar name. [VOICECPE_SW-610]
+CHG For events which cannot be disabled (masked) the IFX_TAPI_EVENT_DISABLE
+    now return an error  [VOICECPE_SW-613]
+FIX Corrected bug in translating TAPI V3 style IOCTL arguments of six IOCTLs
+    into the structs that are used internally. [VOICECPE_SW-616]
+NEW IFX_TAPI_EVENT_FAULT_FW_MIPS_OVLD support [VINETICLCSW-903]
+
+-------------------------------------------------------------------------------
+version  4.10.2.x  |  2013-03-05  |  DxT System Package 4.7 branch
+-------------------------------------------------------------------------------
+FIX Support IFX_TAPI_MODULE_TYPE_ALL for IFX_TAPI_EVENT_ENABLE/ -DISABLE
+    ioctls and fixed possible crash using this value. [VOICECPE_SW-600]
+CHG Support of Linux versions from 3.x onwards. [VOICECPE_SW-594]
+FIX Fixed crash when reloading the LL-driver after FIO_DXT_BASICDEV_INIT was
+    called repeatedly without IFX_TAPI_DEV_STOP in between. [VOICECPE_SW-579]
+FIX Clear the cached phone hook status when the driver is restarted to allow
+    the setting of any linefeed after startup. [VOICECPE_SW-582]
+CHG Moved the power save mechanism into the DUSLIC-xT LL-driver and removed
+    all parts in this driver. [VOICECPE_SW-529]
+
+-------------------------------------------------------------------------------
+version  4.10.2.0  |  2012-11-14  |
+-------------------------------------------------------------------------------
+FIX Added generic HL-error code to IOCTLs which report only a LL-error code.
+    [VOICECPE_SW-566]
+
+-------------------------------------------------------------------------------
+version  4.10.1.x  |  2012-10-31  |  DxT System Package 4.6 branch
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+version  4.10.0.0  |  2012-10-31  |
+-------------------------------------------------------------------------------
+CHG Call DEC_Chg_Evt_Detail_Req when IFX_TAPI_EVENT_COD_DEC_CHG is disabled
+    for correct wide band switching
+FIX Correct error code output in case of error in IFX_TAPI_EVENT_ENABLE for
+    faxmodem events. [VINETICLCSW-818]
+FIX max chan.nr. assignment when event en/dis called
+     with ch=IFX_TAPI_EVENT_ALL_CHANNELS
+FIX Fixed crash that occured when the QOS driver was unregistered while voice
+    streams via this interface were active. [VOICECPE_SW-562]
+CHG Added interface for AMR codec specific parameter configuration.
+NEW Added TAPI event IFX_TAPI_EVENT_KPI_EGRESS_FIFO_FULL that reports that
+    in egress direction packets were lost because the FIFO is full.
+    [VOICECPE_SW-491]
+CHG TAPIv3 only: Deactivated implicit enable and disable of tone detectors with
+    the IOCTLs IFX_TAPI_EVENT_ENABLE / -DISABLE. This leads to inconsistencies
+    when used together with IFX_TAPI_SIG_DETECT_ENABLE / -DISABLE.
+    [VOICECPE_SW-560]
+NEW TAPIv3 only: FXS line make- and break-events can now be reported as TAPI
+    events: IFX_TAPI_EVENT_FXS_RAW_OFFHOOK, IFX_TAPI_EVENT_FXS_RAW_ONHOOK.
+    The events are disabled by default. [VOICECPE_SW-547]
+FIX Adapted vxWorks timer implementation because of changes done for the export
+    of the timer functions with VOICECPE_SW-545. [VOICECPE_SW-550]
+FIX Improved phone detection to detect phones which first power their internal
+    electronics from the line before going off-hook. [VOICECPE_SW-495]
+FIX Move the prototypes of the timer functions to the HL/LL-interface so that
+    the LL-drivers do not have to declare them again. [VOICECPE_SW-545]
+CHG CPE TAPI only: Improved the accuracy of times for pulse dial and flashhook
+    detection. The accuracy depends now only on timestamps that are reported
+    from the LL-driver. [VOICECPE_SW-534]
+FIX CPE TAPI only: Fixed cases in which the interdigit time was used instead of
+    the flash-holdoff time. [VOICECPE_SW-525]
+
+-------------------------------------------------------------------------------
+version  4.9.0.0  |  2012-08-21  |  Voice System Package 4.28 / UGW 5.3
+-------------------------------------------------------------------------------
+CHG Added support for Linux cpufreq kernel driver in addition to the existing
+    PMCU support. [VOICECPE_SW-453]
+CHG Made drv_tapi_errno.h public by moving it to the include directory. The
+    application should use the enum values defined here when checking for
+    specific error codes. The macros for error reporting were moved to
+    drv_tapi.h. [VOICECPE_SW-515]
+NEW Added IFX_TAPI_LINE_HOOK_VT_FLASH_HOLDOFF_TIME to configure the hook state
+    machine. This allows to configure the period after a flash break during
+    which no further hook event must occur in order that the flash hook is
+    reported. [VOICECPE_SW-431]
+NEW PCM mute interface IFX_TAPI_PCM_MUTE_CFG_SET [VINETICLCSW-778]
+CHG Send TAPI event IFX_TAPI_EVENT_CID_TX_SEQ_END again at the end of the CID
+    sequence instead of right after the data transmission. So when this event
+    is received the application can now again immediately reconfigure the
+    module connection mappings. [VOICECPE_SW-509]
+NEW Field Vdcdc that is meaningful for combined DC/DC operation only was added
+    to the values of the analog line calibration. [VOICECPE_SW-504]
+FIX Prevent capacitance measurement on channels without an analog line.
+    [VOICECPE_SW-493]
+FIX Disable phone detection when combined DC/DC operation mode is configured.
+    [VOICECPE_SW-508]
+
+-------------------------------------------------------------------------------
+version  4.8.6.0  |  2012-07-10  |
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+version  4.8.5.0  |  2012-07-06  |
+-------------------------------------------------------------------------------
+FIX Prevent playing tones on channels where no tone resources were reported.
+    [VOICECPE_SW-482]
+FIX Corrected compile switches for configuration without voice-packet support.
+FIX Removed obsolete and missleading error message. [VOICECPE_SW-414]
+FIX Fixed problem in makefile preventing the build of distribution tarballs.
+FIX Suppressed IFX_TAPI_EVENT_NLT_END event when capacitance measurement is
+    started by phone detection state machine. [VOICECPE_SW-423]
+CHG Changed ground fault and overtemp behaviour. When the fault occurs the chip
+    will switch the port to high impedance mode. The driver will reject setting
+    the line feeding to anything else but "disabled". Only after this happened
+    or after receiving the new end-event for each of these faults other line
+    feeding modes can be set again. [VOICECPE_SW-410]
+
+-------------------------------------------------------------------------------
+version  4.8.4.0  |  2012-06-13  |
+-------------------------------------------------------------------------------
+CHG Added support for extended linetesting as it is supported by the DUSLIC-xT
+    device driver. [VOICECPE_SW-450]
+FIX Corrected problems with the phone detection state machine when device FW
+    doesn't support the capacitance measurement. [VOICECPE_SW-427]
+FIX Suppressed IFX_TAPI_EVENT_NLT_END event when capacitance measurement is
+    started by phone detection state machine.
+NEW Added support for Line Testing library - capacitance measurement.
+CHG Phone detection will assume telephone as connected if the capacitance
+    measurement fails unexpectedly. [VOICECPE_SW-421]
+FIX Fixed issue that playing a composed tone fails if pause is 0 in simple tone.
+    [VOICECPE_SW-414]
+NEW SRTP support [VINETICLCSW-762]
+FIX Fixed crash that occured on linefeed seting on unsupported channel
+CHG CID NTT2 now activated only as TAPI high level realization
+    [VINETICLCSW-734]
+
+-------------------------------------------------------------------------------
+version  4.8.3.0  |  2012-03-22  |
+-------------------------------------------------------------------------------
+NEW Added event IFX_TAPI_EVENT_FAULT_LINE_OMI [VINETICLCSW-765]
+NEW ABCD events configuration extended with retransmission time stamp
+    and timeout period configurations.
+    [VINETICLCSW-760]
+FIX Event enable/disable not possible for IFX_TAPI_EVENT_FAXMODEM_VMD
+    [VINETICLCSW-755]
+FIX Phone Detection state machine stops capacitance measurement after event
+    with measurement result is received.
+FIX Phone Detection state machine is stopped when user starts capacitance
+    measurement.
+FIX Setting module field for events reported by state machines.
+    Connected to [VOICECPE_SW-391].
+FIX Restore the correct polarity when restoring the linefeeding upon on-hook.
+    [VOICECPE_SW-397]
+NEW Support for extended capacitance measurement event reporting the results
+    of ring to ground and tip to ground measurements. [VOICECPE_SW-405]
+FIX Added missing TAPIv3 API style direction fields to the CPTD event.
+    [VOICECPE_SW-402]
+FIX Corrected translation of streams between KPI interface and TAPI data path.
+    [VOICECPE_SW-401]
+FIX Remove remaining reference to LIN channel which is no longer supported.
+    [VOICECPE_SW-398]
+FIX TAPIv3 only: Fixed that since the TAPI merge IFX_TAPI_TONE_STOP stopped also
+    tones played on a DECT channel. Now again only IFX_TAPI_TONE_DECT_STOP will
+    stop tones played on the DECT channel. [VOICECPE_SW-396]
+CHG TAPIv3 only: Changed resource allocation of the tone generators so that
+    playing two individual tones with each tone added into network and local
+    direction at the same time is now possible. [VOICECPE_SW-338]
+FIX TAPIv3 only: Fixed IFX_TAPI_EVENT_GET that was not working for devices > 1
+    since the TAPI merge. Now two or more devices work fine. [VOICECPE_SW-392]
+FIX Do not change line mode after CID info TX [VINETICLCSW-733]
+FIX TAPIv3 only: restored code to set the line to disabled upon ground fault
+    high event. This was lost in the TAPI merge. [VOICECPE_SW-390]
+
+-------------------------------------------------------------------------------
+version  4.8.1.0  |  2011-11-24  |
+-------------------------------------------------------------------------------
+NEW Added configure option --disable-pcm to disable PCM support and keep the
+    code out of the driver. By default PCM support is enabled. [VOICECPE_SW-387]
+FIX Playing CID2 fails when playing the alert tone on platforms with TG, e.g.
+    DuSLIC-xT, because of incorrectly set playout direction. [VOICECPE_SW-381]
+FIX First cadence step of any tone is not played if TG resource is used on low
+    level, e.g. on DuSLIC-xT. [VOICECPE_SW-383]
+CHG Integrated patches from FALCON project concerning the hotplug feature.
+    [VOICECPE_SW-379]
+FIX Correct the PMCU interface - post and pre callbacks return NOACTIVITY.
+    [VOICECPE_SW-367]
+FIX Compatibility mode for masking of the events IFX_TAPI_EVENT_DTMF_DIGIT and
+    IFX_TAPI_EVENT_DTMF_END after system startup. [VOICECPE_SW-369]
+FIX IO control logging with event logger: pointer value was logged instead
+    of contents of the structure passed, in case if size of structure was less
+    or equal to size of integer.
+CHG Improved traces for Phone Detection - now device is also displayed.
+CHG PMCU interface: report the last requested feature enable/disable
+    status in the status function. [VOICECPE_SW-367]
+CHG Masking TAPI FAULT Events. All TAPI event starting
+    with IFX_TAPI_EVENT_FAULT_* are enabled by default. [VOICECPE_SW-311]
+CHG TAPIv3 only: Added the field 'module' to IFX_TAPI_EVENT_t that was already
+    present in TAPIv4 API. It is used only for IFX_TAPI_EVENT_TONE_GEN_END
+    where it indicates whether the tone ended on the DECT or the COD module.
+    [VOICECPE_SW-358]
+FIX Wrong hook configuration [VINETICLCSW-723] appears after [VOICECPE_SW-355]
+FIX TAPI V4: under VxWorks select would not wake up in case of incoming events
+    on the last device of the system.
+
+-------------------------------------------------------------------------------
+version  4.8.0.0  |  2011-10-14  |
+-------------------------------------------------------------------------------
+FIX Broadcast for events enabling now use correct number of channels
+    for different modules [VINETICLCSW-720] [VINETICLCSW-721]
+FIX Tone play in both directions [VINETICLCSW-602]
+FIX In CID type 2 corrected the time after data transmission until the voice
+    path is restored. [VOICECPE_SW-364]
+FIX In case the current line feeding is IFX_TAPI_LINE_FEED_DISABLED the hook
+    state is undefined so do not block STANDBY, RING_BURST and RING_PAUSE as
+    added with issue VINETICLCSW-712. [VOICECPE_SW-362]
+FIX TAPIv3 only: Fixed pulse dialing detection that failed as a side effect of
+    issue VOICECPE_SW-356. [VOICECPE_SW-360]
+FIX Cleanup automake from warnings reported by "autoreconf -Wall"
+    JIRA_RND [VOICECPE_SW-328]
+
+-------------------------------------------------------------------------------
+version  4.7.3.0  |  2011-09-27  |
+-------------------------------------------------------------------------------
+FIX Fixed crash that occured when stopping tone playout on the DECT channel
+    with the highest number. [VOICECPE_SW-352]
+CHG TAPI always return state INVALID to the PMCU.
+FIX TAPIv3 only: If the off-hook duration is shorter than the validation time
+    restore the line feeding upon on-hook. [VOICECPE_SW-356]
+FIX The unused maximum validation times for hook-on, hook-off, and interdigit
+    are no longer checked in ioctl IFX_TAPI_LINE_HOOK_VT_SET. [VOICECPE_SW-355]
+CHG Stop ringing and CID after the off-hook event from HW is validated by the
+    dial-state-machine. Before it was stopped immediately with the HW event and
+    there was a gap before the TAPI off-hook event was sent. [VOICECPE_SW-350]
+
+-------------------------------------------------------------------------------
+version  4.7.2.3  |  2011-09-13  |
+-------------------------------------------------------------------------------
+CHG Error code TAPI_statusPhoneOffHook returned on IFX_TAPI_LINE_FEED_SET
+    for STANDBY, RING_BURST and RING_PAUSE linefeed mode during OFF-HOOK
+    state. [VINETICLCSW-712]
+NEW Dynamic MAJOR Number Allocation (linux). [VOICECPE_SW-298]
+FIX vxWorks memory leak during select and multiple device select
+FIX Fixed IOCTL logging via EventLogger after low-level driver reloading.
+    Corrected the low-level device number and extended the device name by
+    low-level device name. [VOICECPE_SW-343]
+CHG Allow handling of IFX_TAPI_TONE_STOP with tone index set to 0.
+NEW Print fill state of TAPI FIFOs in new Linux proc node: "fifo_status".
+    [VOICECPE_SW-340]
+FIX Fixed not working reset of TAPI statistic via Linux proc filesystem.
+    [VOICECPE_SW-332]
+CHG Changed logs formating for Event Logger
+FIX Fixed access to TAPI event after ownership was passed on. [VOICECPE_SW-330]
+NEW Print information about the registered QOS driver in the Linux proc node.
+    [VOICECPE_SW-329]
+NEW Added support for Power Management Control
+NEW Added functionality to enable/disable Phone Detection feature on channel(s)
+CHG Patches from Falcon project: Hotplug Event Support and linux-2.6.39
+    adaptation [VOICECPE_SW-300]
+
+-------------------------------------------------------------------------------
+version  4.7.2.1  |  2011-07-29  |
+-------------------------------------------------------------------------------
+CHG When IFX_TAPI_TONE_SRC_TG is selected for playing a tone but the LL-driver
+    does not provide any TG an UTG is tried instead of returning with an error.
+    [VOICECPE_SW-284]
+NEW Added IFX_TAPI_EVENT_FAULT_HW_SSI_ERR_END event (VINETICLCSW-685)
+CHG TAPI event IFX_TAPI_EVENT_CID_TX_RINGCAD_ERR is no longer reported from the
+    CID state-machine implemented in TAPI. The error is already reported via
+    the IOCTL return code. [VOICECPE_SW-323]
+FIX Fixed incorrect abort that occured while DTMF detector is enabled to detect
+    digit and digit-end event and IFX_TAPI_EVENT_DTMF_END is disabled with both
+    directions set. [VOICECPE_SW-321]
+
+-------------------------------------------------------------------------------
+version  4.7.2.0  |  2011-07-15  |
+-------------------------------------------------------------------------------
+FIX Fixed access to the released memory after driver unloading
+
+-------------------------------------------------------------------------------
+version  4.7.1.0  |  2011-07-05  |          Voice SP 4.21 W6
+-------------------------------------------------------------------------------
+FIX Corrected error handling of QOS IOCTLs when no QOS driver is registered.
+    [VOICECPE_SW-312]
+NEW Event enable/disable on all devices with a single IO control call.
+    [VINETICLCSW-679]
+
+-------------------------------------------------------------------------------
+version  4.7.0.0  |  2011-06-24  |
+-------------------------------------------------------------------------------
+CHG Limit the time of each tone cadence to a max of 16383ms. [VOICECPE_SW-308]
+CHG Configurable tasklet mode [VOICECPE_SW-244]
+FIX Add missed 'drv_tapi_qos_io.h' into the distribution.
+FIX Fixed potential memory leak during IFX_TAPI_EVENT_MULTI_ENABLE/DISABLE
+    [VOICECPE_SW-299]
+FIX Fixed permission problem during 'make distcheck'.
+FIX Restored linux-2.6.13 compatibility.
+CHG Automatically generated code by 'make ioctl' moved into separate files.
+    [VOICECPE_SW-293]
+CHG Integrated lib_fifo and lib_bufferpool into the TAPI driver.
+NEW Peak detector for different directions. [VINETICLCSW-590]
+NEW Added mandatory configuration option to specify the TAPI API version.
+
+-------------------------------------------------------------------------------
+version  4.6.1.4  | 2011-04-18 |              Voice SP 4.20
+-------------------------------------------------------------------------------
+CHG Old style capability list enabled for backward compatibility.
+
+-------------------------------------------------------------------------------
+version  4.6.1.3  | 2011-04-15 |
+-------------------------------------------------------------------------------
+FIX Corrected BBD download with 'IFX_TAPI_CH_INIT' for non zero channel
+    in multiple device mode (aka TAPI v3 interface) [VOICECPE_SW-287]
+FIX Removed strict dependence of 'XML/Checker/Parser.pm' for 'make ioctl'
+FIX Fixed usage of IFX_TAPI_LINE_FEED_PHONE_DETECT when TAPI is compiled with
+    Phone Detection feature but low level driver does not support it.
+FIX Completely disabled all events for TAPI v4 mode
+
+-------------------------------------------------------------------------------
+version  4.6.1.2  | 2011-03-28 |              Engineering snapshot
+-------------------------------------------------------------------------------
+FIX Corrected FXS Phone Plug Detection state machine - capacitance measurement
+    started by user and by state machine at the same time.
+CHG Removed 'ch' field for device specified service 'IFX_TAPI_DEBUG_REPORT_SET'
+    in TAPI v4 mode
+CHG Disabled all events for TAPI v4 mode [VINETICLCSW-589]
+FIX Fixed error generation for conflicting direction of DTMF_DIGIT
+    and DTMF_END event [VOICECPE_SW-269]
+
+-------------------------------------------------------------------------------
+version  4.6.1.1  | 2011-03-21 |              Voice SP 4.20 W7 RC1
+-------------------------------------------------------------------------------
+FIX FXS Phone Plug Detection state machine - first C-measurement didn't receive
+    event with measurement result and stop ringing sets correct line feeding.
+
+-------------------------------------------------------------------------------
+version  4.6.1.0  | 2011-03-18 |
+-------------------------------------------------------------------------------
+FIX Fixed wrong resulting line mode when Ring Cadence terminated
+    by LineModeSet "Disabled" [VOICECPE_SW-273]
+FIX Fixed direction information for TONE_GEN_END event [VOICECPE_SW-272]
+NEW Kernel ioctl API
+CHG Added backward compatibility for service 'IFX_TAPI_CAP_LIST'
+    using 'USE_OLD_TAPI_CAP_LIST'
+FIX Fixed IFX_TAPI_EVENT_GET usage for non zero device in multiple
+    device mode (aka TAPI v3 interface)
+NEW ABCD RTP events support [VINETICLCSW-635]
+FIX Fixed conflict of function declaration in user-space mode
+CHG Moved all configuration options in to the m4 scripts
+CHG Improved configuration option dependency
+CHG Added preprocessor error for KPI and QOS feature for non kernel mode
+FIX Removed in force all TAPI features enabling.
+NEW Added FXS Phone Plug Detection state machine. New line feeding mode
+    IFX_TAPI_LINE_FEED_PHONE_DETECT
+
+-------------------------------------------------------------------------------
+version  4.6.0.4  | 2011-03-09 |
+-------------------------------------------------------------------------------
+CHG Code cleanup
+FIX Removed in force all TAPI features enabling.
+
+-------------------------------------------------------------------------------
+version  4.6.0.3  | 2011-02-25 |            TAPI 4.6.0 (aka 3.14.0) release
+-------------------------------------------------------------------------------
+FIX Fixed TONE_DET_CPT event generation [VOICECPE_SW-270]
+FIX Fixed blocking ringing with service IFX_TAPI_RING [VOICECPE_SW-267]
+FIX Fixed DTMF_END event generation [VOICECPE_SW-265]
+FIX Fixed alert tone playing during CID sequence [VOICECPE_SW-262]
+
+-------------------------------------------------------------------------------
+version  4.6.0.2  | 2011-02-24 |            TAPI 4.6.0 RC3
+-------------------------------------------------------------------------------
+CHG Passed through the 'both' direction to the low-level driver
+    during DTMF detector enabling/disabling [VOICECPE_SW-247]
+FIX Allowed to call service IFX_TAPI_TONE_CPTD_STOP without arguments for
+    multiple device mode (TAPI v3 interface)
+FIX Fixed compilation issue with C++ which does not allow a typecast to void
+    in an empty parameter list. Instead void is used. [VOICECPE_SW-260]
+
+-------------------------------------------------------------------------------
+version  4.6.0.1  | 2011-02-18 |            TAPI 4.6.0 RC2
+-------------------------------------------------------------------------------
+NEW MOS-CQE feature. [VOICECPE_SW-253]
+
+-------------------------------------------------------------------------------
+version  4.6.0  |  2011-02-16  |
+-------------------------------------------------------------------------------
+CHG Changed argument for IFX_TAPI_CAP_LIST service.
+NEW Added multiple event configuration service new ioctls:
+     IFX_TAPI_EVENT_MULTI_ENABLE,
+     IFX_TAPI_EVENT_MULTI_DISABLE.
+CHG Voice packet buffer size increased to 576 bytes. [VOICECPE_SYS-127]
+FIX Return error when DTMF detector is enabled for both directions instead of
+    the previous enable just on local direction. [VOICECPE_SW-247]
+NEW Userspace timers.
+NEW FXS line capacitance measurement - new ioctls
+    IFX_TAPI_LINE_MEASURE_CAPACITANCE_START,
+    IFX_TAPI_LINE_MEASURE_CAPACITANCE_STOP.
+NEW Announcements freeing interface, Ioctl: IFX_TAPI_COD_ANNOUNCE_BUFFER_FREE.
+NEW Added support for CID sequence according to KPN specification.
+NEW Capability type IFX_TAPI_CAP_TYPE_FXO.
+NEW IFX_TAPI_FXO_LINE_MODE_SET ioctl.
+NEW Echo canceller for DECT channel - new IFX_TAPI_DECT_EC_CFG_SET ioctl.
+CHG Removed Linear channel support.
+CHG Removed Audio channel support.
+CHG Extended error codes in IFX_TAPI_EVENT_T38_ERROR_DATA_t interface type.
+CHG Return code of DECT Encoder Set LL interface is changed from IFX_return_t
+    to IFX_int32_t.
+CHG Jitter buffer local adaptation is now enabled by default.
+CHG Make CID2 configurable to accept any DTMF A-D tone for CID 2 ack tone.
+CHG IFX_TAPI_EVENT_CID_TX_SEQ_END is now reported directly after the data
+    transmission instead of the end of the sequence which normally includes an
+    delay in the end. For this reporting of CID end between HL and LL driver
+    was changed and TAPI_Cid_UseSequence() is no longer exported by TAPI HL.
+FIX Send IFX_TAPI_EVENT_PULSE_START only for first valid pulse of a pulse
+    dialing sequence. Before it was sent for every first pulse of every digit.
+FIX DAA initialization is not required for SmartSLIC based systems.
+FIX When configuring CID to BT specification several data fields were ignored.
+FIX For CID sequences using DTMF data transmission the tone duration and pause
+    was increased to 70ms to meet ETSI ES 201 235-2 requirements.
+FIX For CID sequences that use the DTMF receiver correctly release the DTMF
+    receiver also in case of errors or stop of the sequence.
+FIX Prevent ringing in CID1 with RP-alert if ring-pulse-time is set to 0.
+
+-------------------------------------------------------------------------------
+version  4.5.13  |  2011-02-18  |
+-------------------------------------------------------------------------------
+NEW IFX_TAPI_EVENT_FXS_RINGING_END now not generated on IFX_TAPI_RING_STOP
+    (VINETICLCSW-599)
+FIX IFX_TAPI_EVENT_FXS_RINGING_END now not generated when circuit goes off-hook
+    (VINETICLCSW-619)
+NEW IFX_TAPI_CID_RX_CFG_t extended with "module"
+    now CID RX possible to start and stop on different modules (VINETICLCSW-623)
+
+-------------------------------------------------------------------------------
+version  4.5.12  |  2010-12-15  |
+-------------------------------------------------------------------------------
+CHG TAPI_DevPoll modified to process events on multiple devices
+CHG Allowed low-level CID feature usage without enabled timers
+FIX Fixed IFX_TAPI_CAP_CHECK service for user-space mode
+
+-------------------------------------------------------------------------------
+version  4.5.11  |  2010-12-02  |
+-------------------------------------------------------------------------------
+FIX Roll back changes, after error not possible to change line mode
+    TAPI now returns an error when a line is attempted to be set to either
+    IFX_TAPI_LINE_FEED_STANDBY or IFX_TAPI_LINE_FEED_RING_BURST during
+    off-hook state
+
+-------------------------------------------------------------------------------
+version  4.5.10  |  2010-11-26  |
+-------------------------------------------------------------------------------
+FIX Change line state to on-hook on IFX_TAPI_LINE_FEED_DISABLED
+
+-------------------------------------------------------------------------------
+version  4.5.9  |  2010-11-18  |
+-------------------------------------------------------------------------------
+CHG TAPI now returns an error when a line is attempted to be set to either
+    IFX_TAPI_LINE_FEED_STANDBY or IFX_TAPI_LINE_FEED_RING_BURST during
+    off-hook state
+FIX IFX_TAPI_METER_STATISTICS_GET fixed error with unsupported IOCTRL
+    in Linux
+FIX Forwarded tone play direction to the LL module of tone generation
+
+-------------------------------------------------------------------------------
+version  4.5.8  |  2010-10-12  |
+-------------------------------------------------------------------------------
+NEW Events IFX_TAPI_EVENT_GPIO_LH and IFX_TAPI_EVENT_GPIO_HL
+FIX Fixed ringing cadence timing with enabled Caller ID
+
+-------------------------------------------------------------------------------
+version  4.5.7  |  2010-07-24  |
+-------------------------------------------------------------------------------
+CHG Removed some lint warnings
+
+-------------------------------------------------------------------------------
+version  4.5.6  |  2010-07-21  |
+-------------------------------------------------------------------------------
+CHG Removed 'ch' field from device specified structures
+   IFX_TAPI_DEV_START_CFG_t, IFX_TAPI_COD_ANNOUNCE_CFG_t, IFX_TAPI_PCM_IF_CFG_t
+   IFX_TAPI_VERSION_DEV_ENTRY_t
+
+-------------------------------------------------------------------------------
+version  4.5.5  |  2010-07-05  |
+-------------------------------------------------------------------------------
+FIX TAPI ioctls were logged in a wrong place.
+FIX Removed "internal" field from IFX_TAPI_PEAK_DETECT_START/
+    IFX_TAPI_PEAK_DETECT_STOP commands.
+-------------------------------------------------------------------------------
+version  4.5.4  |  2010-06-24  |
+-------------------------------------------------------------------------------
+CHG Set print level for Low level driver unregistering to normal instead of
+    high (info instead of error)
+
+-------------------------------------------------------------------------------
+version  4.5.3  |  2010-06-11  |
+-------------------------------------------------------------------------------
+FIX Removed error generation for IOCTLs with IFX_TAPI_EVENT_ALL_DEVICES
+    value of dev field
+FIX IFX_TAPI_NLT_TEST_START could eventually deliver wrong results to
+    user-space(Linux only). Problem introduced by version version 4.4.3.
+FIX IFX_TAPI_VERSION_GET was returning the length of the string instead of
+    0 or -1. Now corrected.
+
+-------------------------------------------------------------------------------
+version  4.5.2  |  2010-06-01  |
+-------------------------------------------------------------------------------
+CHG Removed channel and dev device nodes like svip10..svip19 etc.
+CHG Aligned IO argument headers for IOCTL interfaces
+NEW Linux hot-plug (udev) for Linux v2.6.xx.
+
+-------------------------------------------------------------------------------
+version  4.5.1  |  2010-05-06  |
+-------------------------------------------------------------------------------
+CHG Include ifx_types again in distribution (temp solution)
+
+-------------------------------------------------------------------------------
+version  4.5.0  |  2010-04-30  |
+-------------------------------------------------------------------------------
+NEW Driver can be compiled as user space library for Linux as well
+FIX Mutex problem before/after device initialization. Release was done twice,
+    which may cause problems
+FIX Fixed device context detection during IOCTL handling
+FIX Fixed LL ioctl calls for non-zero devices
+FIX Bug in TAPI_Create_Timer on VxWorks - free_struct->Timer wasn't filled,
+    timers weren't working.
+
+-------------------------------------------------------------------------------
+version  4.4.5  |  2010-03-31  |
+-------------------------------------------------------------------------------
+NEW RTP extended statistics support
+    new IOCTL:
+     IFX_TAPI_PKT_RTP_EXT_STATISTICS_GET
+     IFX_TAPI_PKT_RTP_EXT_STATISTICS_CFG
+    new events:
+     IFX_TAPI_EVENT_RTP_FIRST
+     IFX_TAPI_EVENT_RTP_EXT_BROKEN
+     IFX_TAPI_EVENT_RTP_EXT_SSRC_CHANGED
+NEW Added Tone Level Peak Detector support, ioctls:
+      IFX_TAPI_PEAK_DETECT_START
+      IFX_TAPI_PEAK_DETECT_STOP
+      IFX_TAPI_PEAK_DETECT_RESULT_GET
+CHG Removed 'machine' specific default CFLAGS from configuration script, added
+    mandatory settings check for MIPS architecture.
+CHG Added check for illegal characters in DTMF CID message elements.
+NEW Added owner ID handling for voice buffers
+CHG Send event IFX_TAPI_EVENT_FAULT_GENERAL_EVT_FIFO_OVERFLOW when event are
+    lost due to a full fifo on a channel.
+FIX Prevent possible event buffer loss when event fifo of the channel is full.
+FIX Prevent possible loss of internal buffers when the voice buffer fifo of
+    a channel is full.
+CHG In line mode disabled start of ringing is prevented.
+CHG Improved error codes of the ioctls
+FIX Fixed crash when doing select() on channel fd after IFX_TAPI_DEV_STOP
+CHG Copyrights header changed to Lantiq
+CHG Increased default KPI fifo size as a temporary fix of HDLC data stream
+NEW Integrated IFXOS library. Use --with-ifxos-incl=<path> to specify the
+    path to the library includes (option is mandatory)
+CHG Removed the KPI test loop implementation from the driver source code
+CHG Removed ioctl IFX_TAPI_TONE_STATUS_GET
+NEW Added configuration for the number of stop bits sent by the FSK generator
+
+-------------------------------------------------------------------------------
+version  4.4.4  |  2010-02-24  |
+-------------------------------------------------------------------------------
+CHG Suppressed IFX_TAPI_EVENT_TONE_GEN_END event when the tone
+    is stopped with an IOCTL.
+CHG Removed 'sendEndEvent' field from IFX_TAPI_TONE_PLAY_t, and enabled
+    IFX_TAPI_EVENT_TONE_GEN_END event by default for IOCTL calls.
+
+-------------------------------------------------------------------------------
+version  4.4.3  |  2010-02-22  |
+-------------------------------------------------------------------------------
+CHG Return error if LL driver does not supports a particular module connection
+FIX Metering IFX_TAPI_METER_BURST now not affect on IFX_TAPI_METER_START
+    this issue occurred after 4.4.0 and it was impossible to start
+    metering after burst
+FIX Metering crash on stop fixed, this crash occurred after 4.4.0
+CHG If LL driver does not support a service, the error information is now
+    put on the error stack (making error tracing and print out possible)
+
+-------------------------------------------------------------------------------
+version  4.4.2  |  2010-02-12  |
+-------------------------------------------------------------------------------
+FIX copying to user(affects Linux, only) omitted in case of LL error for ioctls
+    IFX_TAPI_NLT_TEST_START and IFX_TAPI_NLT_RESULT_GET. Copying to user should
+    occur always, as status information is contained within the structure.
+NEW Added event IFX_TAPI_EVENT_TONE_DET_CPT_END
+FIX Fixed compilation errors for Linux 2.6
+CHG Changed data field usage from 'tone_gen' to 'tone_det' for
+    event IFX_TAPI_EVENT_TONE_DET_CPT
+FIX Ioctl handler always used first TAPI device for device status querying.
+FIX Fixed COMTEL configuration passing.
+FIX Several events were not supported by IFX_TAPI_EVENT_ENABLE.
+FIX If select on xT-16 device file descriptor was called after
+    FIO_VXT_DRV_RESET, crash occurred.
+
+-------------------------------------------------------------------------------
+version  4.4.1  |  2010-02-04  |
+-------------------------------------------------------------------------------
+NEW line mode IFX_TAPI_LINE_FEED_ACTIVE_HIT and IFX_TAPI_LINE_FEED_ACTIVE_HIR
+FIX Roll back TAPI v3 merge changes for IFX_TAPI_T38_CAP_GET
+    no more crash
+
+-------------------------------------------------------------------------------
+version  4.4.0  |  2010-01-29  |
+-------------------------------------------------------------------------------
+FIX in IFX_TAPI_CID_CFG_SET,
+    default FSK was always used for standard IFX_TAPI_CID_STD_SIN
+NEW ioctls IFX_TAPI_VERSION_GET
+           IFX_TAPI_VERSION_DEV_ENTRY_GET
+           IFX_TAPI_VERSION_CH_ENTRY_GET
+           IFX_TAPI_COMTEL_START
+FIX Some unnecessary semaphore protection removed
+CHG Code maintenance work, including focus on compiler warnings
+NEW New ioctls IFX_TAPI_DEV_START and IFX_TAPI_DEV_STOP. These ioctls are the
+    new interface for starting and stopping the driver. IFX_TAPI_CH_INIT is
+    now deprecated.
+CHG IFX_TAPI_T38_CAP_GET ioctl is now applicable to device file descriptor
+    instead of channel file descriptor.
+FIX VxWorks: prevent possible race condition when stopping tones from an
+    application with a higher priority than the driver timer task.
+FIX reporting of LL driver error code as HL which leads to wrong error text
+FIX Decreased the priority of tTAPI_EventHandler task to be lower than tNet0
+    task (VxWorks specific)
+CHG enumerated buffer put-back error points - just in case
+CHG Added check for successful PCM channel configuration before activation
+NEW G.722 WB codec support for PCM channel
+NEW Added support for PCM loop
+NEW Added support for HDLC framing
+CHG Moved drv_tapi_event.h from include to src directory. Moved most content
+    from this file directly into drv_tapi_event.c to achieve data encapsulation.
+NEW TAPI interface for GR909
+NEW T.38 support in DSP firmware
+NEW To JB a data mode was added that does not repeat packets in case of packet
+    loss (IFX_TAPI_JB_PKT_ADAPT_DATA_NO_REP). Additionally a field was added to
+    IFX_TAPI_DEC_CFG_SET that defines the decoder behaviour in case of packet
+    loss.
+NEW Added new TAPI events to report an SSI communication error, ground key end,
+    ground fault end and over temperature end if LL-driver supports this.
+CHG Suppressed IFX_TAPI_EVENT_TONE_GEN_END for tones played internally by the
+    driver.
+NEW PCM ch ADPCM bit packing configuration via IFX_TAPI_PCM_CFG_SET
+NEW PCM ch byte swap for wide band G.711 and linear via IFX_TAPI_PCM_CFG_SET
+FIX Tone API: incorrect tone module initialization in case of systems using TG
+    (e.g. DuSLIC-xT) and if tone source is coded in tone index upper bits
+FIX CID: incorrect on-hook tone initialization in case of systems using TG
+    e.g. DuSLIC-xT
+FIX GR.909 library AC formulas, RIT formula (GIT factor)
+    (and in drv_vmmc RFT T2R result)
+NEW Added packet path statistic counters to aid analysing voice packet flows.
+    For Linux the counters can be read via the proc file system.
+FIX autoconf version requirements
+CHG limit number of traces in case we run out of buffers
+NEW bufferpool ids
+        ID 10    Events
+        ID 11    Event Wrapper
+        ID 20    Voice Packets
+        ID 21    Voice Packet Wrapper
+        ID 22    Voice Packets KPI Wrapper
+NEW proc entry for the bufferpool
+FIX TAPI_SUCCESS macro
+NEW limit the automatic growth of the different bufferpools to avoid
+    running out of memory
+      voice packet buffers 1000
+      KPI wrapper limit    1000
+      events               (TAPI_MAX_LL_DEVICES *
+                            IFX_TAPI_EVENT_FIFO_SIZE *
+                            16/* max channels per device */)
+NEW Added ioctl IFX_TAPI_KPI_GRP_CFG_SET to configure the sizes of the fifos
+    of the KPI group in ingress and egress direction.
+NEW TAPI event handler and timer is moved into a work queue scheduled with
+   real time policy (Linux 2.6 only)
+NEW support for KPI tasklet mode
+NEW exported symbol for KPI: IFX_TAPI_KPI_EgressTaskletRegister
+
+-------------------------------------------------------------------------------
+version  4.3.10  |  2009-12-17  |
+-------------------------------------------------------------------------------
+CHG Minor compile fixes
+
+-------------------------------------------------------------------------------
+version  4.3.9  |  2009-12-15  |
+-------------------------------------------------------------------------------
+FIX Correct device number for events
+    IFX_TAPI_EVENT_CID_TX_RINGCAD_ERR IFX_TAPI_EVENT_CID_TX_NOACK_ERR
+    IFX_TAPI_EVENT_CID_TX_NOACK2_ERR IFX_TAPI_EVENT_CID_TX_SEQ_END
+    IFX_TAPI_EVENT_FXS_RINGING_END IFX_TAPI_EVENT_CID_RX_ERROR_READ
+    IFX_TAPI_EVENT_FXS_FLASH IFX_TAPI_EVENT_PULSE_DIGIT
+    IFX_TAPI_EVENT_FXS_OFFHOOK IFX_TAPI_EVENT_FXS_ONHOOK
+    IFX_TAPI_EVENT_FXS_FLASH IFX_TAPI_EVENT_FXS_ONHOOK
+    IFX_TAPI_EVENT_TONE_GEN_END
+FIX semBufferPoolAcc defined global, as users can reside outside of the local
+    scope
+CHG Improvement to the event counting debug feature. The feature can be enabled
+    with --enable-event-counter on Linux (-DEVENT_COUNTER, for VxWorks). It
+    writes a sequence number to each event posted to the application. The
+    sequence numbers are channel i.e. driver specific, dependent on the event
+    type. The feature is built into tapidemo, see there for usage example. You
+    can enable the feature in tapidemo using the same options.
+CHG removal of NLT DC Buffer support
+
+-------------------------------------------------------------------------------
+version  4.3.8  |  2009-11-19  |
+-------------------------------------------------------------------------------
+NEW CPTD multitones support
+NEW Added new line mode IFX_TAPI_LINE_FEED_STANDBY_RES which is required for the
+    burglar alarm feature
+
+-------------------------------------------------------------------------------
+version  4.3.7  |  2009-11-04  |
+-------------------------------------------------------------------------------
+NEW IFX_TAPI_NLT_ADMITTANCE_ID for NLT added
+FIX in VxWorks on return from ioctls IFX_TAPI_NLT_TEST_START and
+    IFX_TAPI_NLT_RESULT_GET, the respective argument data is corrupted.
+CHG events IFX_TAPI_EVENT_FAULT_HW_SSI_ERR, IFX_TAPI_EVENT_FAULT_LINE_GK_LOW
+    IFX_TAPI_EVENT_FAULT_LINE_GK_HIGH, IFX_TAPI_EVENT_FAULT_LINE_GK_LOW_END,
+    and IFX_TAPI_EVENT_FAULT_LINE_GK_HIGH_END now reported in any case.
+    not possible to disable reporting for these events.
+
+-------------------------------------------------------------------------------
+version  4.3.6  |  2009-11-02  |
+-------------------------------------------------------------------------------
+NEW IFX_TAPI_EVENT_FAULT_HW_SSI_ERR Event indicates error on Smart SLIC,
+    after this event device should be rebooted according to FW spec.
+
+-------------------------------------------------------------------------------
+version  4.3.5  |  2009-10-22  |
+-------------------------------------------------------------------------------
+NEW CID stop bits extension in IFX_TAPI_CID_FSK_CFG_t
+    Two new variables in IFX_TAPI_CID_FSK_CFG_t Now possible to extend number
+    of stop bits for CID sender up to 16,-  stopTXOnhook and stopTXOffhook.
+
+-------------------------------------------------------------------------------
+version  4.3.4  |  2009-10-07  |
+-------------------------------------------------------------------------------
+CHG New field added to kthread_t structure for Linux versions starting from
+    2.6.26  - struct task_struct *task.
+
+-------------------------------------------------------------------------------
+version  4.3.3  |  2009-09-23  |
+-------------------------------------------------------------------------------
+NEW IFX_TAPI_EVENT_RTP_FIRST
+CHG improved m4 script usage
+FIX Event handling thread can go to sleep waiting for an other event which is
+    to be processed by the same thread. Now, for each incoming events an event
+    handling function is scheduled to process the event.
+
+-------------------------------------------------------------------------------
+version 4.3.2  |  2009-08-31  |
+-------------------------------------------------------------------------------
+NEW IFX_TAPI_LINE_FEED_ACTIVE_RES_NORMAL
+FIX OOB RFC 2833 events
+NEW IFX_TAPI_MWL_ACTIVATION_SET and IFX_TAPI_MWL_ACTIVATION_GET support
+CHG VLAN configuration interface for IFX_TAPI_PKT_NET_CFG_SET
+
+-------------------------------------------------------------------------------
+version 4.3.1  |  2009-07-15  |
+-------------------------------------------------------------------------------
+FIX Too short events queue in VxWorks, leading to cases where the queue is
+    full resulting in events not being delivered to the application. The
+    events queue size is now increased to 256, and there are 5 re-attempts
+    to queue in the event, in case of failure.
+
+-------------------------------------------------------------------------------
+version 4.3.0  |  2009-06-29  |
+-------------------------------------------------------------------------------
+CHG CPTD for TAPI v4
+NEW Announcement support
+FIX Fixed composed tones stooping when parameter Loop of last tone is 1
+NEW events support IFX_TAPI_EVENT_CIDSM_END
+
+-------------------------------------------------------------------------------
+version 4.2.5  |  2009-01-30  |
+-------------------------------------------------------------------------------
+NEW Implemented transparent metering.
+      To start used IFX_TAPI_METER_START with nPulses=0 and nPulseDist=0
+      To stop IFX_TAPI_METER_STOP
+
+-------------------------------------------------------------------------------
+version 4.2.4  |  2009-01-27  |
+-------------------------------------------------------------------------------
+NEW IFX_TAPI_PHONE_RELATIVE_LEVEL_SET and IFX_TAPI_PHONE_RELATIVE_LEVEL_GET
+FIX Removed duplicate IFX_TAPI_LINE_FEED type IFX_TAPI_LINE_FEED_CFG_t, which is
+    not used
+
+FIX IFX_TAPI_CALIBRATION_RESULTS_GET now works correctly
+CHG Changed tone playing mechanism
+FIX line mode automatic changes can be taken into account via a dedicated event
+
+-------------------------------------------------------------------------------
+version 4.2.3  |  2008-12-18  |
+-------------------------------------------------------------------------------
+NEW events support
+           IFX_TAPI_EVENT_FXS_RAW_ONHOOK
+           IFX_TAPI_EVENT_FXS_RAW_OFFHOOK
+NEW events IFX_TAPI_EVENT_FAULT_LINE_GK_LOW_END
+           IFX_TAPI_EVENT_FAULT_LINE_GK_HIGH_END
+           IFX_TAPI_EVENT_FAULT_LINE_OVERTEMP_END
+FIX Multiple event support for IFX_TAPI_EVENT_ENABLE and IFX_TAPI_EVENT_DISABLE
+NEW TAPI command (IOCTL) logging using event logger driver.
+
+-------------------------------------------------------------------------------
+version 4.2.2  |  2008-11-17  |
+-------------------------------------------------------------------------------
+FIX IFX_TAPI_DTMF_RX_CFG_GET module type was not passed to low level driver
+FIX bug with IFX_TAPI_EVENT_DTMF_END
+FIX DTMF and MFTD events mask now support different modules on one channel
+    simultaneously
+NEW DTMF detector activation now separated from MFTD
+
+-------------------------------------------------------------------------------
+version 4.2.1  |  2008-10-29  |
+-------------------------------------------------------------------------------
+NEW IFX_TAPI_CALIBRATION_RESULTS_GET and IFX_TAPI_CALIBRATION_STOP
+FIX Bug about setting the appropriate line mode for a caller ID transmission
+
+-------------------------------------------------------------------------------
+version 4.2.0  |  2008-09-15  |
+-------------------------------------------------------------------------------
+NEW IFX_TAPI_EVENT_FAULT_HW events added for SPI failure
+FIX Tone Play 0 showed an error
+FIX Starting to send a caller ID sequence with an incompatible line mode
+    was not handled correctly
+FIX Parameters check was added when starting a caller ID receiver
+FIX fully initialize CID coefficients when changing standards
+FIX Failed initialisation of ALM module was treated as a success
+FIX Bug about transmitting hook mode when starting a caller ID receiver
+NEW Automatically enable the hook state machine
+
+-------------------------------------------------------------------------------
+version 4.1.7  |  2008-08-26  |
+-------------------------------------------------------------------------------
+FIX Fixed deadlock for TAPI ring state machine
+NEW compile switch TAPI_FAX_STACK for fax t38 stack
+FIX IFX_TAPI_EVENT_GET was not working with multiple device
+    using IFX_TAPI_EVENT_ALL_DEVICES
+FIX IFX_TAPI_REPORT_SET support for passing structure to ioctl
+    was not implemented
+
+-------------------------------------------------------------------------------
+version 4.1.6  |  2008-08-18  |
+-------------------------------------------------------------------------------
+FIX Fixed first ring cadence playing with CID transition
+NEW IFX_TAPI_NLT_TEST_START ioctl used to start any of the NLT line tests.
+NEW IFX_TAPI_NLT_RESULT_GET ioctl used to get results of any of the NLT line
+    tests.
+CHG IFX_TAPI_LINE_VOLTAGE_GET/SET renamed to
+    IFX_TAPI_LINE_BATTERY_VOLTAGE_GET/SET
+
+-------------------------------------------------------------------------------
+version 4.1.5  |  2008-07-24  |
+-------------------------------------------------------------------------------
+NEW IFX_TAPI_CONTMEASUREMENT_REQ/RESET/GET implemented.
+NEW IFX_TAPI_LINE_VOLTAGE_GET/SET implemented.
+
+--------------------------------------------------------------------------------
+version 4.1.4  |  2008-07-10  |
+--------------------------------------------------------------------------------
+NEW IFX_TAPI_CALIBRATION_START,  IFX_TAPI_CALIBRATION_CFG_GET and
+    IFX_TAPI_CALIBRATION_CFG_SET available.
+NEW Metering
+NEW Support for new feature: analog line calibration. Support of LL-driver is
+    required to make use of it.
+FIX Corrected error handling in IFX_TAPI_CH_INIT in case of failed chip access.
+
+--------------------------------------------------------------------------------
+version 3.8.1.0  |  2008-10-21  |        TAPI 3.8.0 /AR9 RC1,2
+--------------------------------------------------------------------------------
+CHG Removed the following ioctls that were marked as obsolete and no longer
+    supported since several releases. All functionality can be controlled in
+    a better way with newer ioctls as listed below:
+    -IFX_TAPI_ENC_FRAME_LEN_SET and IFX_TAPI_ENC_TYPE_SET can be replaced with
+     IFX_TAPI_ENC_CFG_SET.
+    -IFX_TAPI_ENC_FRAME_LEN_GET was removed without replacement because it just
+     returned only the value set with IFX_TAPI_ENC_FRAME_LEN_SET.
+    -IFX_TAPI_LEC_PCM_SET can be replaced with IFX_TAPI_WLEC_PCM_SET.
+    -IFX_TAPI_LEC_PCM_GET can be replaced with IFX_TAPI_WLEC_PCM_GET.
+    -IFX_TAPI_LEC_PHONE_SET can be replaced with IFX_TAPI_WLEC_PHONE_SET.
+    -IFX_TAPI_LEC_PHONE_GET can be replaced with IFX_TAPI_WLEC_PHONE_GET.
+    -IFX_TAPI_PHONE_ES_SET can be done with IFX_TAPI_WLEC_PHONE_SET.
+    -IFX_TAPI_CH_STATUS_GET and IFX_TAPI_EXCEPTION_GET can be done
+     with IFX_TAPI_EVENT_GET.
+    -IFX_TAPI_EXCEPTION_MASK can be done with IFX_TAPI_EVENT_DISABLE and
+     IFX_TAPI_EVENT_ENABLE.
+    The configure options --enable-obsolete-bitfield-event-interface and
+    --enable-obsolete-lec-activation were removed.
+NEW Added support for SAS tone in Bellcore/Telcordia offhook CID sequence.
+NEW Added Watchdog Timer event support.
+FIX Adapted VxWorks write implementation to changes in the packet path that
+    were done for the Vinetic 2CPE
+NEW license update
+
+--------------------------------------------------------------------------------
+version 3.8.0.5  |  2008-09-15  |        TAPI 3.8.0 /AR9
+--------------------------------------------------------------------------------
+no changes
+
+--------------------------------------------------------------------------------
+version 3.8.0.5  |  2008-09-10  |        TAPI 3.8.0 RC4/AR9
+--------------------------------------------------------------------------------
+FIX Tone Play in Network direction
+
+--------------------------------------------------------------------------------
+version 3.8.0.4  |  2008-09-08  |        TAPI 3.8.0 RC3/AR9
+--------------------------------------------------------------------------------
+no changes
+
+--------------------------------------------------------------------------------
+version 3.8.0.3  |  2008-09-05  |        TAPI 3.8.0 RC2/AR9
+--------------------------------------------------------------------------------
+CHG for Danube test feature linCh
+FIX fully initialize CID coefs when changing standards
+
+--------------------------------------------------------------------------------
+version 3.8.0.2  |  2008-09-03  |        TAPI 3.8.0 RC1/AR9
+--------------------------------------------------------------------------------
+CHG Force DTMF receiver on during CID sequences needing reception of DTMF ACK
+CHG Force DTMF receiver off during CID sequence transmitting DTMF signs to
+    avoid detection of possibly reflected DTMF signs
+FIX Using KPI group 0 to unconfigure a channel does no longer crash the driver
+FIX Corrected cleanup when stopping QOS so that starting QOS on another channel
+    is not affected any more
+FIX Tone Play 0 showed an error (wasn't in TAPI 3.7.1 release)
+NEW remove --prefix option from distcheck configure options to avoid removal
+    of installed binaries on distcheck
+
+--------------------------------------------------------------------------------
+version 3.8.0.1  |  2008-08-07  |        TAPI 3.8.0.1 engineering snapshot/AR9
+--------------------------------------------------------------------------------
+NEW Added support for multiple parallel data streams from LL-driver to HL-TAPI
+NEW Added new event IFX_TAPI_EVENT_DTMF_END for DTMF tone end reporting. The
+    event is disabled by default but can be enabled with IFX_TAPI_EVENT_ENABLE
+NEW Added the file drv_tapi_strerrno.h to the include subdirectory containing
+    text strings for all error codes reported by the TAPI driver
+FIX Avoid possible race-condition in KPI internal buffer handling
+FIX Prevent too fast reporting of IFX_TAPI_EVENT_KPI_INGRESS_FIFO_FULL
+CHG Linux now exports the bufferPool functions only when TAPI_POLL is defined
+CHG Allow wetting pulse in CID sequence according to SIN 227 specification
+CHG Moved verification of LEC window size parameters to the LL-drivers
+CHG Added absence reason message element to CID according to NTT specifiction
+CHG Simplified UDP redirect handling via KPI and removed the session handling
+    see drv_tapi_kpi2udp plugin's NEWS file for details (vers 1.2.0.0)
+
+--------------------------------------------------------------------------------
+version 3.8.0.0  |  2008-06-11  |        TAPI 3.8.0.0 engineering snapshot/AR9
+--------------------------------------------------------------------------------
+NEW support for AR9 - first engineering snapshot
+CHG Renamed IFX_TAPI_PKT_EV_OOB_SET to IFX_TAPI_PKT_EV_OOB_DTMF_SET.
+FIX Transmission of event packets triggered by MFTD: CNG, CED, DIS detectors is
+    now configurable with IFX_TAPI_PKT_CFG_SET or IFX_TAPI_PKT_EV_OOB_MFTD_SET.
+
+--------------------------------------------------------------------------------
+version 4.1.3  |  2008-06-27  |
+--------------------------------------------------------------------------------
+CHG Changed count of parameters for LL interface of CIDSM_Stop
+FIX IFX_TAPI_CAP_NR was not working correctly
+FIX DTMF Rx error handling was not correctly, returning wrong error codes
+FIX Problems with multiple devices for device global services
+NEW Implemented IFX_TAPI_EVENT_PULSE_START which reports a first pulse dial
+    detection in order to switch of the dial tone.
+FIX Fixed minor problems with error reporting
+
+--------------------------------------------------------------------------------
+version 4.1.2  |  2008-05-28  |
+--------------------------------------------------------------------------------
+version 3.7.1.6  |  2008-06-06  |         TAPI 3.7.1 release (Vinetic-2CPE)
+--------------------------------------------------------------------------------
+FIX VxWorks only: fixed calling of LL-functions for FAX
+
+--------------------------------------------------------------------------------
+CHG QOS related include order
+CHG added prototypes of export symbols IFX_TAPI_VoiceBufferGet() and
+    IFX_TAPI_VoiceBufferPut() to drv_tapi_kpi_io.h
+CHG Changed QOS support. Redirecting packets to UDP is now done with a separate
+    QOS driver attached to the KPI interface. KPI group 1 is reserved for the
+    QOS driver. Configuration of the KPI channels in this group is handled
+    internally and must not be modified. Configuration of the QOS function is
+    still done with the old ioctls on the TAPI file descriptors.
+CHG renamed configure option --enable-udp-redirect to --enable-qos
+CHG Changed filename: include/drv_tapi_kthread.h to include/lib_kthread.h.
+FIX Return values of IFX_TAPI_RING changed back from new error codes to the
+    values which are documented.
+CHG removed unused IFX_TAPI_INIT_COUNTRY_t enum definition from drv_tapi_io.h
+CHG interface names local to external and network to internal
+
+--------------------------------------------------------------------------------
+version 4.1.1  |  2008-04-24  |
+--------------------------------------------------------------------------------
+FIX Improve error handling for PCM
+
+--------------------------------------------------------------------------------
+version 4.1.0  |  2008-04-11  |
+--------------------------------------------------------------------------------
+FIX MFTD event was not detected
+CHG Added support of Initial ring usage for CID State Machine
+CHG Changed parameter type for LL interface of CID_RX_Start
+NEW Enabled echo suppressor support on PCM channels. Setting of echo suppressor
+    is done with IFX_TAPI_WLEC_..._CFG_SET this obsoletes IFX_TAPI_PHONE_ES_SET.
+NEW Tone API configurable modulation factor
+NEW Added a field to the ioctl IFX_TAPI_PKT_EV_GENERATE where the volume
+    to be sent in the the event packets can be given.
+FIX Reenabled the ioctl IFX_TAPI_PKT_EV_GENERATE that was not working
+NEW parameter nVoicePathDelay for IFX_TAPI_DTMF_RX_CFG_t, see low level device
+    driver for details
+NEW MWL services
+FIX Tone API for TGs didn't stop correctly all time (race condition)
+FIX Tone API for TG could deadlock due to cascaded locking
+
+--------------------------------------------------------------------------------
+version 4.0.11  |  2008-03-20  |
+--------------------------------------------------------------------------------
+CHG Changed checks in TX_INFO_START so that ioctl can now also be used with PCM
+    or DECT channels.
+FIX Possible infinite loop when getting events in setups with mixed LL-devices.
+
+--------------------------------------------------------------------------------
+version 4.0.10  |  2008-03-06  |
+--------------------------------------------------------------------------------
+NEW Removed old LEC services marked already as obsolete in TAPI 3.6
+NEW Fax channel support
+FIX DTMF ASCII code was not set (in SVIP LL driver). Now it is done on TAPI
+    level
+--------------------------------------------------------------------------------
+version 4.0.9  |  2008-02-25  |
+--------------------------------------------------------------------------------
+FIX Distribution for Linux 2.6
+
+--------------------------------------------------------------------------------
+version 4.0.8  |  2008-02-20  |
+--------------------------------------------------------------------------------
+FIX Module type was not set correctly for tone end events
+
+--------------------------------------------------------------------------------
+version 4.0.7  |  2008-01-24  |                             Alpha Release
+--------------------------------------------------------------------------------
+CHG Moved ioctl IFX_TAPI_EXCEPTION_MASK to the obsolete ioctl block. Use define
+    ENABLE_OBSOLETE_BITFIELD_EVENT_INTERFACE if still needed.
+FIX The pause time of the last simple tone is ignored when used in a composed tone
+
+--------------------------------------------------------------------------------
+version 4.0.6  |  2007-12-xx  |                             based on TAPI v3.6.2
+--------------------------------------------------------------------------------
+NEW Enabled forwarding of RCF2833 events to the application.
+CHG Replaced storage of connection data in HL with calls to the LL-driver.
+CHG Implementation of the packet path changed. Separate functions for FAX and
+    Voice packet flows are now merged. KPI write uses the same downstream flow
+    as voice packets from OS write(). Reading is now done without a call of the
+    LL-driver. The pool for packet buffers exports now access functions which
+    are fully locked against concurrent access.
+CHG Changed IFX_TAPI_RING_CFG_GET to get configuration directly from LL-driver.
+FIX IFX_TAPI_PCM_CFG_GET didn't return the configured values
+FIX general timer race condition (affected timer stop)
+FIX Events tone detection now pass correct mask to LL-driver.
+--------------------------------------------------------------------------------
+version 4.0.5  |  2007-12-04  |                             based on TAPI v3.6.2
+--------------------------------------------------------------------------------
+NEW Single source of the ll interface version for all device drivers by
+    adding drv_tapi_ll_if_version.h as a symlink to the ll device drivers
+NEW ioctl IFX_TAPI_DECT_VOLUME_SET to set Enc and Dec gains of the DECT module
+NEW added configuration of default RPT PT settings on IFX_TAPI_CH_INIT
+NEW Linux 2.6 kbuild problem check in configure script to ensure relative path
+NEW default PT settings for G.711 VBD
+NEW IFX_TAPI_ResetChState() for ResetDevState ioctl in LL device driver
+FIX IFX_TAPI_EVENT_GET to be handled in device context and added tolerant
+    handling for device ioctls issued on channel fds (incl. TRACE). This
+    tolerant handling might be disabled in future TAPI versions.
+FIX IFX_TAPI_LASTERR can be called on channel and device fd
+FIX IFX_TAPI_VERSION_GET returned an unmaintained string
+FIX Race condition in tone end handling (removed extra tone stop from tone end
+    event handling)
+FIX When used as a Linux module the driver can again be unloaded.
+FIX event fifo bufferpool isn't deallocated on channel close anymore
+CHG unified workqueue and tastqueue usage for Linux 2.4 and different Linux 2.6
+    flavours
+CHG improved event fifo handling on driver load/unload
+--------------------------------------------------------------------------------
+version 4.0.4  |  2007-11-27  |
+--------------------------------------------------------------------------------
+CHG Added wraper macros IFX_TAPI_PtrChk for function ptr_chk to simplify usage.
+CHG Removed not needed functionality to store MFTD status in LL-driver.
+CHG After moving the contents of drv_tapi_common.c to the correct places in
+    other files the drv_tapi_common.c is now empty.
+FIX nonblocking read access
+CHG added protection to IFX_TAPI_PKT_FLUSH
+NEW ioctl IFX_TAPI_PKT_FLUSH to explicitly flush the channel's upstream
+    packet fifo (required for fax/t.38)
+CHG improved event fifo handling on driver load/unload
+FIX event fifo bufferpool isn't deallocated on channel close anymore
+--------------------------------------------------------------------------------
+version 4.0.3  |  2007-11-15  |
+--------------------------------------------------------------------------------
+NEW New IOCTL IFX_TAPI_MAP_MON_ADD and IFX_TAPI_MAP_MON_REMOVE to add and
+    remove monitoring channel
+--------------------------------------------------------------------------------
+version 4.0.2  |  2007-08-31  |
+--------------------------------------------------------------------------------
+CHG Tone API reworked and several bug fixes for pause handling done. Pause of
+    zero was not supported in composed tones.
+FIX Wrong reporting of tone end within composed tones.
+--------------------------------------------------------------------------------
+version 4.0.1  |  2007-08-22  |                              based on TAPI v3.6
+--------------------------------------------------------------------------------
+CHG An infinite ringing is defined by setting all bits of the periodic part of
+    the cadence to 1 with respect to the given length.
+CHG Starting ring now aborted while the telephone is off-hook.
+FIX Return value of IFX_TAPI_RING now as described in the documentation.
+NEW support for dynamic bit packing according to ITU-T I.366.2 Annex E (AAL2)
+    for G.726 (IFX_TAPI_ENC_CFG_SET, IFX_TAPI_DEC_CFG_SET)
+CHG IFX_TAPI_PCM_IF_CFG_SET is now also working for device channel (fd)
+CHG VxWorks part was cleaned and is now using same ioctl approach as Linux.
+CHG Return types of LL interfaces for CID_TX_xxx changed to IFX_int32_t to
+    support device specific error return codes
+CHG Changed IFX_TAPI_RING_CADENCE_HR_SET so that cadences can be defined with
+    a length other than a multiple of eigth.
+CHG Reworked ringing so that now initial ringing can also play cadences with
+    more than one ring-burst and one ring-pause. The initial cadence may be of
+    length 0 to 320 bits and can contain any bit pattern if it is not entirely
+    zero. It may even be just one continuous ring-burst. The initial cadence
+    is not needed but when defined it will play once when ringing is started
+    regardless if started with or without CID.
+NEW IFX_TAPI_RING_MAX_SET can be used with blocking (IFX_TAPI_RING) and now
+    also with non-blocking ringing (IFX_TAPI_RING_START). After the configured
+    maximum number of cadences have been played the ringing stops automatically
+    and the event IFX_TAPI_EVENT_FXS_RINGING_END is generated.
+CHG Removed the following IOCTLS. Some of
+    them are implemented with other IOCTL names others are of no meaning:
+    -IFXPHONE_PLAY_HOLD
+    -PHONE_REC_DEPTH
+    -PHONE_PLAY_DEPTH
+    -IFX_TAPI_ENC_VOLUME_SET
+    -IFX_TAPI_ENC_LEVEL_SET
+    -IFX_TAPI_DEC_VOLUME_SET
+    -IFX_TAPI_DEC_LEVEL_GET
+FIX Prevent start of ring statemachine in case the switching to ringing mode
+    failed in the low level driver.
+CHG add additional check to TAPI_Ioctl to be sure IFX_TAPI_CH_INIT is done on
+    TAPI channel
+FIX Prevent deadlock when playing alert tone for CID Type2, i.e.
+    TAPI_Phone_Tone_Play renamed to TAPI_Phone_Tone_Play_Unprot and protection
+    moved to new wrapper function TAPI_Phone_Tone_Play.
+    The same for TAPI_Phone_Tone_Stop and TAPI_DECT_Phone_Stop.
+FIX Tone End event (so far for UTG only)
+NEW New IOCTL IFX_TAPI_CID_TX_INFO_STOP to stop a data transmission that was
+    started with IFX_TAPI_CID_TX_INFO_START.
+CHG IFX_TAPI_RING_STOP will now also stop a CID sequence that is currently in
+    progress during any state of the sequence.
+CHG Renamed typedef IFX_TAPI_ENC_CFG_SET_t to IFX_TAPI_ENC_CFG_t and
+    typedef IFX_TAPI_DECT_ENC_CFG_SET_t to IFX_TAPI_DECT_ENC_CFG_t. Defines
+    for backward compatibility exist.
+CHG Replaced IFX_TAPI_MAP_DATA_TYPE_... types by IFX_TAPI_MAP_TYPE_... types.
+    Defines for backward compatibility exist in drv_tapi_old_io.h.
+CHG Added two parameters to the paramters structs of IFX_TAPI_LEC_PHONE_CFG_SET
+    and IFX_TAPI_LEC_PCM_CFG_SET to set the size of the LEC windows.
+
+LL Change:
+- IFX_TAPI_Unregister_LL_Drv (&DrvCtx) changed to IFX_TAPI_Unregister_LL_Drv (major)
+
+--------------------------------------------------------------------------------
+version 3.5.3.0  |  2007-05-14  |           TAPI 3.5.3 engineering release
+--------------------------------------------------------------------------------
+NEW DECT coder channels support four new ioctls: IFX_TAPI_DECT_STATISTICS_GET
+    IFX_TAPI_PHONE_ES_SET, IFX_TAPI_TONE_DECT_PLAY and IFX_TAPI_TONE_DECT_STOP.
+NEW Kernel Packet Interface reports IFX_TAPI_EVENT_KPI_INGRESS_FIFO_FULL when
+    the ingress fifo becomes full because data cannot be put into the data
+    mailbox fast enough by the driver.
+CHG Removed the following IOCTLS that where never released in TAPI V3:
+    -IFX_TAPI_PULSE_ASCII_GET
+    -IFX_TAPI_PULSE_GET
+    -IFX_TAPI_PULSE_READY
+    -IFX_TAPI_TONE_DTMF_ASCII_GET
+    -IFX_TAPI_TONE_DTMF_GET
+    -IFX_TAPI_TONE_DTMF_READY_GET
+CHG LL interface for tone API, only simple tone definition is passed to LL
+FIX Added protection to tone stopping to prevent race conditions.
+FIX Improved event handling that could result in lost or delayed events. Now
+    the buffer pool used for events is fully protected from overlapping access
+    and when getting one event the application will be woken again when there
+    are any events in any channel left. Also improved IFX_TAPI_EVENT_GET so that
+    when channel parameter is IFX_TAPI_EVENT_ALL_CHANNELS checking starts where
+    the last cycle left off and also events from all channels are taken into
+    consideration when setting the moreEvents flag.
+FIX For VxWorks corrected the driver part implementation of the select()
+    system-call. Evaluate the event fifos instead of the old bitfield interface
+    to find out if the application needs to be woken again.
+
+LL Change:
+- VMMC_Prepare_Dev and TAPI_LL_Prepare_Dev may not init wqEvent and set bNeedWakeup
+  to true
+- irq_VMMC_SIG_CID_RX_Data_Collect may not change the TAPI CID state. It sends
+  events on finished or error. State for ongoing and event for empty buffer
+  is sent in TAPI_Phone_GetCidRxBuf
+
+--------------------------------------------------------------------------------
+version 3.5.2.5  |  2007-03-14  |           TAPI 3.5.2 release
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+version 3.5.2.4  |  2007-03-13  |           TAPI 3.5.2 RC3
+--------------------------------------------------------------------------------
+CHG renamed gains in IFX_TAPI_COD_VOLUME_SET param structure to vol.enc, vol.dec
+
+--------------------------------------------------------------------------------
+version 3.5.2.3  |  2007-03-07  |           TAPI 3.5.2 RC2
+--------------------------------------------------------------------------------
+NEW preview version support for DECT coder channels
+NEW preview version Kernel Packet Interface (disabled by default)
+FIX First ring pause in Bellcore CID onhook sequence now correctly taken from
+    the configured ring cadence.
+FIX CID2 failure with ack timeout since 3.5.2.2
+CHG increased default number of event buffers to 50
+
+--------------------------------------------------------------------------------
+version 3.5.2.2  |  2007-02-27  |           TAPI 3.5.2 RC1
+--------------------------------------------------------------------------------
+NEW ioctl IFX_TAPI_PCM_DEC_HP_SET to switch on/off PCM decoder HP filter
+NEW ioctl IFX_TAPI_COD_DEC_HP_SET to switch on/off COD decoder HP filter
+NEW ioctl IFX_TAPI_COD_VOLUME_SET to set Enc and Dec gains of the COD module
+NEW ioctl IFX_TAPI_DTMF_RX_CFG_SET/GET to set/get the DTMF detector's
+    coefficients, i.e. gain, level, and twist
+FIX improved TAPI last error cleanup, after application retrieve it
+CHG Added field "ascii" to the event IFX_TAPI_EVENT_DTMF_DIGIT
+
+--------------------------------------------------------------------------------
+version 3.5.2.1  |  2007-02-06  |           internal test
+--------------------------------------------------------------------------------
+NEW MFTD support for Bellcore/Telcordia CAS signal and V.21H signal detection.
+NEW Event IFX_TAPI_EVENT_DEBUG_CERR is now reported to the application.
+
+--------------------------------------------------------------------------------
+version 3.5.2.0  |  2007-01-19  |           internal test
+--------------------------------------------------------------------------------
+NEW Linux 2.6 support
+NEW Feature: room-noise-detection
+NEW ioctl IFX_TAPI_ENC_CFG_SET added. This makes the IFX_TAPI_ENC_TYPE_SET
+    and IFX_TAPI_ENC_FRAME_LEN_SET ioctls obsolete.
+
+--------------------------------------------------------------------------------
+version 3.5.1.4  |  2006-12-15  |           TAPI v3.5.1 release
+--------------------------------------------------------------------------------
+no changes
+
+--------------------------------------------------------------------------------
+version 3.5.1.3  |  2006-12-13  |           TAPI v3.5.1 RC3
+--------------------------------------------------------------------------------
+CHG cleanup
+
+--------------------------------------------------------------------------------
+version 3.5.1.2  |  2006-12-08  |           TAPI v3.5.1 RC2
+--------------------------------------------------------------------------------
+NEW ioctl IFX_TAPI_PKT_EV_GENERATE to trigger sending of event packets
+CHG interface to FXO plugin to use the same types for hook status as TAPI
+
+--------------------------------------------------------------------------------
+version 3.5.1.1  |  2006-12-04  |           TAPI v3.5.1 RC1
+--------------------------------------------------------------------------------
+NEW make DEC_CHG event maskable
+NEW interface for integrated FXO (requires drv_daa plugin)
+FIX PCM activation get (Linux)
+
+--------------------------------------------------------------------------------
+version 3.4.4.1  |  2006-11-17  |           TAPI v3.4.4
+--------------------------------------------------------------------------------
+FIX Polling using multiple devices. New ioctl cmd added IFX_TAPI_POLL_TEST
+NEW VxWorks now also includes ioctl cmd for using WLEC
+FIX Get capability number also works under VxWorks
+
+--------------------------------------------------------------------------------
+version 3.4.4.0  |  2006-11-09  |           internal test
+--------------------------------------------------------------------------------
+CHG added "more" event field to event structure
+CHG renamed IFX_TAPI_EVENT_CODER_DEC_CHG to IFX_TAPI_EVENT_COD_DEC_CHG
+FIX CID/Ringing: ring-trip during CID alert phase could freeze state-machine
+    and issue cmd errors
+FIX CID: added extra checks against putting too many elements in a buffer
+
+--------------------------------------------------------------------------------
+version 3.4.3.1  |  2006-10-31  |           TAPI v3.4.3
+--------------------------------------------------------------------------------
+NEW Decoder Change event
+NEW configure PCM interface (master/slave mode, dcl clock, offsets, slopes,...)
+NEW Audiochannel (INCA-IP2 only)
+NEW CID: IFX_TAPI_EVENT_CID_SEQ_END reports now end of CID sequence
+CHG CID: IFX_TAPI_EVENT_CID_INFO_END is no longer reported for CID sequences
+CHG Renamed IFX_TAPI_EVENT_FAXMODEM_HOLD to IFX_TAPI_EVENT_FAXMODEM_HOLDEND
+FIX CID: added Ack2-missing-event in NTT mode to event interface
+FIX CID receiver mark bits are now selected by the hook mode parameter to
+    IFX_TAPI_CID_RX_START
+FIX Solved interference between PCM and ALM that prevented CID from starting
+FIX PCM_activation_get pointer type conflict
+
+--------------------------------------------------------------------------------
+version 3.4.2.1  |  2006-10-17  |           TAPI v3.4.2
+--------------------------------------------------------------------------------
+CHG CID receiver buffers can still be retrieved after the receiver was stopped
+FIX CID FSK transmissions are no longer truncated after 128 octett
+FIX Changed default values for number of seizure and mark bits in CID receiver
+
+--------------------------------------------------------------------------------
+version 3.4.1.3  |  2006-10-13  |           internal test
+--------------------------------------------------------------------------------
+FIX Delayed detecting of events in VxWorks
+CHG Handling of timers is now done with usage of message events in VxWorks
+
+--------------------------------------------------------------------------------
+version 3.4.1.2  |  2006-09-28  |           TAPI v3.4.1 for Danube Release
+--------------------------------------------------------------------------------
+no changes compared to RC2
+
+--------------------------------------------------------------------------------
+version 3.4.1.1  |  2006-09-28  |                   internal test RC2
+--------------------------------------------------------------------------------
+FIX corrected incorrect ringing timing for non high resolution sequence
+FIX In IFX_TAPI_CH_STATUS_GET the bits from signal_ext are no longer mapped
+    into signal leaving signal_ext empty.
+
+--------------------------------------------------------------------------------
+version 3.4.1.0  |  2006-09-25  |                   internal test RC1
+--------------------------------------------------------------------------------
+CHG default levels for analog gain (high 0dB, med -6dB, low -12dB)
+CHG removed the option to mute the ALM module via IFX_TPAPI_PHONE_VOLUME_SET
+CHG in hl/ll interface (added cid fsk configuration to cid rx start/stop)
+CHG removed references of '#ifdef TAPI' from the code
+FIX CID FSK user parameters weren't passed correctly
+NEW Export symbols for timers (TAPI_Create_Timer, etc.)
+    to make them available for low level TAPI drivers
+
+--------------------------------------------------------------------------------
+version 3.4.0.0  |  2006-09-15  |                   internal test
+--------------------------------------------------------------------------------
+cosmetics only
+
+--------------------------------------------------------------------------------
+version 3.3.3.2  |  2006-09-07  |          VINETIC-CPE v2.2 System Pack 2.0a
+--------------------------------------------------------------------------------
+FIX Event delay reporting in VxWorks (when data channels were mapped)
+FIX Optimization of the ring timer functionality and correction of inaccurate
+    ringing timing for VxWorks
+FIX TAPI wakeup for MFTD events from local side no longer a problem
+FIX Parameter check for initial ringing corrected
+NEW New event added to IFX_TAPI_EVENT_ID_t (IFX_TAPI_EVENT_CID_TX_UNDERRUN_ERR)
+
+--------------------------------------------------------------------------------
+version 3.3.3.1  |  2006-08-23  |                   internal test
+--------------------------------------------------------------------------------
+FIX Resolving problems, delivery/merge mixed up
+
+--------------------------------------------------------------------------------
+version 3.3.2.6  |  2006-08-22  |                   internal test
+--------------------------------------------------------------------------------
+FIX Event reporting in VxWorks, using message queues
+FIX Cleaning of voice fifo-s in both direction
+
+--------------------------------------------------------------------------------
+version 3.3.2.5  |  2006-08-21  |           VINETIC-CPE v2.2 System Pack 2.0
+--------------------------------------------------------------------------------
+released
+
+--------------------------------------------------------------------------------
+version 3.3.2.4  |  2006-08-18  |                   internal test
+--------------------------------------------------------------------------------
+FIX registrating multiple device drivers
+
+--------------------------------------------------------------------------------
+version 3.3.2.3  |  2006-08-17  |                   internal test
+--------------------------------------------------------------------------------
+NEW Encoder Hold
+NEW Linetype FXO
+FIX reading capabilities
+
+--------------------------------------------------------------------------------
+version 3.3.2.2  |  2006-08-09  |                   internal test
+--------------------------------------------------------------------------------
+FIX LEC configuration fixed (now memcpy is used)
+CHG Polling support on VxWorks - code cleanup
+
+--------------------------------------------------------------------------------
+version 3.3.2.1  |  2006-08-07  |                   internal test
+--------------------------------------------------------------------------------
+NEW VxWorks support
+NEW Polling support on VxWorks added, improvements needed
+
+--------------------------------------------------------------------------------
+version 3.3.1.2  |  2006-07-28  |             TAPI v3.3 for Danube Release
+--------------------------------------------------------------------------------
+CHG improved portability, cleanup
+
+--------------------------------------------------------------------------------
+version 3.3.1.1  |  2006-07-27  |                   internal test
+--------------------------------------------------------------------------------
+CHG cleanup
+
+--------------------------------------------------------------------------------
+version 3.3.1.0  |  2006-07-25  |                   internal test
+--------------------------------------------------------------------------------
+NEW Do no longer assign LEC to analog lines and activate it by default
+    configure option --enable-obsolete-lec-activation (for old behaviour)
+NEW New interface to support WLEC feature
+CHG Support for two UTGs per channel
+CHG CID allow reverse line feeding as a start condition
+CHG CID settings for NTT the ring pulse on and off time can now be
+    configured separately
+FIX Extended CID sender state machine to wait for incoming successful signal
+    when running in NTT standard mode
+
+--------------------------------------------------------------------------------
+version 3.2.1.2  |  2006-07-20  |
+--------------------------------------------------------------------------------
+NEW Voice stream fifo, bufferpool handling added
+CHG UDP redirection modified, tested only with local loopback and cleaned
+
+--------------------------------------------------------------------------------
+version 3.2.1.1  |  2006-07-14  |
+--------------------------------------------------------------------------------
+NEW FaxModem signal detection (MFTD) and T.38 integrated. Not fully tested
+
+--------------------------------------------------------------------------------
+version 3.2.0.1  |  2006-07-07  |           alpha release for Danube
+--------------------------------------------------------------------------------
+no changes
+
+--------------------------------------------------------------------------------
+version 3.1.0.3  |  2006-06-27  |
+--------------------------------------------------------------------------------
+NEW Ported to VxWorks, alpha version. TODO code cleanup and improving solutions
+NEW Support of WLEC Feature
+FIX Changed usage of UTGs for special firmware versions. With this the UTGs are
+    assigned statically to directions. This fixes possible conflicts between
+    UTGs and CID
+
+--------------------------------------------------------------------------------
+version 3.1.0.3  |  2006-06-20  |
+--------------------------------------------------------------------------------
+NEW UDP redirection or QoS support added
+
+--------------------------------------------------------------------------------
+version 3.1.0.2  |  2006-06-16  |
+--------------------------------------------------------------------------------
+CHG Allow all linemodes with reverse feeding for CID
+CHG Used new function in LL driver to mute a phone channel when playing CID2
+    so that this can now be safely done in conferences
+CHG In the CID settings for NTT the ring pulse on and off time can now be
+    configured separately
+FIX Extended CID sender state machine to wait for incoming successful signal
+    when running in NTT standard mode
+FIX Corrected number of times complex tones are played with the loop count
+
+--------------------------------------------------------------------------------
+version 3.1.0.1  |  2006-06-09  |
+--------------------------------------------------------------------------------
+NEW TAPI driver version tested for voice macro and 2CPE
+
+--------------------------------------------------------------------------------
+version 3.0.0.1  |  2006-04-30  |
+--------------------------------------------------------------------------------
+NEW Split of low level and high level driver

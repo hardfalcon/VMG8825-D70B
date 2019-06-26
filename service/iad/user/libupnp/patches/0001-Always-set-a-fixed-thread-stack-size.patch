@@ -1,0 +1,51 @@
+From: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+Date: Thu, 24 Oct 2013 14:09:39 +0200
+Subject: Always set a fixed thread stack size
+
+Signed-off-by: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+---
+ threadutil/inc/ThreadPool.h | 2 +-
+ threadutil/src/ThreadPool.c | 1 +
+ upnp/src/inc/config.h       | 2 +-
+ 3 files changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/threadutil/inc/ThreadPool.h b/threadutil/inc/ThreadPool.h
+index c7e2750..fcd6f5a 100644
+--- a/threadutil/inc/ThreadPool.h
++++ b/threadutil/inc/ThreadPool.h
+@@ -99,7 +99,7 @@ typedef enum priority {
+ #define DEFAULT_MAX_THREADS 10
+ 
+ /*! default stack size used by TPAttrInit */
+-#define DEFAULT_STACK_SIZE 0u
++#define DEFAULT_STACK_SIZE PTHREAD_STACK_MIN
+ 
+ /*! default jobs per thread used by TPAttrInit */
+ #define DEFAULT_JOBS_PER_THREAD 10
+diff --git a/threadutil/src/ThreadPool.c b/threadutil/src/ThreadPool.c
+index fcf7108..14c4b46 100644
+--- a/threadutil/src/ThreadPool.c
++++ b/threadutil/src/ThreadPool.c
+@@ -647,6 +647,7 @@ static int CreateWorker(
+ 	}
+ 	ithread_attr_init(&attr);
+ 	ithread_attr_setstacksize(&attr, tp->attr.stackSize);
++	pthread_attr_setguardsize(&attr, sysconf(_SC_PAGESIZE));
+ 	ithread_attr_setdetachstate(&attr, ITHREAD_CREATE_DETACHED);
+ 	rc = ithread_create(&temp, &attr, WorkerThread, tp);
+ 	ithread_attr_destroy(&attr);
+diff --git a/upnp/src/inc/config.h b/upnp/src/inc/config.h
+index 58a34d7..5839d0d 100644
+--- a/upnp/src/inc/config.h
++++ b/upnp/src/inc/config.h
+@@ -126,7 +126,7 @@
+  *
+  * @{
+  */
+-#define THREAD_STACK_SIZE (size_t)0
++#define THREAD_STACK_SIZE (size_t)(64 * 1024)
+ /* @} */
+ 
+ 
+--
+

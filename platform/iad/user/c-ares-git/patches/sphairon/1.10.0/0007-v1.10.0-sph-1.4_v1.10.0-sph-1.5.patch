@@ -1,0 +1,69 @@
+diff --git a/adig.c b/adig.c
+index 678f3ea3c47f509648a6698917fdc6273026b10e..0700551184cd75166ba333b03b4d108ffe490951 100644
+--- a/adig.c
++++ b/adig.c
+@@ -207,10 +207,28 @@ int main(int argc, char **argv)
+   options.flags = ARES_FLAG_NOCHECKRESP;
+   options.servers = NULL;
+   options.nservers = 0;
+-  while ((c = ares_getopt(argc, argv, "df:s:c:t:T:U:P:i:r:")) != -1)
++  while ((c = ares_getopt(argc, argv, "a:A:b:df:s:c:t:T:U:P:i:r:R")) != -1)
+     {
+       switch (c)
+         {
++        case 'a':
++          if (!ISDIGIT(*optarg))
++            usage();
++          options.timeout=(int)strtol(optarg, NULL, 0);
++          optmask |= ARES_OPT_TIMEOUT;
++          break;
++        case 'A':
++          if (!ISDIGIT(*optarg))
++            usage();
++          options.timeout=(int)strtol(optarg, NULL, 0);
++          optmask |= ARES_OPT_TIMEOUTMS;
++          break;
++        case 'b':
++          if (!ISDIGIT(*optarg))
++            usage();
++          options.tries=(int)strtol(optarg, NULL, 0);
++          optmask |= ARES_OPT_TRIES;
++          break;
+         case 'd':
+ #ifdef WATT32
+           dbug_init();
+@@ -342,6 +360,10 @@ int main(int argc, char **argv)
+           strncpy(resolver_file, optarg, sizeof(resolver_file));
+           resolver_file[sizeof(resolver_file) - 1] = 0;
+           break;
++      case 'R':
++          /* Rotate the if multiple queries are made */
++          optmask |= ARES_OPT_ROTATE;
++          break;
+       }
+     }
+   argc -= optind;
+@@ -818,8 +840,8 @@ static const char *class_name(int dnsclass)
+ static void usage(void)
+ {
+   fprintf(stderr, "version: %s\n", ARES_VERSION_STR);
+-  fprintf(stderr, "usage: adig [-f flag] [-s server] [-c class] "
+-          "[-t type] [-T tcp-port] [-U udp-port] [-P priority] [-i intf] [-r resolver-file] name ...\n");
++  fprintf(stderr, "usage: adig [-f flag] [-s server] [-c class] [-a timeout in s ] [-A timeout in ms] [ -b retries] "
++          "[-t type] [-T tcp-port] [-U udp-port] [-P priority] [-i intf] [-r resolver-file] [-R] name ...\n");
+   fprintf(stderr, "version: %s\n", ARES_VERSION_STR);
+   fprintf(stderr, "note: c-ares dns packet send priority library default is %d\n", ARES_DEFAULT_SOCKET_SEND_PRIORITY);
+   exit(1);
+diff --git a/ares_version.h b/ares_version.h
+index 57bc73c1251b54d766f6a1a708edd9db84b3276e..44dde8f1c963f317bb74498155f437fec0bd7246 100644
+--- a/ares_version.h
++++ b/ares_version.h
+@@ -11,7 +11,7 @@
+ #define ARES_VERSION ((ARES_VERSION_MAJOR<<16)|\
+                        (ARES_VERSION_MINOR<<8)|\
+                        (ARES_VERSION_PATCH))
+-#define ARES_VERSION_STR "1.10.0-sph-1.4"
++#define ARES_VERSION_STR "1.10.0-sph-1.5"
+ 
+ #if (ARES_VERSION >= 0x010700)
+ #  define CARES_HAVE_ARES_LIBRARY_INIT 1

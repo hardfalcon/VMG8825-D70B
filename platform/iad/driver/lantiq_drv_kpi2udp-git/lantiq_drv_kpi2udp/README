@@ -1,0 +1,66 @@
+/******************************************************************************
+
+                              Copyright (c) 2009
+                            Lantiq Deutschland GmbH
+                     Am Campeon 3; 85579 Neubiberg, Germany
+
+  For licensing information, see the file 'LICENSE' in the root folder of
+  this software module.
+
+******************************************************************************/
+
+
+HOW TO COMPILE
+--------------
+
+KPI2UDP driver is build using the commonly used configure, make, make install
+process. The first step is to create a Makefile for your specific system
+using the provided configure script and adapt the parameters according
+to your paths and required features.
+
+For Linux 2.6 several differences apply as the complete build processs is
+controlled by the kbuild system. The kbuild system knows already the
+architecture specific CFLAGS. The following configure options must be
+provided for Linux 2.6.
+--enable-linux-26, --enable-kernelincl=<path>, --enable-kernelbuild=<path>
+If the kernel has been build inside the source directory (which is not nice),
+the kernelbuild path is optional.
+
+
+--1-- Configure KPI2UDP driver
+First create a separate build directory, e.g. below the sources. For Linux 2.6
+this step is mandantory(!).
+
+mkdir build_dir
+cd build_dir
+
+Example for MPC and Linux 2.4:
+TBD
+
+Example for MPC and Linux 2.6:
+TBD
+
+Example for MIPS, e.g. Danube, TwinPass, INCA-IP2 and Linux 2.4
+../configure --build=i686-pc-linux --host=mips-linux --enable-warnings --with-kernel-incl=<yourPath>/linux/include --with-cflags="-fno-pic -mno-abicalls -mlong-calls -mips32 -G 0 -DMODVERSIONS"  --with-tapi-incl=../../drv_tapi/include
+
+Example for MIPS, e.g. Danube, TwinPass, INCA-IP2 and Linux 2.6
+../configure --build=i686-pc-linux --host=mips-linux --enable-warnings --with-kernel-incl=<yourPath>/linux_danube26/include --with-kernel-build=<yourPath>/linux_danube26 --enable-linux-26 --with-tapi-incl=../../drv_tapi/include
+
+Note: One important parameter to adapt to a specific controller platform is
+      --with-clags="" - this parameter gives you the option to add platform
+     specific compiler flags easily. For Linux 2.6 it's not required to pass
+     specific compiler options as the kernel build process will take care
+     of this.
+
+--2-- Build KPI2UDP driver
+
+make clean install
+
+--3-- Strip your binary
+
+Stripping of the device driver binary is implicitly done on make install. If you
+want to strip the binary manually, please make sure not to use different options
+than "--strip-debug" - otherwise the binary might be unusable.
+
+enjoy
+TAPI v3 team

@@ -1,0 +1,44 @@
+From: Alexander Sack <asac@jwsdot.com>
+Date: Thu, 18 Dec 2008 05:44:35 +0100
+Subject: ppp-2.4.4rel/debian/patches/zzz_config
+
+---
+ pppd/Makefile.linux | 8 +++-----
+ 1 file changed, 3 insertions(+), 5 deletions(-)
+
+diff --git a/pppd/Makefile.linux b/pppd/Makefile.linux
+index 15655f2..83a405f 100644
+--- a/pppd/Makefile.linux
++++ b/pppd/Makefile.linux
+@@ -61,14 +61,14 @@ HAVE_MULTILINK=y
+ USE_TDB=y
+ 
+ HAS_SHADOW=y
+-#USE_PAM=y
+-#HAVE_INET6=y
++USE_PAM=y
++HAVE_INET6=y
+ 
+ # Enable plugins
+ PLUGIN=y
+ 
+ # Enable Microsoft proprietary Callback Control Protocol
+-#CBCP=y
++CBCP=y
+ 
+ # Enable EAP SRP-SHA1 authentication (requires libsrp)
+ #USE_SRP=y
+@@ -173,11 +173,9 @@ LIBS	+= -ldl
+ endif
+ 
+ ifdef FILTER
+-ifneq ($(wildcard /usr/include/pcap-bpf.h),)
+ LIBS    += -lpcap
+ CFLAGS  += -DPPP_FILTER
+ endif
+-endif
+ 
+ ifdef HAVE_INET6
+      PPPDSRCS += ipv6cp.c eui64.c
+--
+

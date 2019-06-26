@@ -1,0 +1,18 @@
+<!ELEMENT ioctls (ioctl+)>
+
+<!ELEMENT ioctl (context?,states?,handler?,argument?,features?)>
+<!ATTLIST ioctl name CDATA #REQUIRED>
+
+<!ELEMENT context (#PCDATA)>
+
+<!ELEMENT handler (#PCDATA)>
+<!ATTLIST handler kind (high-level|low-level) #REQUIRED>
+
+<!ELEMENT argument (#PCDATA)>
+<!ATTLIST argument kind (pointer|integer) #REQUIRED>
+
+<!ELEMENT features (feature+)>
+<!ELEMENT feature (#PCDATA)>
+
+<!ELEMENT states (state+)>
+<!ELEMENT state (#PCDATA)>

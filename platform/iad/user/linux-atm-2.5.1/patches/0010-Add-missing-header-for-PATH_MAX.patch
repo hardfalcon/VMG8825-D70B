@@ -1,0 +1,22 @@
+From: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+Date: Mon, 20 Dec 2010 17:43:34 +0100
+Subject: Add missing header for PATH_MAX
+
+---
+ src/br2684/br2684ctl.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/br2684/br2684ctl.c b/src/br2684/br2684ctl.c
+index c0992e5..7d1c107 100644
+--- a/src/br2684/br2684ctl.c
++++ b/src/br2684/br2684ctl.c
+@@ -9,6 +9,7 @@
+ #include <string.h>
+ #include <syslog.h>
+ #include <fcntl.h>
++#include <linux/limits.h>
+ #include <atm.h>
+ #include <linux/atmdev.h>
+ #include <linux/atmbr2684.h>
+--
+

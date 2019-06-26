@@ -1,0 +1,4 @@
+include bsp/lantiq/xway-vdsp.scc
+include bsp/lantiq-ugw/xrx330-up.scc
+
+kconf xrx330-vdsp.cfg

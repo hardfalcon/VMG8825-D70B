@@ -1,0 +1,25 @@
+From b004ee1abeb5fd1eea9682b27719250bde66b041 Mon Sep 17 00:00:00 2001
+From: Daniel Steglich <daniel.steglich@sphairon.com>
+Date: Mon, 5 May 2014 13:32:58 +0200
+Subject: [PATCH] endian detection patch from openwrt
+
+---
+ md5.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/md5.c b/md5.c
+index 978a9e4..ebaa6d0 100644
+--- a/md5.c
++++ b/md5.c
+@@ -35,7 +35,7 @@
+ 
+ #include "md5.h"
+ 
+-#ifdef _LIBC
++#if defined(_LIBC) || defined(__UCLIBC__)
+ # include <endian.h>
+ # if __BYTE_ORDER == __BIG_ENDIAN
+ #  define WORDS_BIGENDIAN 1
+-- 
+1.8.5.2
+

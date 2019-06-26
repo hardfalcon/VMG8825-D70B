@@ -1,0 +1,194 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2014-2019 Sphairon GmbH (a Zyxel company)
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include "xrx200-slx501.dtsi"
+
+/ {
+	model = "Zyxel slx501 series [420]";
+	compatible = "zyxel,slx501", "lantiq,vr9", "lantiq,xway";
+
+	gpio-leds {
+		compatible = "gpio-leds";
+
+		usb1_green {
+			label = "green:usb1";
+			gpios = <&stp 1 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+
+		usb2_green {
+			label = "green:usb2";
+			gpios = <&gpio 32 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+	};
+};
+
+&gpio {
+	pins_gpio_leds_default: pins_gpio_leds_default {
+		gpio_low_active2 {
+			lantiq,pins = "io32";
+			lantiq,output = <1>;
+		};
+	};
+
+	pins_usif_spi_default: pins_usif_spi_default {
+		cs {
+			lantiq,pins = "io39";
+			lantiq,output = <1>;
+		};
+	};
+};
+
+&eth {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pins_eth_default>;
+
+	gphy@0 {
+		lantiq,phy-mode = "22f";
+		status = "ok";
+	};
+
+	gphy@1 {
+		lantiq,phy-mode = "11g";
+		status = "ok";
+	};
+
+	mdio@0 {
+		phy0: ethernet-phy@0 {
+			compatible = "lantiq,pef7071", "ethernet-phy-ieee802.3-c22";
+			/*interrupt-parent = <&eiu>;
+			interrupts = <2 IRQ_TYPE_EDGE_FALLING>;*/
+			reg = <0x0>;
+			lantiq,led0 = <0x7003>;
+			lantiq,led1 = <0x0>;
+			lantiq,led2 = <0x0>;
+		};
+
+		phy1: ethernet-phy@1 {
+			compatible = "lantiq,pef7071", "ethernet-phy-ieee802.3-c22";
+			/*interrupt-parent = <&eiu>;
+			interrupts = <2 IRQ_TYPE_EDGE_FALLING>;*/
+			reg = <0x1>;
+			lantiq,led0 = <0x7003>;
+			lantiq,led1 = <0x0>;
+			lantiq,led2 = <0x0>;
+		};
+
+		phy2: ethernet-phy@11 {
+			compatible = "lantiq,pef7071", "ethernet-phy-ieee802.3-c22";
+			/*interrupt-parent = <&icu0>;
+			interrupts = <122>;*/
+			reg = <0x11>;
+			lantiq,led0 = <0x3003>;
+			lantiq,led1 = <0x3003>;
+			lantiq,led2 = <0x0>;
+		};
+
+		phy3: ethernet-phy@12 {
+			compatible = "lantiq,pef7071", "ethernet-phy-ieee802.3-c22";
+			/*interrupt-parent = <&icu0>;
+			interrupts = <122>;*/
+			reg = <0x12>;
+		};
+
+		phy4: ethernet-phy@13 {
+			compatible = "lantiq,pef7071", "ethernet-phy-ieee802.3-c22";
+			/*interrupt-parent = <&icu0>;
+			interrupts = <121>;*/
+			reg = <0x13>;
+			lantiq,led0 = <0x7003>;
+			lantiq,led1 = <0x0>;
+			lantiq,led2 = <0x0>;
+		};
+	};
+
+	ethernet@0 {
+		phy-handle = <&phy0>;
+		phy-mode = "rgmii";
+		status = "ok";
+		lantiq,port-name = "sw-p0-wanoe";
+		lantiq,wanoe;
+	};
+
+	ethernet@1 {
+		phy-handle = <&phy1>;
+		phy-mode = "rgmii";
+		status = "ok";
+		lantiq,port-name = "sw-p1-lan4";
+	};
+
+	ethernet@2 {
+		phy-handle = <&phy2>;
+		phy-mode = "mii";
+		status = "ok";
+		lantiq,port-name = "sw-p2-lan1";
+	};
+
+	ethernet@3 {
+		phy-handle = <&phy3>;
+		phy-mode = "mii";
+		status = "ok";
+		lantiq,port-name = "sw-p3-lan2";
+	};
+
+	ethernet@4 {
+		phy-handle = <&phy4>;
+		phy-mode = "gmii";
+		status = "ok";
+		lantiq,port-name = "sw-p4-lan3";
+	};
+
+	ethernet@5 {
+		phy-mode = "rgmii";
+		status = "ok";
+		lantiq,port-name = "sw-p5-wifi";
+		lantiq,rgmii-tx-delay = <3>;
+		lantiq,mii-isolate;
+		fixed-link {
+			speed = <1000>;
+			full-duplex;
+		};
+	};
+};
+
+&usif {
+	status = "ok";
+
+	cs-gpios = <&gpio 39 GPIO_ACTIVE_HIGH>;
+
+	fxs: psb21150@0 {
+		compatible = "lantiq,psb21150";
+		reg = <0>;
+		spi-max-frequency = <1000000>;
+		spi-cpol;
+		spi-cpha;
+		interrupt-parent = <&eiu>;
+		interrupts = <135 IRQ_TYPE_LEVEL_LOW>;
+		lantiq,mode-lts;
+		lantiq,iom2-channel = <0>;
+		lantiq,dps;
+	};
+};
+
+&usb0 {
+	status = "ok";
+};
+
+&usb1 {
+	status = "ok";
+};
+
+&usb0_oc {
+	status = "ok";
+};
+
+&usb1_oc {
+	status = "ok";
+};

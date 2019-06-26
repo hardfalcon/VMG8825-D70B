@@ -1,0 +1,27 @@
+From: Andre Prendel <andre.prendel@sphairon.com>
+Date: Thu, 10 Feb 2011 14:27:35 +0100
+Subject: br2684ctl: Use LOG_USER as default facility
+
+Logging with LOG_LOCAL2 facility leads to unwanted log messages in persistent
+log file (/val/log/status).
+
+Signed-off-by: Andre Prendel <andre.prendel@sphairon.com>
+---
+ src/br2684/br2684ctl.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/br2684/br2684ctl.c b/src/br2684/br2684ctl.c
+index 7d1c107..9604db0 100644
+--- a/src/br2684/br2684ctl.c
++++ b/src/br2684/br2684ctl.c
+@@ -40,7 +40,7 @@
+ 
+ #define LOG_NAME       "br2684ctl"
+ #define LOG_OPTION     LOG_PERROR|LOG_PID
+-#define LOG_FACILITY   LOG_LOCAL2
++#define LOG_FACILITY   LOG_USER
+ 
+ struct br2684_params {
+   int itfnum;
+--
+

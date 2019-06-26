@@ -1,0 +1,23 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Mon, 14 Feb 2011 18:05:49 +0100
+Subject: Use correct CFLAGS and LDFLAGS.
+
+---
+ chat/Makefile.linux | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/chat/Makefile.linux b/chat/Makefile.linux
+index 0438277..2bba72e 100644
+--- a/chat/Makefile.linux
++++ b/chat/Makefile.linux
+@@ -18,7 +18,7 @@ INSTALL= install
+ all:	chat
+ 
+ chat:	chat.o
+-	$(CC) -o chat chat.o
++	$(CC) -o chat $(EXTRA_LDFLAGS) chat.o
+ 
+ chat.o:	chat.c
+ 	$(CC) -c $(CFLAGS) -o chat.o chat.c
+--
+

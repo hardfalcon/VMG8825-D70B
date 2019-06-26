@@ -1,0 +1,71 @@
+From 2a9bf98b02ec6207253b6b55e8c971c6a3675d12 Mon Sep 17 00:00:00 2001
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Mon, 22 Aug 2011 21:37:01 +0200
+Subject: [PATCH 1/4] Some random changes done by some random person.
+
+---
+ Makefile    |    6 +++---
+ ntpclient.c |   10 ++++++++--
+ 2 files changed, 11 insertions(+), 5 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index ceed367..0db54e6 100644
+--- a/Makefile
++++ b/Makefile
+@@ -11,10 +11,10 @@ CFLAGS += -std=c99 -W -Wall -Wpointer-arith -Wcast-align -Wcast-qual -Wshadow \
+ CFLAGS += -O2
+ # CFLAGS += -DPRECISION_SIOCGSTAMP
+ CFLAGS += -DENABLE_DEBUG
+-CFLAGS += -DENABLE_REPLAY
+-# CFLAGS += -DUSE_OBSOLETE_GETTIMEOFDAY
++#CFLAGS += -DENABLE_REPLAY
++CFLAGS += -DUSE_OBSOLETE_GETTIMEOFDAY
+ 
+-LDFLAGS += -lrt
++#LDFLAGS += -lrt
+ 
+ all: ntpclient
+ 
+diff --git a/ntpclient.c b/ntpclient.c
+index 61254e2..cd1032b 100644
+--- a/ntpclient.c
++++ b/ntpclient.c
+@@ -118,6 +118,10 @@ extern int h_errno;
+  */
+ #define sec2u(x) ( (x) * 15.2587890625 )
+ 
++/* 13.11.2008 rudt MANTIS4987: ntpclient soll bei Einzelabfrage im Fehlerfall Rückgabewert !=0 liefern */
++int fail_value = 1;
++
++
+ struct ntptime {
+ 	unsigned int coarse;
+ 	unsigned int fine;
+@@ -424,7 +428,7 @@ static int rfc1305print(u32 *data, struct ntptime *arrival, struct ntp_control *
+ 		(skew1-skew2)/2, sec2u(disp), freq);
+ 	fflush(stdout);
+ 	*error = el_time-st_time;
+-
++  fail_value=0;
+ 	return 0;
+ fail:
+ #ifdef ENABLE_DEBUG
+@@ -436,6 +440,7 @@ fail:
+ 		arrival->coarse/86400, arrival->coarse%86400,
+ 		arrival->fine/4294967);
+ #endif
++  fail_value=1;
+ 	return 1;
+ }
+ 
+@@ -710,5 +715,6 @@ int main(int argc, char *argv[]) {
+ 	primary_loop(usd, &ntpc);
+ 
+ 	close(usd);
+-	return 0;
++	/* return 0; */
++	return fail_value;
+ }
+-- 
+1.7.4.1
+

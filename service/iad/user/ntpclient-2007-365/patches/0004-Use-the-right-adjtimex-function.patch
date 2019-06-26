@@ -1,0 +1,35 @@
+From 41b2f3134f04cca534e5984aac7e6f9749c8347d Mon Sep 17 00:00:00 2001
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Mon, 22 Aug 2011 21:38:47 +0200
+Subject: [PATCH 4/4] Use the right adjtimex function.
+
+Signed-off-by: Daniel Egger <daniel.egger@sphairon.com>
+---
+ ntpclient.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/ntpclient.c b/ntpclient.c
+index 91e9ae7..ed29a08 100644
+--- a/ntpclient.c
++++ b/ntpclient.c
+@@ -151,7 +151,7 @@ static int get_current_freq(void)
+ #ifdef __linux__
+ 	struct timex txc;
+ 	txc.modes=0;
+-	if (__adjtimex(&txc) < 0) {
++	if (adjtimex(&txc) < 0) {
+ 		perror("adjtimex"); exit(1);
+ 	}
+ 	return txc.freq;
+@@ -168,7 +168,7 @@ static int set_freq(int new_freq)
+ 	struct timex txc;
+ 	txc.modes = ADJ_FREQUENCY;
+ 	txc.freq = new_freq;
+-	if (__adjtimex(&txc) < 0) {
++	if (adjtimex(&txc) < 0) {
+ 		perror("adjtimex"); exit(1);
+ 	}
+ 	return txc.freq;
+-- 
+1.7.4.1
+

@@ -1,0 +1,202 @@
+diff --git a/acountry.c b/acountry.c
+index 210ef84aee24eb5f32b47a88d266b7ebe2a7634e..1fe750c9cc839c76ef4d4b6179b9c76a1cc8d9d3 100644
+--- a/acountry.c
++++ b/acountry.c
+@@ -200,7 +200,9 @@ static void wait_ares(ares_channel channel)
+       if (nfds == 0)
+         break;
+       tvp = ares_timeout(channel, NULL, &tv);
+-      select(nfds, &read_fds, &write_fds, NULL, tvp);
++      nfds = select(nfds, &read_fds, &write_fds, NULL, tvp);
++      if (nfds < 0)
++        continue;
+       ares_process(channel, &read_fds, &write_fds);
+     }
+ }
+@@ -562,6 +564,7 @@ static void find_country_from_cname(const char *cname, struct in_addr addr)
+       if ((z0 != 'z' && z1 != 'z') || dot != cname+4)
+         {
+           printf("Unexpected CNAME %s (ver_1)\n", cname);
++          free(ccopy);
+           return;
+         }
+     }
+@@ -572,12 +575,14 @@ static void find_country_from_cname(const char *cname, struct in_addr addr)
+       if (z0 != 'z' && z1 != 'z')
+         {
+           printf("Unexpected CNAME %s (ver_2)\n", cname);
++          free(ccopy);
+           return;
+         }
+     }
+   else
+     {
+       printf("Unexpected CNAME %s (ver?)\n", cname);
++      free(ccopy);
+       return;
+     }
+ 
+diff --git a/adig.c b/adig.c
+index d22328abde100fca14c12e87a56bb8b505a3b8b8..678f3ea3c47f509648a6698917fdc6273026b10e 100644
+--- a/adig.c
++++ b/adig.c
+@@ -189,6 +189,7 @@ int main(int argc, char **argv)
+   struct timeval *tvp, tv;
+   struct ares_addr_node *srvr, *servers = NULL;
+   char bind_interface[32] = {0};
++  char resolver_file[64] = {0};
+ 
+ #ifdef USE_WINSOCK
+   WORD wVersionRequested = MAKEWORD(USE_WINSOCK,USE_WINSOCK);
+@@ -206,7 +207,7 @@ int main(int argc, char **argv)
+   options.flags = ARES_FLAG_NOCHECKRESP;
+   options.servers = NULL;
+   options.nservers = 0;
+-  while ((c = ares_getopt(argc, argv, "df:s:c:t:T:U:P:i:")) != -1)
++  while ((c = ares_getopt(argc, argv, "df:s:c:t:T:U:P:i:r:")) != -1)
+     {
+       switch (c)
+         {
+@@ -336,6 +337,11 @@ int main(int argc, char **argv)
+           strncpy(bind_interface, optarg, sizeof(bind_interface));
+           bind_interface[31] = 0;
+           break;
++      case 'r':
++          /* Set the interface to make the dns resolving */
++          strncpy(resolver_file, optarg, sizeof(resolver_file));
++          resolver_file[sizeof(resolver_file) - 1] = 0;
++          break;
+       }
+     }
+   argc -= optind;
+@@ -343,7 +349,7 @@ int main(int argc, char **argv)
+   if (argc == 0)
+     usage();
+ 
+-  status = ares_init_options(&channel, &options, optmask);
++  status = ares_init_options2(&channel, &options, optmask, resolver_file);
+ 
+   if (status != ARES_SUCCESS)
+     {
+@@ -813,7 +819,7 @@ static void usage(void)
+ {
+   fprintf(stderr, "version: %s\n", ARES_VERSION_STR);
+   fprintf(stderr, "usage: adig [-f flag] [-s server] [-c class] "
+-          "[-t type] [-T tcp-port] [-U udp-port] [-P priority] [-i intf]  name ...\n");
++          "[-t type] [-T tcp-port] [-U udp-port] [-P priority] [-i intf] [-r resolver-file] name ...\n");
+   fprintf(stderr, "version: %s\n", ARES_VERSION_STR);
+   fprintf(stderr, "note: c-ares dns packet send priority library default is %d\n", ARES_DEFAULT_SOCKET_SEND_PRIORITY);
+   exit(1);
+diff --git a/ares_getnameinfo.c b/ares_getnameinfo.c
+index 5b9f6386b29e01df18ba9a95c5c5540b32dd2840..b0bc6da868cddae43036a44ebb08f1e00bc9443f 100644
+--- a/ares_getnameinfo.c
++++ b/ares_getnameinfo.c
+@@ -281,6 +281,8 @@ static char *lookup_service(unsigned short port, int flags,
+   struct servent se;
+ #endif
+   char tmpbuf[4096];
++  char *name;
++  size_t name_len;
+ 
+   if (port)
+     {
+@@ -323,14 +325,20 @@ static char *lookup_service(unsigned short port, int flags,
+ #endif
+         }
+       if (sep && sep->s_name)
+-        /* get service name */
+-        strcpy(tmpbuf, sep->s_name);
++        {
++          /* get service name */
++          name = sep->s_name;
++        }
+       else
+-        /* get port as a string */
+-        sprintf(tmpbuf, "%u", (unsigned int)ntohs(port));
+-      if (strlen(tmpbuf) < buflen)
++        {
++          /* get port as a string */
++          sprintf(tmpbuf, "%u", (unsigned int)ntohs(port));
++          name = tmpbuf;
++        }
++      name_len = strlen(name);
++      if (name_len < buflen)
+         /* return it if buffer big enough */
+-        strcpy(buf, tmpbuf);
++        memcpy(buf, name, name_len + 1);
+       else
+         /* avoid reusing previous one */
+         buf[0] = '\0';
+diff --git a/ares_getsock.c b/ares_getsock.c
+index 07d2854cfd1538de79ba47cf281c6e73bcc688f6..22d344679faa60f1357aa6dbdc0b447e9fb4a1d1 100644
+--- a/ares_getsock.c
++++ b/ares_getsock.c
+@@ -30,9 +30,7 @@ int ares_getsock(ares_channel channel,
+   /* Are there any active queries? */
+   int active_queries = !ares__is_list_empty(&(channel->all_queries));
+ 
+-  for (i = 0;
+-       (i < channel->nservers) && (sockindex < ARES_GETSOCK_MAXNUM);
+-       i++)
++  for (i = 0; i < channel->nservers; i++)
+     {
+       server = &channel->servers[i];
+       /* We only need to register interest in UDP sockets if we have
+@@ -40,7 +38,7 @@ int ares_getsock(ares_channel channel,
+        */
+       if (active_queries && server->udp_socket != ARES_SOCKET_BAD)
+         {
+-          if(sockindex >= numsocks)
++          if(sockindex >= numsocks || sockindex >= ARES_GETSOCK_MAXNUM)
+             break;
+           socks[sockindex] = server->udp_socket;
+           bitmap |= ARES_GETSOCK_READABLE(setbits, sockindex);
+@@ -52,7 +50,7 @@ int ares_getsock(ares_channel channel,
+        */
+       if (server->tcp_socket != ARES_SOCKET_BAD)
+        {
+-         if(sockindex >= numsocks)
++         if(sockindex >= numsocks || sockindex >= ARES_GETSOCK_MAXNUM)
+            break;
+          socks[sockindex] = server->tcp_socket;
+          bitmap |= ARES_GETSOCK_READABLE(setbits, sockindex);
+diff --git a/ares_options.c b/ares_options.c
+index 76d82dfb94d0a805ee9bc8ec7041a594b182e996..cf88433a1b5ae4a9c58026ea5f8125bdfe7d5c75 100644
+--- a/ares_options.c
++++ b/ares_options.c
+@@ -158,6 +158,9 @@ int ares_set_servers_csv(ares_channel channel,
+      return ARES_SUCCESS; /* blank all servers */
+ 
+   csv = malloc(i + 2);
++  if (!csv)
++    return ARES_ENOMEM;
++
+   strcpy(csv, _csv);
+   if (csv[i-1] != ',') { /* make parsing easier by ensuring ending ',' */
+     csv[i] = ',';
+diff --git a/ares_search.c b/ares_search.c
+index ec076405adb7a1fc9aaf942849d4dc299ea91357..f9558a9a50f46346f40fbfb2ce8a83b9b2755008 100644
+--- a/ares_search.c
++++ b/ares_search.c
+@@ -239,7 +239,7 @@ static int single_domain(ares_channel channel, const char *name, char **s)
+   /* If the name contains a trailing dot, then the single query is the name
+    * sans the trailing dot.
+    */
+-  if (name[len - 1] == '.')
++  if ((len > 0) && (name[len - 1] == '.'))
+     {
+       *s = strdup(name);
+       return (*s) ? ARES_SUCCESS : ARES_ENOMEM;
+diff --git a/ares_version.h b/ares_version.h
+index 3522d14c8c5be8f75e1cfcf8c2aef2933e7f79e5..57bc73c1251b54d766f6a1a708edd9db84b3276e 100644
+--- a/ares_version.h
++++ b/ares_version.h
+@@ -11,7 +11,7 @@
+ #define ARES_VERSION ((ARES_VERSION_MAJOR<<16)|\
+                        (ARES_VERSION_MINOR<<8)|\
+                        (ARES_VERSION_PATCH))
+-#define ARES_VERSION_STR "1.10.0-sph-1.3"
++#define ARES_VERSION_STR "1.10.0-sph-1.4"
+ 
+ #if (ARES_VERSION >= 0x010700)
+ #  define CARES_HAVE_ARES_LIBRARY_INIT 1

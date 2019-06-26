@@ -1,0 +1,43 @@
+diff --git a/rdnssd/netlink.c b/rdnssd/netlink.c
+index 5bde6b912c8a5452463e868ad5314a636a0c9579..2fe4459bce3a5ed18b7f0c12457d58884f03b7bb 100644
+--- a/rdnssd/netlink.c
++++ b/rdnssd/netlink.c
+@@ -96,14 +96,6 @@ static int nl_socket (void)
+ 	struct utsname uts;
+ 	int fd;
+ 
+-	/* Netlink RDNSS support starts with 2.6.24 */
+-	uname (&uts);
+-	if (strverscmp (uts.release, "2.6.24") < 0)
+-	{
+-		errno = ENOSYS;
+-		return -1;
+-	}
+-
+ 	fd = socket(AF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
+ 	if (fd == -1)
+ 	{
+diff --git a/src/trace-tcp.c b/src/trace-tcp.c
+index 82ca890b8210fb93c8e40d4b111b878010feec32..2fa1c894dc11a79d2d19ac45829386d56a7cc93b 100644
+--- a/src/trace-tcp.c
++++ b/src/trace-tcp.c
+@@ -24,6 +24,7 @@
+ 
+ #undef _GNU_SOURCE
+ #define _BSD_SOURCE 1
++#define __FAVOR_BSD
+ 
+ #include <string.h>
+ #include <inttypes.h>
+diff --git a/src/trace-udp.c b/src/trace-udp.c
+index cb6c87346d3c38264866c64c302dcdd1d27f060d..fe268f5dc3038236c016e70228e03d9c6131c4e1 100644
+--- a/src/trace-udp.c
++++ b/src/trace-udp.c
+@@ -24,6 +24,7 @@
+ 
+ #undef _GNU_SOURCE
+ #define _BSD_SOURCE 1
++#define __FAVOR_BSD
+ 
+ #include <string.h>
+ #include <stdbool.h>

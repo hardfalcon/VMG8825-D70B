@@ -1,0 +1,24 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Tue, 3 May 2011 13:19:17 +0200
+Subject: Always respond with 200 OK to accepted connection requests.
+
+Signed-off-by: Daniel Egger <daniel.egger@sphairon.com>
+---
+ gsoap/stdsoap2.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/gsoap/stdsoap2.cpp b/gsoap/stdsoap2.cpp
+index a3a1cc0..a31a257 100644
+--- a/gsoap/stdsoap2.cpp
++++ b/gsoap/stdsoap2.cpp
+@@ -14354,7 +14354,7 @@ http_response(struct soap *soap, int status, size_t count)
+     if (count || ((soap->omode & SOAP_IO) == SOAP_IO_CHUNK))
+       s = "200 OK";
+     else
+-      s = "202 ACCEPTED";
++      s = "200 OK"; // "202 ACCEPTED"; - 200 (or 204) required by tr69 
+     DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Status = %s\n", s));
+ #ifdef WMW_RPM_IO
+     if (soap->rpmreqid || soap_valid_socket(soap->master) || soap_valid_socket(soap->socket)) /* RPM behaves as if standalone */
+--
+

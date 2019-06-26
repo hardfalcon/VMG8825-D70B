@@ -1,0 +1,1 @@
+../qt-default/doc.mk

@@ -1,0 +1,473 @@
+From 5acaed8ab867970b65043d92cf349dca74d504d9 Mon Sep 17 00:00:00 2001
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Thu, 5 May 2011 15:09:17 +0200
+Subject: [PATCH 1/5] Makefile changes to accomodate a Sphairon device environment.
+
+---
+ Fedora/Makefile  |   24 +++++++++++-----------
+ FreeBSD/Makefile |    6 ++--
+ Makefile         |   56 ++++++++++++++++++++++++++++++++++-------------------
+ cidgate/Makefile |   31 +++++++++++++++--------------
+ debian/Makefile  |   20 +++++++++---------
+ man/Makefile     |   20 +++++++++---------
+ modules/Makefile |   12 +++++-----
+ scripts/Makefile |   18 ++++++++--------
+ tools/Makefile   |    4 +-
+ 9 files changed, 104 insertions(+), 87 deletions(-)
+
+diff --git a/Fedora/Makefile b/Fedora/Makefile
+index f3b27b9..6e11f87 100644
+--- a/Fedora/Makefile
++++ b/Fedora/Makefile
+@@ -1,27 +1,27 @@
+ INIT        = ncidd.init ncidsip.init sip2ncid.init yac2ncid.init \
+               ncid-kpopup.init ncid-mythtv.init ncid-page.init \
+               ncid-samba.init ncid-speak.init ncid-yac.init
+-FILES		= README.Fedora Makefile ncid.spec
++FILES       = README.Fedora Makefile ncid.spec
+ 
+-prefix		= /usr/local
+-prefix2		= $(prefix)
++prefix      = /usr
++prefix2     = $(prefix)
+ prefix3     =
+ prefix4     =
+ 
+ ifdef prefix4
+-	SHARP   = ;/\# Source networking/,/NETWORKING.*exit/{N;d}
++    SHARP   = ;/\# Source networking/,/NETWORKING.*exit/{N;d}
+ endif
+ 
+-BIN			= $(prefix)/bin
+-SBIN		= $(prefix)/sbin
+-ETC			= $(prefix2)/etc
++BIN         = $(prefix)/bin
++SBIN        = $(prefix)/sbin
++ETC         = $(prefix2)/etc
+ VAR         = $(prefix3)/VAR
+ FUN         = $(prefix4)/etc/rc.d/init.d/functions
+ 
+ RCDIR       = $(ETC)/rc.d
+ INITDIR     = $(RCDIR)/init.d
+-CONFDIR		= $(ETC)/ncid
+-LOG			= $(VAR)/log
++CONFDIR     = $(ETC)/ncid
++LOG         = $(VAR)/log
+ 
+ PLSCRIPT    = $(PLSOURCE:.pl=)
+ SHSCRIPT    = $(SHSOURCE:.sh=)
+@@ -30,10 +30,10 @@ SITE        = $(INIT:.init=)
+ init: $(SITE)
+ 
+ install: $(SITE) dirs
+-	install -m 755 $(SITE) $(INITDIR)
++	install -m 755 $(SITE) $(INSTALL_ROOT)$(INITDIR)
+ 
+ dirs:
+-	@if ! test -d $(INITDIR); then mkdir -p $(INITDIR); fi
++	@if ! test -d $(INSTALL_ROOT)$(INITDIR); then mkdir -p $(INSTALL_ROOT)$(INITDIR); fi
+ 
+ clean:
+ 
+@@ -42,7 +42,7 @@ clobber: clean
+ 
+ distclean: clobber
+ 
+-files:	$(FILES)
++files: $(FILES)
+ 
+ % : %.init
+ 	sed '/exec/s,/usr/local,$(prefix),;/config/s,/usr/local,$(prefix2),;s,.*/functions,. $(FUN),$(SHARP)' $< > $@
+diff --git a/FreeBSD/Makefile b/FreeBSD/Makefile
+index a05c418..696eaf8 100644
+--- a/FreeBSD/Makefile
++++ b/FreeBSD/Makefile
+@@ -3,7 +3,7 @@ RCF     = ncidd.rc ncidsip.rc sip2ncid.rc yac2ncid.rc \
+           ncid-speak.rc ncid-yac.rc
+ FILES   = README.FreeBSD Makefile $(RCF)
+ 
+-prefix  = /usr/local
++prefix  = /usr
+ prefix2 = $(prefix)
+ 
+ ETC     = $(prefix2)/etc
+@@ -17,8 +17,8 @@ rcd: $(SITE)
+ install: install-rcd
+ 
+ install-rcd: $(RCF)
+-	@if test ! -d $(RCD); then mkdir -p $(RCD); fi
+-	install -m 755 $(SITE) $(RCD)
++	@if test ! -d $(INSTALL_ROOT)$(RCD); then mkdir -p $(INSTALL_ROOT)$(RCD); fi
++	install -m 755 $(SITE) $(INSTALL_ROOT)$(RCD)
+ 
+ clean:
+ 
+diff --git a/Makefile b/Makefile
+index f54360a..a67ef6e 100644
+--- a/Makefile
++++ b/Makefile
+@@ -58,7 +58,8 @@ PPCXCOMPILE  = /usr/local/tivo/bin/
+ 
+ # prefix and prefix2 are used on a make, install, and making a package
+ # prefix3 is used on install to make a package
+-prefix       = /usr/local
++# prefix       = /usr/local
++prefix       = /usr
+ prefix2      = $(prefix)
+ prefix3      =
+ 
+@@ -77,7 +78,7 @@ VAR          = $(prefix3)/var
+ 
+ CONFDIR      = $(ETC)/ncid
+ MODULEDIR    = $(SHARE)/ncid
+-IMAGEDIR	 = $(SHARE)/pixmaps
++IMAGEDIR     = $(SHARE)/pixmaps
+ MAN          = $(SHARE)/man
+ LOG          = $(VAR)/log
+ RUN          = $(VAR)/run
+@@ -220,7 +221,7 @@ tivo-hack-install:
+ 
+ tivo-install-hack: dirs install-prog install-etc \
+                    install-modules install-cidgate
+-	install -m 644 $(LOGO) $(IMAGEDIR)/.
++	install -m 644 $(LOGO) $(INSTALL_ROOT)$(IMAGEDIR)/.
+ 	cp -a tivocid tivoncid $(BIN)
+ 
+ tivo-mips:
+@@ -238,8 +239,8 @@ tivo-mips:
+ tivo-install: dirs install-prog install-etc \
+               install-modules install-cidgate \
+               install-man install-scripts install-fedora
+-	install -m 644 $(LOGO) $(IMAGEDIR)/.
+-	cp -a tivocid tivoncid $(BIN)
++	install -m 644 $(LOGO) $(INSTALL_ROOT)$(IMAGEDIR)/.
++	cp -a tivocid tivoncid $(INSTALL_ROOT)$(BIN)
+ 
+ freebsd:
+ 	$(MAKE) local freebsddir prefix=/usr/local prefix2=$(prefix) \
+@@ -285,34 +286,49 @@ cygwin-install:
+             settag="set noserial" \
+             MODEMDEV=$(DEV)/com1
+ 
++sas-danube:
++	$(MAKE) local ubuntudir \
++	        INSTALL_ROOT=$(INSTALL_ROOT) \
++	        EXTRA_CFLAGS="$(EXTRA_CFLAGS)" \
++	        EXTRA_LDFLAGS="$(EXTRA_LDFLAGS)" \
++	        CC=$(CC) \
++	        LD=$(LD) \
++	        RANLIB=$(RANLIB)
++	touch sas-danube
++
++sas-install: dirs install-prog install-etc \
++              install-modules install-cidgate \
++              install-man install-scripts install-ubuntu
++	install -m 644 $(LOGO) $(INSTALL_ROOT)$(IMAGEDIR)/.
++
+ dirs:
+-	@if ! test -d $(BIN); then mkdir -p $(BIN); fi
+-	@if ! test -d $(SBIN); then mkdir -p $(SBIN); fi
+-	@if ! test -d $(ETC); then mkdir -p $(ETC); fi
+-	@if ! test -d $(LOG); then mkdir -p $(LOG); fi
+-	@if ! test -d $(CONFDIR); then mkdir -p $(CONFDIR); fi
+-	@if ! test -d $(IMAGEDIR); then mkdir -p $(IMAGEDIR); fi
++	@if ! test -d $(INSTALL_ROOT)$(BIN); then mkdir -p $(INSTALL_ROOT)$(BIN); fi
++	@if ! test -d $(INSTALL_ROOT)$(SBIN); then mkdir -p $(INSTALL_ROOT)$(SBIN); fi
++	@if ! test -d $(INSTALL_ROOT)$(ETC); then mkdir -p $(INSTALL_ROOT)$(ETC); fi
++	@if ! test -d $(INSTALL_ROOT)$(LOG); then mkdir -p $(INSTALL_ROOT)$(LOG); fi
++	@if ! test -d $(INSTALL_ROOT)$(CONFDIR); then mkdir -p $(INSTALL_ROOT)$(CONFDIR); fi
++	@if ! test -d $(INSTALL_ROOT)$(IMAGEDIR); then mkdir -p $(INSTALL_ROOT)$(IMAGEDIR); fi
+ 
+ install: dirs install-prog install-man install-etc \
+          install-modules install-cidgate install-scripts install-tools
+-	install -m 644 $(LOGO) $(IMAGEDIR)/.
++	install -m 644 $(LOGO) $(INSTALL_ROOT)$(IMAGEDIR)/.
+ 
+ install-prog: $(PROG)
+-	install -m 755 $(PROG) $(SBIN)
+-	install -m 755 $(CLIENT) $(BIN)
++	install -m 755 $(PROG) $(INSTALL_ROOT)$(SBIN)
++	install -m 755 $(CLIENT) $(INSTALL_ROOT)$(BIN)
+ 
+ install-etc: $(ETCFILE)
+ 	@if test -f $(CONFDIR)/ncidd.alias; \
+-		then install -m 644 ncidd.alias $(CONFDIR)/ncidd.alias.new; \
+-		else install -m 644 ncidd.alias $(CONFDIR); \
++		then install -m 644 ncidd.alias $(INSTALL_ROOT)$(CONFDIR)/ncidd.alias.new; \
++		else install -m 644 ncidd.alias $(INSTALL_ROOT)$(CONFDIR); \
+ 	fi
+ 	@if test -f $(CONFDIR)/ncidd.conf; \
+-		then install -m 644 ncidd.conf $(CONFDIR)/ncidd.conf.new; \
+-		else install -m 644 ncidd.conf $(CONFDIR); \
++		then install -m 644 ncidd.conf $(INSTALL_ROOT)$(CONFDIR)/ncidd.conf.new; \
++		else install -m 644 ncidd.conf $(INSTALL_ROOT)$(CONFDIR); \
+ 	fi
+ 	@if test -f $(CONFDIR)/ncid.conf; \
+-		then install -m 644 ncid.conf $(CONFDIR)/ncid.conf.new; \
+-		else install -m 644 ncid.conf $(CONFDIR); \
++		then install -m 644 ncid.conf $(INSTALL_ROOT)$(CONFDIR)/ncid.conf.new; \
++		else install -m 644 ncid.conf $(INSTALL_ROOT)$(CONFDIR); \
+ 	fi
+ 
+ install-fedora:
+diff --git a/cidgate/Makefile b/cidgate/Makefile
+index 921b5da..6d08df7 100644
+--- a/cidgate/Makefile
++++ b/cidgate/Makefile
+@@ -11,7 +11,7 @@ FILES       = README Makefile $(SOURCES) $(PLSOURCE) $(SHSOURCE)
+ MIPSXCOMPILE = mips-TiVo-linux-
+ PPCXCOMPILE  = /usr/local/tivo/bin/
+ 
+-prefix      = /usr/local
++prefix      = /usr
+ prefix2     = $(prefix)
+ prefix3     =
+ 
+@@ -36,10 +36,10 @@ DEFINES     = -D_BSD_SOURCE \
+               -DPIDFILE=\"$(PIDFILE)\"
+ 
+ MFLAGS      =
+-CFLAGS      = -O $(DEFINES) -I. $(MFLAGS)
++CFLAGS      = -O $(DEFINES) -I. $(MFLAGS) $(EXTRA_CFLAGS)
+ 
+ STRIP       = -s
+-LDFLAGS     = $(STRIP) $(MFLAGS) -lpcap
++LDFLAGS     = $(STRIP) $(MFLAGS)  $(EXTRA_LDFLAGS) -lpcap
+ 
+ PLSCRIPT    = $(PLSOURCE:.pl=)
+ SHSCRIPT    = $(SHSOURCE:.sh=)
+@@ -79,6 +79,7 @@ tivo-s2:
+ 
+ tivo-mips:
+ 	make OS=tivo-mips cidgate
++
+ cygwin:
+ 	make OS=cygwin cidgate prefix=/usr prefix2=
+ 
+@@ -95,30 +96,30 @@ $(OBJECTS): $(HEADER)
+ cidgate: $(PROG) $(PLSCRIPT) $(SHSCRIPT)
+ 
+ install: $(PROG) dirs install-script install-etc
+-	install -m 755 $(PROG) $(SBIN)
++	install -m 755 $(PROG) $(INSTALL_ROOT)$(SBIN)
+ 
+ install-script: $(PLSCRIPT) $(SHSCRIPT)
+-	install -m 755 $(SHSCRIPT) $(BIN)
+-	install -m 755 $(PLSCRIPT) $(SBIN)
++	install -m 755 $(SHSCRIPT) $(INSTALL_ROOT)$(BIN)
++	install -m 755 $(PLSCRIPT) $(INSTALL_ROOT)$(SBIN)
+ 
+ install-etc: $(CONF)
+ 	@if test -f $(CONFDIR)/$(PROG).conf; \
+-		then install -m 644 $(PROG).conf $(CONFDIR)/$(PROG).conf.new; \
+-		else install -m 644 $(PROG).conf $(CONFDIR); \
++		then install -m 644 $(PROG).conf $(INSTALL_ROOT)$(CONFDIR)/$(PROG).conf.new; \
++		else install -m 644 $(PROG).conf $(INSTALL_ROOT)$(CONFDIR); \
+ 	fi
+ 	@if test -f $(CONFDIR)/ncidsip.conf; \
+-		then install -m 644 ncidsip.conf $(CONFDIR)/ncidsip.conf.new; \
+-		else install -m 644 ncidsip.conf $(CONFDIR); \
++		then install -m 644 ncidsip.conf $(INSTALL_ROOT)$(CONFDIR)/ncidsip.conf.new; \
++		else install -m 644 ncidsip.conf $(INSTALL_ROOT)$(CONFDIR); \
+ 	fi
+ 	@if test -f $(CONFDIR)/yac2ncid.conf; \
+-		then install -m 644 yac2ncid.conf $(CONFDIR)/yac2ncid.conf.new; \
+-		else install -m 644 yac2ncid.conf $(CONFDIR); \
++		then install -m 644 yac2ncid.conf $(INSTALL_ROOT)$(CONFDIR)/yac2ncid.conf.new; \
++		else install -m 644 yac2ncid.conf $(INSTALL_ROOT)$(CONFDIR); \
+ 	fi
+ 
+ dirs:
+-	@if ! test -d $(SBIN); then mkdir -p $(SBIN); fi
+-	@if ! test -d $(CONFDIR); then mkdir -p $(CONFDIR); fi
+-	@if ! test -d $(MAN8); then mkdir -p $(MAN8); fi
++	@if ! test -d $(INSTALL_ROOT)$(SBIN); then mkdir -p $(INSTALL_ROOT)$(SBIN); fi
++	@if ! test -d $(INSTALL_ROOT)$(CONFDIR); then mkdir -p $(INSTALL_ROOT)$(CONFDIR); fi
++	@if ! test -d $(INSTALL_ROOT)$(MAN8); then mkdir -p $(INSTALL_ROOT)$(MAN8); fi
+ 
+ clean:
+ 	rm -f *.o *.a
+diff --git a/debian/Makefile b/debian/Makefile
+index a923489..1538fef 100644
+--- a/debian/Makefile
++++ b/debian/Makefile
+@@ -1,20 +1,20 @@
+ DIST        = ncidd.init ncidsip.init sip2ncid.init yac2ncid.init \
+               ncid-kpopup.init ncid-mythtv.init ncid-page.init \
+               ncid-samba.init ncid-speak.init ncid-yac.init
+-FILES		= README Makefile.Debain $(DIST)
++FILES       = README Makefile.Debain $(DIST)
+ 
+-prefix		= /usr/local
+-prefix2		= $(prefix)
++prefix      = /usr
++prefix2     = $(prefix)
+ prefix3     =
+ 
+-BIN			= $(prefix)/bin
+-SBIN		= $(prefix)/sbin
+-ETC			= $(prefix2)/etc
++BIN         = $(prefix)/bin
++SBIN        = $(prefix)/sbin
++ETC         = $(prefix2)/etc
+ VAR         = $(prefix3)/VAR
+ 
+ INIT        = $(ETC)/init.d
+-CONFDIR		= $(ETC)/ncid
+-LOG			= $(VAR)/log
++CONFDIR     = $(ETC)/ncid
++LOG         = $(VAR)/log
+ 
+ PLSCRIPT    = $(PLSOURCE:.pl=)
+ SHSCRIPT    = $(SHSOURCE:.sh=)
+@@ -23,10 +23,10 @@ SITE        = $(DIST:.init=)
+ init: $(SITE)
+ 
+ install: $(SITE) dirs
+-	install -m 755 $(SITE) $(INIT)
++	install -m 755 $(SITE) $(INSTALL_ROOT)$(INIT)
+ 
+ dirs:
+-	@if ! test -d $(INIT); then mkdir -p $(INIT); fi
++	@if ! test -d $(INSTALL_ROOT)$(INIT); then mkdir -p $(INSTALL_ROOT)$(INIT); fi
+ 
+ clean:
+ 
+diff --git a/man/Makefile b/man/Makefile
+index 3ea4f9e..af65925 100644
+--- a/man/Makefile
++++ b/man/Makefile
+@@ -5,7 +5,7 @@ MANSRC8 = ncidd.8 ncidsip.8 sip2ncid.8
+ MANSRC  = $(MANSRC1) $(MANSRC5) $(MANSRC8)
+ FILES   = Makefile $(MANSRC)
+ 
+-prefix  = /usr/local
++prefix  = /usr
+ prefix2 = $(prefix)
+ 
+ SHARE   = $(prefix)/share
+@@ -28,17 +28,17 @@ html: $(MANSRC1:.1=.1.html) $(MANSRC5:.5=.5.html) $(MANSRC8:.8=.8.html)
+ install: install-man
+ 
+ install-man: $(MANSRC) dirs
+-	cd $(MAN1); rm -f $(MANSRC1)
+-	cd $(MAN5); rm -f $(MANSRC5)
+-	cd $(MAN8); rm -f $(MANSRC8)
+-	install -m 644 $(MANSRC1) $(MAN1)
+-	install -m 644 $(MANSRC5) $(MAN5)
+-	install -m 644 $(MANSRC8) $(MAN8)
++	cd $(INSTALL_ROOT)$(MAN1); rm -f $(MANSRC1)
++	cd $(INSTALL_ROOT)$(MAN5); rm -f $(MANSRC5)
++	cd $(INSTALL_ROOT)$(MAN8); rm -f $(MANSRC8)
++	install -m 644 $(MANSRC1) $(INSTALL_ROOT)$(MAN1)
++	install -m 644 $(MANSRC5) $(INSTALL_ROOT)$(MAN5)
++	install -m 644 $(MANSRC8) $(INSTALL_ROOT)$(MAN8)
+ 
+ dirs:
+-	@if ! test -d $(MAN1); then mkdir -p $(MAN1); fi
+-	@if ! test -d $(MAN5); then mkdir -p $(MAN5); fi
+-	@if ! test -d $(MAN8); then mkdir -p $(MAN8); fi
++	@if ! test -d $(INSTALL_ROOT)$(MAN1); then mkdir -p $(INSTALL_ROOT)$(MAN1); fi
++	@if ! test -d $(INSTALL_ROOT)$(MAN5); then mkdir -p $(INSTALL_ROOT)$(MAN5); fi
++	@if ! test -d $(INSTALL_ROOT)$(MAN8); then mkdir -p $(INSTALL_ROOT)$(MAN8); fi
+ 
+ clean:
+ 
+diff --git a/modules/Makefile b/modules/Makefile
+index c85dc7e..d37ae43 100644
+--- a/modules/Makefile
++++ b/modules/Makefile
+@@ -3,7 +3,7 @@ SHMODULES = ncid-page.sh ncid-samba.sh ncid-speak.sh ncid-mythtv.sh \
+ DIST      = ncidmodules.conf.dist
+ FILES     = README.modules Makefile $(MODULES) $(ETCFILE)
+ 
+-prefix    = /usr/local
++prefix    = /usr
+ prefix2   = $(prefix)
+ 
+ setmod    = NONE
+@@ -23,13 +23,13 @@ modules: $(MODULES) $(ETCFILE)
+ install: install-etc install-modules
+ 
+ install-modules: $(MODULES)
+-	@if test ! -d $(MODULEDIR); then mkdir -p $(MODULEDIR); fi
+-	install -m 755 $(MODULES) $(MODULEDIR)
++	@if test ! -d $(INSTALL_ROOT)$(MODULEDIR); then mkdir -p $(INSTALL_ROOT)$(MODULEDIR); fi
++	install -m 755 $(MODULES) $(INSTALL_ROOT)$(MODULEDIR)
+ 
+ install-etc: $(ETCFILE)
+-	@if test -f $(CONFDIR)/$(ETCFILE); \
+-		then install -m 644 $(ETCFILE) $(CONFDIR)/$(ETCFILE).new; \
+-		else install -m 644 $(ETCFILE) $(CONFDIR); \
++	@if test -f $(INSTALL_ROOT)$(CONFDIR)/$(ETCFILE); \
++		then install -m 644 $(ETCFILE) $(INSTALL_ROOT)$(CONFDIR)/$(ETCFILE).new; \
++		else install -m 644 $(ETCFILE) $(INSTALL_ROOT)$(CONFDIR); \
+ 	fi
+ 
+ clean:
+diff --git a/scripts/Makefile b/scripts/Makefile
+index e5fcd91..e68132f 100644
+--- a/scripts/Makefile
++++ b/scripts/Makefile
+@@ -3,7 +3,7 @@ ETCCONF   = ncidrotate.conf
+ LOGCONF   = ncid.logrotate
+ FILES     = README Makefile $(SHSCRIPT) $(ETCCONF) $(LOGCONF)
+ 
+-prefix    = /usr/local
++prefix    = /usr
+ prefix2   = $(prefix)
+ prefix3   =
+ 
+@@ -20,19 +20,19 @@ scripts: $(ROTATE) $(SCRIPTS)
+ install: install-etc install-scripts install-logrotate
+ 
+ install-scripts: $(SCRIPTS)
+-	@if test ! -d $(SHARE); then mkdir -p $(SHARE); fi
+-	install -m 755 $(SCRIPTS) $(SHARE)
++	@if test ! -d $(INSTALL_ROOT)$(SHARE); then mkdir -p $(INSTALL_ROOT)$(SHARE); fi
++	install -m 755 $(SCRIPTS) $(INSTALL_ROOT)$(SHARE)
+ 
+ install-etc: $(ETCCONF)
+-	@if test ! -d $(CONFDIR); then mkdir -p $(CONFDIR); fi
+-	@if test -f $(CONFDIR)/$(ETCCONF); \
+-		then install -m 644 $(ETCCONF) $(CONFDIR)/$(ETCCONF).new; \
+-		else install -m 644 $(ETCCONF) $(CONFDIR); \
++	@if test ! -d $(INSTALL_ROOT)$(CONFDIR); then mkdir -p $(INSTALL_ROOT)$(CONFDIR); fi
++	@if test -f $(INSTALL_ROOT)$(CONFDIR)/$(ETCCONF); \
++		then install -m 644 $(ETCCONF) $(INSTALL_ROOT)$(CONFDIR)/$(ETCCONF).new; \
++		else install -m 644 $(ETCCONF) $(INSTALL_ROOT)$(CONFDIR); \
+ 	fi
+ 
+ install-logrotate: $(ROTATE)
+-	@if test ! -d $(ROTATEDIR); then mkdir -p $(ROTATEDIR); fi
+-	install -m 644 ncid $(ROTATEDIR)
++	@if test ! -d $(INSTALL_ROOT)$(ROTATEDIR); then mkdir -p $(INSTALL_ROOT)$(ROTATEDIR); fi
++	install -m 644 ncid $(INSTALL_ROOT)$(ROTATEDIR)
+ 
+ clean:
+ 
+diff --git a/tools/Makefile b/tools/Makefile
+index da4723a..5809cf0 100644
+--- a/tools/Makefile
++++ b/tools/Makefile
+@@ -4,7 +4,7 @@ ETCFILE     =
+ FILES		= Makefile $(PLSOURCE) $(SHSOURCE) $(MANSRC)
+ DIST        =
+ 
+-prefix		= /usr/local
++prefix		= /usr
+ prefix2		= $(prefix)
+ prefix3		=
+ 
+@@ -36,7 +36,7 @@ install: install-script
+ #install-script: $(PLSCRIPT) $(SHSCRIPT)
+ #	install -m 755 $(PLSCRIPT) $(SHSCRIPT) $(BIN)
+ install-script: $(PLSCRIPT)
+-	install -m 755 $(PLSCRIPT) $(BIN)
++	install -m 755 $(PLSCRIPT) $(INSTALL_ROOT)$(BIN)
+ 
+ clean:
+ 
+-- 
+1.7.4.1
+

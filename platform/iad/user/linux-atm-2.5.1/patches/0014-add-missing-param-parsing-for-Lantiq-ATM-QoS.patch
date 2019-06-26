@@ -1,0 +1,46 @@
+From: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+Date: Mon, 18 Feb 2013 15:17:29 +0100
+Subject: add missing param parsing for Lantiq ATM QoS
+
+Signed-off-by: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+---
+ src/lib/text2qos.c | 17 ++++++++++++++++-
+ 1 file changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/src/lib/text2qos.c b/src/lib/text2qos.c
+index 8e0b8bc..a52b0de 100644
+--- a/src/lib/text2qos.c
++++ b/src/lib/text2qos.c
+@@ -157,7 +157,11 @@ int text2qos(const char *text,struct atm_qos *qos,int flags)
+ 	static const unsigned char aal_number[] = { ATM_AAL0, ATM_AAL5 };
+ 	int item;
+ 
+-	item = fetch(&text,"!none","ubr","cbr","vbr","abr","aal0","aal5",NULL);
++	item = fetch(&text,"!none","ubr","cbr","vbr","abr","aal0","aal5",
++#ifdef CONFIG_ATM_EXT_PARAMETERS
++			"nrt-vbr","rt-vbr","ubr+",
++#endif
++		     NULL);
+ 	switch (item) {
+ 	    case 1:
+ 	    case 2:
+@@ -169,6 +173,17 @@ int text2qos(const char *text,struct atm_qos *qos,int flags)
+ 	    case 6:
+ 		aal = aal_number[item-5];
+ 		break;
++#ifdef CONFIG_ATM_EXT_PARAMETERS
++	    case 8:
++		traffic_class = ATM_VBR_NRT;
++		break;
++	    case 9:
++		traffic_class = ATM_VBR_RT;
++		break;
++	    case 10:
++		traffic_class = ATM_UBR_PLUS;
++		break;
++#endif
+ 	    default:
+ 		return -1;
+ 	}
+--
+

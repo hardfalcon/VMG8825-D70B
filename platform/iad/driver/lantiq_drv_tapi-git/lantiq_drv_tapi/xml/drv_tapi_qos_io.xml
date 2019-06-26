@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE ioctls SYSTEM "drv_tapi_io.dtd">
+<!--
+
+                              Copyright (c) 2014
+                            Lantiq Deutschland GmbH
+
+  For licensing information, see the file 'LICENSE' in the root folder of
+  this software module.
+
+-->
+<!--
+   \file drv_tapi_io.xml
+   Description of TAPI v4 QOS ioctl handlers
+-->
+<ioctls>
+   <ioctl name="FIO_QOS_START">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_QOS_Start</handler>
+      <argument kind="pointer">QOS_INIT_SESSION const</argument>
+   </ioctl>
+   <ioctl name="FIO_QOS_ON_SOCKET_START">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_QOS_SessionOnSocketStart</handler>
+      <argument kind="pointer">QOS_INIT_SESSION_ON_SOCKET const</argument>
+   </ioctl>
+   <ioctl name="FIO_QOS_ACTIVATE"/>
+   <ioctl name="FIO_QOS_STOP">
+      <context>channel</context>
+      <handler kind="high-level">IFX_TAPI_QOS_Stop</handler>
+   </ioctl>
+   <ioctl name="FIO_QOS_CLEAN">
+      <handler kind="high-level">IFX_TAPI_QOS_Clean</handler>
+   </ioctl>
+</ioctls>

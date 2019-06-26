@@ -1,0 +1,1 @@
+../default/configure.mk

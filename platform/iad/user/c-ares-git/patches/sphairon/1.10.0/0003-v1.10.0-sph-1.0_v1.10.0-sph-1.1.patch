@@ -1,0 +1,125 @@
+diff --git a/adig.c b/adig.c
+index e112dc0444bc17e1099e46d07e8f32dbc98cde8b..4fc363229faf28b6ab68054a69a03d60fb235a26 100644
+--- a/adig.c
++++ b/adig.c
+@@ -205,7 +205,7 @@ int main(int argc, char **argv)
+   options.flags = ARES_FLAG_NOCHECKRESP;
+   options.servers = NULL;
+   options.nservers = 0;
+-  while ((c = ares_getopt(argc, argv, "df:s:c:t:T:U:")) != -1)
++  while ((c = ares_getopt(argc, argv, "df:s:c:t:T:U:P:")) != -1)
+     {
+       switch (c)
+         {
+@@ -323,7 +323,14 @@ int main(int argc, char **argv)
+           options.udp_port = (unsigned short)strtol(optarg, NULL, 0);
+           optmask |= ARES_OPT_UDP_PORT;
+           break;
+-        }
++      case 'P':
++          /* Set the Priority of generated dns resolv frames */
++          if (!ISDIGIT(*optarg))
++            usage();
++          options.socket_send_priority = strtol(optarg, NULL, 0);
++          optmask |= ARES_OPT_SOCK_PRIO;
++          break;
++      }
+     }
+   argc -= optind;
+   argv += optind;
+@@ -796,7 +803,7 @@ static const char *class_name(int dnsclass)
+ static void usage(void)
+ {
+   fprintf(stderr, "usage: adig [-f flag] [-s server] [-c class] "
+-          "[-t type] [-p port] name ...\n");
++          "[-t type] [-T tcp-port] [-U udp-port] [-P Priority] name ...\n");
+   exit(1);
+ }
+ 
+diff --git a/ares.h b/ares.h
+index 0328f26c2797a57bd194df5c9da69c79c448300d..3f15c306b5c54af900335f74bc93d38453b35dbb 100644
+--- a/ares.h
++++ b/ares.h
+@@ -158,6 +158,7 @@ extern "C" {
+ #define ARES_OPT_TIMEOUTMS      (1 << 13)
+ #define ARES_OPT_ROTATE         (1 << 14)
+ #define ARES_OPT_EDNSPSZ        (1 << 15)
++#define ARES_OPT_SOCK_PRIO      (1 << 16)
+ 
+ /* Nameinfo flag values */
+ #define ARES_NI_NOFQDN                  (1 << 0)
+@@ -264,6 +265,7 @@ struct ares_options {
+   struct apattern *sortlist;
+   int nsort;
+   int ednspsz;
++  int socket_send_priority;
+ };
+ 
+ struct hostent;
+diff --git a/ares_init.c b/ares_init.c
+index 1a7ce27b9a63fcefd583250fe954e45bb7d2709c..7d2ae48c376932e7a8a3be8825196f2fff6f6cdc 100644
+--- a/ares_init.c
++++ b/ares_init.c
+@@ -158,6 +158,7 @@ int ares_init_options2(ares_channel *channelptr, struct ares_options *options,
+   channel->ednspsz = -1;
+   channel->socket_send_buffer_size = -1;
+   channel->socket_receive_buffer_size = -1;
++  channel->socket_send_priority = -1;
+   channel->nservers = -1;
+   channel->ndomains = -1;
+   channel->nsort = -1;
+@@ -453,6 +454,10 @@ static int init_by_options(ares_channel channel,
+   if ((optmask & ARES_OPT_EDNSPSZ) && channel->ednspsz == -1)
+     channel->ednspsz = options->ednspsz;
+ 
++  /* overwrite the default value */
++  if ((optmask & ARES_OPT_SOCK_PRIO) && options->socket_send_priority > -1)
++    channel->socket_send_priority = options->socket_send_priority;
++
+   /* Copy the IPv4 servers, if given. */
+   if ((optmask & ARES_OPT_SERVERS) && channel->nservers == -1)
+     {
+diff --git a/ares_private.h b/ares_private.h
+index 8d25bfd26a16a2909e59dce23933a677ca9b7fad..ad3eeccda36c0c5479ec7d98fa583e9121243403 100644
+--- a/ares_private.h
++++ b/ares_private.h
+@@ -255,6 +255,7 @@ struct ares_channeldata {
+   int tcp_port;
+   int socket_send_buffer_size;
+   int socket_receive_buffer_size;
++  int socket_send_priority;
+   char **domains;
+   int ndomains;
+   struct apattern *sortlist;
+diff --git a/ares_process.c b/ares_process.c
+index bbeca5e737e73f36fe21acabd462b71cb0e4172b..049df93bfa1fedd543291462d45f20df26904d6d 100644
+--- a/ares_process.c
++++ b/ares_process.c
+@@ -934,6 +934,14 @@ static int configure_socket(ares_socket_t s, int family, ares_channel channel)
+                  sizeof(channel->socket_receive_buffer_size)) == -1)
+     return -1;
+ 
++  /* since this feature is only available for users with higher 
++  privileges, we won't bail out here */
++  if (channel->socket_send_priority > -1) {
++      setsockopt(s, SOL_SOCKET, SO_PRIORITY,
++                 (void *)&channel->socket_send_priority,
++                 sizeof(channel->socket_send_priority));
++  }
++
+ #ifdef SO_BINDTODEVICE
+   if (channel->local_dev_name[0]) {
+     if (setsockopt(s, SOL_SOCKET, SO_BINDTODEVICE,
+diff --git a/ares_version.h b/ares_version.h
+index 43ff92c01dd2b303e4efdd1a3636cfb8884083df..7246e76a5aa9ecd37db3281937525067251f6c12 100644
+--- a/ares_version.h
++++ b/ares_version.h
+@@ -11,7 +11,7 @@
+ #define ARES_VERSION ((ARES_VERSION_MAJOR<<16)|\
+                        (ARES_VERSION_MINOR<<8)|\
+                        (ARES_VERSION_PATCH))
+-#define ARES_VERSION_STR "1.10.0-sph-1.0"
++#define ARES_VERSION_STR "1.10.0-sph-1.1"
+ 
+ #if (ARES_VERSION >= 0x010700)
+ #  define CARES_HAVE_ARES_LIBRARY_INIT 1

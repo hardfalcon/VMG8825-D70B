@@ -1,0 +1,382 @@
+diff --git a/adig.c b/adig.c
+index a64de0de9431f0804388e7e29628223c525e22b1..d396137e7ff2413756a4a35472c4fb46576b12b8 100644
+--- a/adig.c
++++ b/adig.c
+@@ -190,7 +190,10 @@ int main(int argc, char **argv)
+   struct timeval *tvp, tv;
+   struct ares_addr_node *srvr, *servers = NULL;
+   char bind_interface[32] = {0};
+-  char resolver_file[64] = {0};
++  char *resolver_file = NULL;
++  struct ares_addr_node *server_list = NULL;
++  char *pBuf = NULL;
++  int verbose = 0;
+ 
+ #ifdef USE_WINSOCK
+   WORD wVersionRequested = MAKEWORD(USE_WINSOCK,USE_WINSOCK);
+@@ -208,7 +211,7 @@ int main(int argc, char **argv)
+   options.flags = ARES_FLAG_NOCHECKRESP;
+   options.servers = NULL;
+   options.nservers = 0;
+-  while ((c = ares_getopt(argc, argv, "a:A:b:df:s:c:t:T:U:P:pi:r:R")) != -1)
++  while ((c = ares_getopt(argc, argv, "a:A:b:df:s:c:t:T:U:P:pi:r:Rv")) != -1)
+     {
+       switch (c)
+         {
+@@ -353,13 +356,14 @@ int main(int argc, char **argv)
+           break;
+       case 'i':
+           /* Set the interface to make the dns resolving */
+-          strncpy(bind_interface, optarg, sizeof(bind_interface));
+-          bind_interface[31] = 0;
++          strncpy(bind_interface, optarg, sizeof(bind_interface) - 1);
+           break;
+       case 'r':
+           /* Set the interface to make the dns resolving */
+-          strncpy(resolver_file, optarg, sizeof(resolver_file));
+-          resolver_file[sizeof(resolver_file) - 1] = 0;
++          if (resolver_file) {
++            free(resolver_file);
++          }
++          resolver_file = strdup(optarg);
+           break;
+       case 'R':
+           /* Rotate the if multiple queries are made */
+@@ -369,6 +373,9 @@ int main(int argc, char **argv)
+           /* use the build in ARES_OPT_SENDPARALLEL option */
+           optmask |= ARES_OPT_SEND_PARALLEL;
+           break;
++      case 'v':
++          verbose = 1;
++          break;
+       }
+     }
+   argc -= optind;
+@@ -376,6 +383,10 @@ int main(int argc, char **argv)
+   if (argc == 0)
+     usage();
+ 
++  if (verbose && strlen(bind_interface) > 0) {
++    printf("Use interface: %s\n", bind_interface);
++  }
++
+   status = ares_init_options2(&channel, &options, optmask, resolver_file);
+ 
+   if (status != ARES_SUCCESS)
+@@ -405,6 +416,32 @@ int main(int argc, char **argv)
+    * otherwise, supply the query name as an argument so we can
+    * distinguish responses for the user when printing them out.
+    */
++
++  if (verbose) {
++    printf("Use resolver-file: %s\n", resolver_file);
++
++  ares_get_servers(channel, &server_list);
++
++  if (verbose && server_list) {
++      pBuf = malloc(128);
++      int i = 0;
++      struct ares_addr_node *s = server_list;
++      for (s = server_list; s != NULL; s = s->next) {
++          switch (s->family) {
++          case AF_INET:
++          case AF_INET6:
++              memset(pBuf, 0x0, 128);
++              inet_ntop(s->family, (const void *)&s->addr, pBuf, 128);
++              printf("Nameserver %d (%s): %s \n", i, s->family == AF_INET ? "IPv4" : "IPv6", pBuf);
++              i++;
++              break;
++          default:
++              break;
++          }
++      }
++    }
++  }
++  
+   if (argc == 1)
+     ares_query(channel, *argv, dnsclass, type, callback, (char *) NULL);
+   else
+@@ -439,6 +476,18 @@ int main(int argc, char **argv)
+   WSACleanup();
+ #endif
+ 
++  if (resolver_file) {
++      free(resolver_file);
++  }
++
++  if (server_list) {
++    ares_free_data(server_list);
++  }
++
++  if (pBuf) {
++    free(pBuf);
++  }
++
+   return 0;
+ }
+ 
+@@ -846,10 +895,11 @@ static void usage(void)
+ {
+   fprintf(stderr, "version: %s\n", ARES_VERSION_STR);
+   fprintf(stderr, "usage: adig [-f flag] [-s server] [-c class] [-a timeout in s ] [-A timeout in ms] [ -b retries] "
+-          "[-t type] [-T tcp-port] [-U udp-port] [-P priority] [-i intf] [-r resolver-file] [-p] [-R] name ...\n");
++          "[-t type] [-T tcp-port] [-U udp-port] [-P priority] [-i intf] [-r resolver-file] [-p] [-R] [-v] name ...\n");
+   fprintf(stderr, "version: %s\n", ARES_VERSION_STR);
+   fprintf(stderr, "note: c-ares dns packet send priority library default is %d\n", ARES_DEFAULT_SOCKET_SEND_PRIORITY);
+   fprintf(stderr, "note: -p option does dns queries in parallel (like dnsmasq)\n");
++  fprintf(stderr, "note: -v option shows some debugging content\n");
+   exit(1);
+ }
+ 
+diff --git a/ahost.c b/ahost.c
+index fd6e50d51c5c6cb18154b3f94fbbc91258a34d83..c55fe0e5c44518d8932618615cbda7b7655f4ad1 100644
+--- a/ahost.c
++++ b/ahost.c
+@@ -58,6 +58,8 @@ int main(int argc, char **argv)
+   struct timeval *tvp, tv;
+   struct in_addr addr4;
+   struct ares_in6_addr addr6;
++  char bind_interface[32] = {0};
++  char *resolver_file = NULL;
+ 
+ #ifdef USE_WINSOCK
+   WORD wVersionRequested = MAKEWORD(USE_WINSOCK,USE_WINSOCK);
+@@ -72,7 +74,7 @@ int main(int argc, char **argv)
+       return 1;
+     }
+ 
+-  while ((c = ares_getopt(argc,argv,"dt:h")) != -1)
++  while ((c = ares_getopt(argc,argv,"dt:i:r:h")) != -1)
+     {
+       switch (c)
+         {
+@@ -89,6 +91,14 @@ int main(int argc, char **argv)
+           else
+             usage();
+           break;
++        case 'i':
++          /* Set the interface to make the dns resolving */
++          strncpy(bind_interface, optarg, sizeof(bind_interface)-1);
++          break;
++        case 'r':
++          /* Set the resolver file for the dns resolving */
++          resolver_file = strdup(optarg);
++          break;
+         case 'h':
+         default:
+           usage();
+@@ -101,13 +111,17 @@ int main(int argc, char **argv)
+   if (argc < 1)
+     usage();
+ 
+-  status = ares_init(&channel);
++  status = ares_init2(&channel, resolver_file);
+   if (status != ARES_SUCCESS)
+     {
+       fprintf(stderr, "ares_init: %s\n", ares_strerror(status));
+       return 1;
+     }
+ 
++  if (strlen(bind_interface) > 0) {
++    ares_set_local_dev(channel, bind_interface);
++  }
++
+   /* Initiate the queries, one per command-line argument. */
+   for ( ; *argv; argv++)
+     {
+@@ -148,6 +162,10 @@ int main(int argc, char **argv)
+   WSACleanup();
+ #endif
+ 
++  if (resolver_file) {
++      free(resolver_file);
++  }
++
+   return 0;
+ }
+ 
+@@ -185,6 +203,6 @@ static void callback(void *arg, int status, int timeouts, struct hostent *host)
+ 
+ static void usage(void)
+ {
+-  fprintf(stderr, "usage: ahost [-t {a|aaaa}] {host|addr} ...\n");
++  fprintf(stderr, "usage: ahost [-i intf] [-r resolver-file] [-t {a|aaaa}] {host|addr} ...\n");
+   exit(1);
+ }
+diff --git a/ares.h b/ares.h
+index f2933aae1edc583231e988b9788ca5fa5c803ab3..8e06498a502c3464227392b4542d0e4526bcc5b0 100644
+--- a/ares.h
++++ b/ares.h
+@@ -161,6 +161,7 @@ extern "C" {
+ #define ARES_OPT_EDNSPSZ        (1 << 15)
+ #define ARES_OPT_SOCK_PRIO      (1 << 16)
+ #define ARES_OPT_SEND_PARALLEL  (1 << 17)
++#define ARES_OPT_USE_RESOLVER   (1 << 18)
+ 
+ /* Nameinfo flag values */
+ #define ARES_NI_NOFQDN                  (1 << 0)
+@@ -268,6 +269,7 @@ struct ares_options {
+   int nsort;
+   int ednspsz;
+   int socket_send_priority;
++  char *resolv_conf_name;
+ };
+ 
+ struct hostent;
+diff --git a/ares_destroy.c b/ares_destroy.c
+index 6c1f32442ea90f55c8202609a2b89950741d432f..f490795aeae7630019b0510e6d046771708400d8 100644
+--- a/ares_destroy.c
++++ b/ares_destroy.c
+@@ -36,6 +36,8 @@ void ares_destroy_options(struct ares_options *options)
+     free(options->sortlist);
+   if(options->lookups)
+     free(options->lookups);
++  if (options->resolv_conf_name)
++    free(options->resolv_conf_name);
+ }
+ 
+ void ares_destroy(ares_channel channel)
+@@ -85,6 +87,9 @@ void ares_destroy(ares_channel channel)
+   if (channel->lookups)
+     free(channel->lookups);
+ 
++  if (channel->resolv_conf_name)
++    free(channel->resolv_conf_name);
++
+   free(channel);
+ }
+ 
+diff --git a/ares_init.c b/ares_init.c
+index 86748abbe9d67f2aa5f039239793f4e1409268c1..11fe9a597f3101008e866afafa698383910a84f1 100644
+--- a/ares_init.c
++++ b/ares_init.c
+@@ -171,6 +171,7 @@ int ares_init_options2(ares_channel *channelptr, struct ares_options *options,
+   channel->sock_state_cb_data = NULL;
+   channel->sock_create_cb = NULL;
+   channel->sock_create_cb_data = NULL;
++  channel->resolv_conf_name = NULL;
+ 
+   channel->last_server = 0;
+   channel->last_timeout_processed = (time_t)now.tv_sec;
+@@ -178,9 +179,9 @@ int ares_init_options2(ares_channel *channelptr, struct ares_options *options,
+   memset(&channel->local_dev_name, 0, sizeof(channel->local_dev_name));
+   channel->local_ip4 = 0;
+   memset(&channel->local_ip6, 0, sizeof(channel->local_ip6));
+-  memset(&channel->resolv_conf_name, 0, sizeof(channel->resolv_conf_name));
++
+   if (resolv_conf_name) {
+-      strncpy(channel->resolv_conf_name, resolv_conf_name, sizeof(channel->resolv_conf_name) - 1);
++    channel->resolv_conf_name = strndup(resolv_conf_name, ARES_MAX_FILE_PATH_LENGTH);
+   }
+ 
+   /* Initialize our lists of queries */
+@@ -413,6 +414,13 @@ int ares_save_options(ares_channel channel, struct ares_options *options,
+   }
+   options->nsort = channel->nsort;
+ 
++  options->socket_send_priority = channel->socket_send_priority;
++
++  if (channel->resolv_conf_name) {
++   (*optmask) |= (ARES_OPT_USE_RESOLVER);
++    options->resolv_conf_name = strndup(channel->resolv_conf_name, 4096);
++  }
++
+   return ARES_SUCCESS;
+ }
+ 
+@@ -520,6 +528,13 @@ static int init_by_options(ares_channel channel,
+     channel->nsort = options->nsort;
+   }
+ 
++  if ( (optmask & ARES_OPT_USE_RESOLVER) && (options->resolv_conf_name)) {
++    if (channel->resolv_conf_name) {
++      free(channel->resolv_conf_name);
++    }
++    channel->resolv_conf_name = strndup(options->resolv_conf_name, ARES_MAX_FILE_PATH_LENGTH);
++  }
++
+   if ((optmask & ARES_OPT_SEND_PARALLEL)) {
+       channel->flags |= ARES_FLAG_NOCHECKRESP;
+   }
+@@ -1178,7 +1193,7 @@ static int init_by_resolv_conf(ares_channel channel)
+     size_t linesize;
+     int error;
+ 
+-    if (strlen(channel->resolv_conf_name) > 0) {
++    if (channel->resolv_conf_name) {
+         fp = fopen(channel->resolv_conf_name, "r");
+     } else {
+         fp = fopen(PATH_RESOLV_CONF, "r");
+@@ -1218,7 +1233,7 @@ static int init_by_resolv_conf(ares_channel channel)
+       default:
+         DEBUGF(fprintf(stderr, "fopen() failed with error: %d %s\n",
+                        error, strerror(error)));
+-        DEBUGF(fprintf(stderr, "Error opening file: %s\n", PATH_RESOLV_CONF));
++        DEBUGF(fprintf(stderr, "Error opening file: %s\n", (channel->resolv_conf_name) ? channel->resolv_conf_name : PATH_RESOLV_CONF) );
+         status = ARES_EFILE;
+       }
+     }
+@@ -1993,8 +2008,13 @@ void ares_set_local_dev(ares_channel channel,
+ int ares_set_resolv_conf(ares_channel channel,
+                           const char* resolv_conf_name)
+ {
+-  strncpy(channel->resolv_conf_name, resolv_conf_name,
+-          sizeof(channel->resolv_conf_name) - 1);
++  if (strlen(resolv_conf_name) > 0) {
++    if (channel->resolv_conf_name) {
++      free(channel->resolv_conf_name);
++    }
++    channel->resolv_conf_name = strndup(resolv_conf_name, ARES_MAX_FILE_PATH_LENGTH);
++  }
++
+   return init_by_resolv_conf(channel);
+ }
+ 
+diff --git a/ares_private.h b/ares_private.h
+index 832a63512d61e5ca8eb3d8c0a5a81f591f47843c..1296f907c2ba6f6470577d26e3c918ebb631b594 100644
+--- a/ares_private.h
++++ b/ares_private.h
+@@ -76,6 +76,8 @@
+ 
+ #endif
+ 
++#define ARES_MAX_FILE_PATH_LENGTH 4096
++
+ #define ARES_ID_KEY_LEN 31
+ 
+ #include "ares_ipv6.h"
+@@ -270,7 +272,7 @@ struct ares_channeldata {
+   unsigned int local_ip4;
+   unsigned char local_ip6[16];
+ 
+-  char resolv_conf_name[256];
++  char *resolv_conf_name;
+ 
+   int optmask; /* the option bitfield passed in at init time */
+ 
+diff --git a/ares_process.c b/ares_process.c
+index a789c8eeaefe89787140b474a2902e37901c3537..237b61608aef204a770b4a123098117107834321 100644
+--- a/ares_process.c
++++ b/ares_process.c
+@@ -967,6 +967,8 @@ static int configure_socket(ares_socket_t s, int family, ares_channel channel)
+       /* just continue on. */
+     }
+   }
++#else
++  #error "C-Ares function ares_set_local_dev() won't work as expected"
+ #endif
+ 
+   if (family == AF_INET) {
+diff --git a/ares_version.h b/ares_version.h
+index 1b400d755bf1707dcc8b5229baf2bd6cba47ab3f..d90c511cce50d4c786422646230e5fc38a5e875d 100644
+--- a/ares_version.h
++++ b/ares_version.h
+@@ -11,7 +11,7 @@
+ #define ARES_VERSION ((ARES_VERSION_MAJOR<<16)|\
+                        (ARES_VERSION_MINOR<<8)|\
+                        (ARES_VERSION_PATCH))
+-#define ARES_VERSION_STR "1.10.0-sph-1.7"
++#define ARES_VERSION_STR "1.10.0-sph-1.8"
+ 
+ #if (ARES_VERSION >= 0x010700)
+ #  define CARES_HAVE_ARES_LIBRARY_INIT 1

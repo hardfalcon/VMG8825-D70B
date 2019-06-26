@@ -1,0 +1,27 @@
+From 340c5a55994f6ed950d7843750197e635444a645 Mon Sep 17 00:00:00 2001
+From: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+Date: Tue, 14 Dec 2010 10:49:26 +0100
+Subject: Compat define for older kernel versions
+
+---
+ extensions/ebt_arp.c |    4 ++++
+ 1 files changed, 4 insertions(+), 0 deletions(-)
+
+diff --git a/extensions/ebt_arp.c b/extensions/ebt_arp.c
+index 64d337d..48138f4 100644
+--- a/extensions/ebt_arp.c
++++ b/extensions/ebt_arp.c
+@@ -16,6 +16,10 @@
+ #include <linux/if_ether.h>
+ #include <linux/netfilter_bridge/ebt_arp.h>
+ 
++#ifndef EBT_ARP_GRAT
++#define EBT_ARP_GRAT 0x80
++#endif
++
+ #define ARP_OPCODE '1'
+ #define ARP_HTYPE  '2'
+ #define ARP_PTYPE  '3'
+-- 
+1.7.3.3
+

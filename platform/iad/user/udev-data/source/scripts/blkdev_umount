@@ -1,0 +1,45 @@
+#!/bin/sh
+# command line options:
+#1) device name sdx
+
+THIS_NAME="blkdev_umount"
+LOG_INFO="shell_log ${THIS_NAME} info "
+LOG_ERROR="shell_log ${THIS_NAME} error "
+
+UMOUNT=`which umount`
+
+DEFAULT_MNT_POINT="/home/ftp/usb/msd/USBMassStorageDevice"
+DEFAULT_MNT_HEAD="${DEFAULT_MNT_POINT%/*}"
+
+DEVNAME="/dev/$1"
+
+case "$DEVNAME" in
+    /dev/sd*)
+        MOUNTPOINTS=$(cat /proc/self/mounts | grep "$DEVNAME " | cut -f2 -d' ')
+	;;
+    *)
+	$LOG_ERROR "Unsupported device $DEVNAME given for mount"
+	exit 0
+        ;;
+esac
+
+
+for mnt in $MOUNTPOINTS; do
+	$LOG_INFO "Unmounting $mnt"
+	$UMOUNT -fl $mnt
+	if [ -d $mnt ]; then
+	    rmdir $mnt
+	    # if we umount partitions, we have the problem, that the main directory is still present
+	    part=$(basename $mnt)
+	    case "$part" in
+		part*)
+		    if [ -d ${mnt%/*} ] ; then
+			rmdir ${mnt%/*}
+		    fi
+		    ;;
+	    esac
+	fi
+done
+
+
+exit 0

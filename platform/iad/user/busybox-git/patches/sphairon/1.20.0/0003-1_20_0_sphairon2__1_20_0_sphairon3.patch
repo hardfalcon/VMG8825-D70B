@@ -1,0 +1,13 @@
+diff --git a/Makefile b/Makefile
+index cc36cb5246d84ded3d95c2fe9638640f202a4f50..cace6acf58accc833691a636b9ede2215b5860bf 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,7 +1,7 @@
+ VERSION = 1
+ PATCHLEVEL = 20
+ SUBLEVEL = 2
+-EXTRAVERSION = sphairon2
++EXTRAVERSION = -sphairon3
+ NAME = Unnamed
+ 
+ # *DOCUMENTATION*

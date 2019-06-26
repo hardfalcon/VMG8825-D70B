@@ -1,0 +1,712 @@
+diff --git a/Makefile b/Makefile
+index 5526d7249a668d8a123bae490f15bdbbe0389277..cc36cb5246d84ded3d95c2fe9638640f202a4f50 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,7 +1,7 @@
+ VERSION = 1
+ PATCHLEVEL = 20
+-SUBLEVEL = 0
+-EXTRAVERSION = sphairon1
++SUBLEVEL = 2
++EXTRAVERSION = sphairon2
+ NAME = Unnamed
+ 
+ # *DOCUMENTATION*
+@@ -297,6 +297,7 @@ NM		= $(CROSS_COMPILE)nm
+ STRIP		= $(CROSS_COMPILE)strip
+ OBJCOPY		= $(CROSS_COMPILE)objcopy
+ OBJDUMP		= $(CROSS_COMPILE)objdump
++PKG_CONFIG	?= $(CROSS_COMPILE)pkg-config
+ AWK		= awk
+ GENKSYMS	= scripts/genksyms/genksyms
+ DEPMOD		= /sbin/depmod
+diff --git a/Makefile.flags b/Makefile.flags
+index c43c8dca86f00a0ce2a22b9fdfa48b42359cf8f0..15dcc1f6ccbaba74e0107095034358881f78d641 100644
+--- a/Makefile.flags
++++ b/Makefile.flags
+@@ -74,6 +74,12 @@ ARCH_FPIC ?= -fpic
+ ARCH_FPIE ?= -fpie
+ ARCH_PIE ?= -pie
+ 
++# Usage: $(eval $(call pkg_check_modules,VARIABLE-PREFIX,MODULES))
++define pkg_check_modules
++$(1)_CFLAGS := $(shell $(PKG_CONFIG) $(PKG_CONFIG_FLAGS) --cflags $(2))
++$(1)_LIBS := $(shell $(PKG_CONFIG) $(PKG_CONFIG_FLAGS) --libs $(2))
++endef
++
+ ifeq ($(CONFIG_BUILD_LIBBUSYBOX),y)
+ # on i386: 14% smaller libbusybox.so
+ # (code itself is 9% bigger, we save on relocs/PLT/GOT)
+@@ -85,6 +91,7 @@ endif
+ 
+ ifeq ($(CONFIG_STATIC),y)
+ CFLAGS_busybox += -static
++PKG_CONFIG_FLAGS += --static
+ endif
+ 
+ ifeq ($(CONFIG_PIE),y)
+@@ -127,7 +134,10 @@ LDLIBS += pam pam_misc pthread
+ endif
+ 
+ ifeq ($(CONFIG_SELINUX),y)
+-LDLIBS += selinux sepol
++SELINUX_PC_MODULES = libselinux libsepol
++$(eval $(call pkg_check_modules,SELINUX,$(SELINUX_PC_MODULES)))
++CPPFLAGS += $(SELINUX_CFLAGS)
++LDLIBS += $(if $(SELINUX_LIBS),$(SELINUX_LIBS:-l%=%),$(SELINUX_PC_MODULES:lib%=%))
+ endif
+ 
+ ifeq ($(CONFIG_EFENCE),y)
+diff --git a/archival/libarchive/Kbuild.src b/archival/libarchive/Kbuild.src
+index 959221789861b42321590b27cfa41373e3e37b86..58457fc220b5766cc575eac6bd60dbfcd3c0d677 100644
+--- a/archival/libarchive/Kbuild.src
++++ b/archival/libarchive/Kbuild.src
+@@ -45,7 +45,7 @@ lib-$(CONFIG_UNXZ)                      += decompress_unxz.o
+ lib-$(CONFIG_CPIO)                      += get_header_cpio.o
+ lib-$(CONFIG_DPKG)                      += $(DPKG_FILES)
+ lib-$(CONFIG_DPKG_DEB)                  += $(DPKG_FILES)
+-lib-$(CONFIG_GUNZIP)                    += decompress_gunzip.o
++lib-$(CONFIG_GUNZIP)                    += open_transformer.o decompress_gunzip.o
+ lib-$(CONFIG_RPM2CPIO)                  += decompress_gunzip.o get_header_cpio.o
+ lib-$(CONFIG_RPM)                       += open_transformer.o decompress_gunzip.o get_header_cpio.o
+ lib-$(CONFIG_TAR)                       += get_header_tar.o
+@@ -60,7 +60,7 @@ lib-$(CONFIG_FEATURE_SEAMLESS_GZ)       += open_transformer.o decompress_gunzip.
+ lib-$(CONFIG_FEATURE_SEAMLESS_BZ2)      += open_transformer.o decompress_bunzip2.o
+ lib-$(CONFIG_FEATURE_SEAMLESS_LZMA)     += open_transformer.o decompress_unlzma.o
+ lib-$(CONFIG_FEATURE_SEAMLESS_XZ)       += open_transformer.o decompress_unxz.o
+-lib-$(CONFIG_FEATURE_COMPRESS_USAGE)    += decompress_bunzip2.o
++lib-$(CONFIG_FEATURE_COMPRESS_USAGE)    += open_transformer.o decompress_bunzip2.o
+ lib-$(CONFIG_FEATURE_COMPRESS_BBCONFIG) += decompress_bunzip2.o
+ lib-$(CONFIG_FEATURE_TAR_TO_COMMAND)    += data_extract_to_command.o
+ 
+diff --git a/archival/libarchive/get_header_tar.c b/archival/libarchive/get_header_tar.c
+index 80a7091441cc176253c1c3e9390a4f32c75ec055..b168653d80da637749f747b6c4e24d6b181d3826 100644
+--- a/archival/libarchive/get_header_tar.c
++++ b/archival/libarchive/get_header_tar.c
+@@ -84,7 +84,7 @@ static unsigned long long getOctal(char *str, int len)
+ 		first >>= 1; /* now 7th bit = 6th bit */
+ 		v = first;   /* sign-extend 8 bits to 64 */
+ 		while (--len != 0)
+-			v = (v << 8) + (unsigned char) *str++;
++			v = (v << 8) + (uint8_t) *++str;
+ 	}
+ 	return v;
+ }
+diff --git a/editors/sed.c b/editors/sed.c
+index 4e9babb9d02f63dbc46a0d0a4b8059c4d432653f..3ee8edc433add4e7af452753d93ec0db41f071ed 100644
+--- a/editors/sed.c
++++ b/editors/sed.c
+@@ -743,7 +743,7 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
+ 		 */
+ 		if (!G.regmatch[0].rm_so && !G.regmatch[0].rm_eo && match_count) {
+ 			pipe_putc(*line++);
+-			continue;
++			goto next;
+ 		}
+ 
+ 		match_count++;
+@@ -755,7 +755,7 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
+ 		) {
+ 			for (i = 0; i < G.regmatch[0].rm_eo; i++)
+ 				pipe_putc(*line++);
+-			continue;
++			goto next;
+ 		}
+ 
+ 		/* print everything before the match */
+@@ -773,7 +773,7 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line_p)
+ 		/* if we're not doing this globally, get out now */
+ 		if (sed_cmd->which_match != 0)
+ 			break;
+-
++ next:
+ 		if (*line == '\0')
+ 			break;
+ 
+diff --git a/findutils/find.c b/findutils/find.c
+index fc0fc5c9fc08ab39c6889967f487cf92adecec17..0ec5bdfeaab175f3a845af44de07008034fd3798 100644
+--- a/findutils/find.c
++++ b/findutils/find.c
+@@ -831,6 +831,11 @@ static action*** parse_params(char **argv)
+ 	                        PARM_name      ,
+ 	                        PARM_iname     ,
+ 	IF_FEATURE_FIND_PATH(   PARM_path      ,)
++#if ENABLE_DESKTOP
++	/* -wholename is a synonym for -path */
++	/* We support it because Linux kernel's "make tags" uses it */
++	IF_FEATURE_FIND_PATH(   PARM_wholename ,)
++#endif
+ 	IF_FEATURE_FIND_PATH(   PARM_ipath     ,)
+ 	IF_FEATURE_FIND_REGEX(  PARM_regex     ,)
+ 	IF_FEATURE_FIND_TYPE(   PARM_type      ,)
+@@ -869,6 +874,9 @@ static action*** parse_params(char **argv)
+ 	                         "-name\0"
+ 	                         "-iname\0"
+ 	IF_FEATURE_FIND_PATH(   "-path\0"   )
++#if ENABLE_DESKTOP
++	IF_FEATURE_FIND_PATH(   "-wholename\0")
++#endif
+ 	IF_FEATURE_FIND_PATH(   "-ipath\0"  )
+ 	IF_FEATURE_FIND_REGEX(  "-regex\0"  )
+ 	IF_FEATURE_FIND_TYPE(   "-type\0"   )
+@@ -1076,7 +1084,7 @@ static action*** parse_params(char **argv)
+ 			ap->iname = (parm == PARM_iname);
+ 		}
+ #if ENABLE_FEATURE_FIND_PATH
+-		else if (parm == PARM_path || parm == PARM_ipath) {
++		else if (parm == PARM_path IF_DESKTOP(|| parm == PARM_wholename) || parm == PARM_ipath) {
+ 			action_path *ap;
+ 			dbg("%d", __LINE__);
+ 			ap = ALLOC_ACTION(path);
+diff --git a/include/bb_e2fs_defs.h b/include/bb_e2fs_defs.h
+index 7974497ca8b21b50437e6f99438a2690f20b03bd..3edff8377c4ffe51a545f13dab05a88700adb3da 100644
+--- a/include/bb_e2fs_defs.h
++++ b/include/bb_e2fs_defs.h
+@@ -422,9 +422,27 @@ struct ext2_super_block {
+ 	uint16_t	s_reserved_word_pad;
+ 	uint32_t	s_default_mount_opts;
+ 	uint32_t	s_first_meta_bg;	/* First metablock group */
++	/* ext3 additions */
+ 	uint32_t	s_mkfs_time;		/* When the filesystem was created */
+ 	uint32_t	s_jnl_blocks[17];	/* Backup of the journal inode */
+-	uint32_t	s_reserved[172];	/* Padding to the end of the block */
++	/* 64bit support valid if EXT4_FEATURE_COMPAT_64BIT */
++/*150*/	uint32_t	s_blocks_count_hi;	/* Blocks count */
++	uint32_t	s_r_blocks_count_hi;	/* Reserved blocks count */
++	uint32_t	s_free_blocks_count_hi;	/* Free blocks count */
++	uint16_t	s_min_extra_isize;	/* All inodes have at least # bytes */
++	uint16_t	s_want_extra_isize; 	/* New inodes should reserve # bytes */
++	uint32_t	s_flags;		/* Miscellaneous flags */
++	uint16_t	s_raid_stride;		/* RAID stride */
++	uint16_t	s_mmp_interval;		/* # seconds to wait in MMP checking */
++	uint64_t	s_mmp_block;		/* Block for multi-mount protection */
++	uint32_t	s_raid_stripe_width;	/* blocks on all data disks (N*stride)*/
++	uint8_t		s_log_groups_per_flex;	/* FLEX_BG group size */
++	uint8_t		s_reserved_char_pad2;
++	uint16_t	s_reserved_pad;
++	uint32_t	s_reserved[162];	/* Padding to the end of the block */
++};
++struct BUG_ext2_super_block {
++        char bug[sizeof(struct ext2_super_block) == 1024 ? 1 : -1];
+ };
+ 
+ /*
+diff --git a/libbb/lineedit.c b/libbb/lineedit.c
+index db8416712f40f5a8cc55adaadde7fe4ede6e2290..b89748a1c64f4df14e003e2649ac95cd138e479e 100644
+--- a/libbb/lineedit.c
++++ b/libbb/lineedit.c
+@@ -1352,8 +1352,7 @@ static void load_history(line_input_t *st_parm)
+ 		/* fill temp_h[], retaining only last MAX_HISTORY lines */
+ 		memset(temp_h, 0, sizeof(temp_h));
+ 		idx = 0;
+-		if (!ENABLE_FEATURE_EDITING_SAVE_ON_EXIT)
+-			st_parm->cnt_history_in_file = 0;
++		st_parm->cnt_history_in_file = 0;
+ 		while ((line = xmalloc_fgetline(fp)) != NULL) {
+ 			if (line[0] == '\0') {
+ 				free(line);
+@@ -1361,8 +1360,7 @@ static void load_history(line_input_t *st_parm)
+ 			}
+ 			free(temp_h[idx]);
+ 			temp_h[idx] = line;
+-			if (!ENABLE_FEATURE_EDITING_SAVE_ON_EXIT)
+-				st_parm->cnt_history_in_file++;
++			st_parm->cnt_history_in_file++;
+ 			idx++;
+ 			if (idx == st_parm->max_history)
+ 				idx = 0;
+diff --git a/loginutils/getty.c b/loginutils/getty.c
+index afb411b981f593c3fea6d6d3fd8b5cfcd1e8be03..bbb5a96b4237731e767041e711bda8eb6d7dceee 100644
+--- a/loginutils/getty.c
++++ b/loginutils/getty.c
+@@ -561,8 +561,14 @@ int getty_main(int argc UNUSED_PARAM, char **argv)
+ 		 */
+ 		fd = open("/dev/tty", O_RDWR | O_NONBLOCK);
+ 		if (fd >= 0) {
++			/* TIOCNOTTY sends SIGHUP to the foreground
++			 * process group - which may include us!
++			 * Make sure to not die on it:
++			 */
++			sighandler_t old = signal(SIGHUP, SIG_IGN);
+ 			ioctl(fd, TIOCNOTTY);
+ 			close(fd);
++			signal(SIGHUP, old);
+ 		}
+ 	}
+ 
+diff --git a/loginutils/passwd.c b/loginutils/passwd.c
+index b83db0083624bf47866c9f2c9b914781632646c0..a7006f0548f51f21d739c472ba65276da676149d 100644
+--- a/loginutils/passwd.c
++++ b/loginutils/passwd.c
+@@ -15,6 +15,7 @@
+ 
+ #include "libbb.h"
+ #include <syslog.h>
++#include <sys/resource.h> /* setrlimit */
+ 
+ static void nuke_str(char *str)
+ {
+diff --git a/miscutils/man.c b/miscutils/man.c
+index 611466349c47c1a7f2b550eebb1188012f35018a..e380fdabaf2b984a58edde8ea57637173dae62bf 100644
+--- a/miscutils/man.c
++++ b/miscutils/man.c
+@@ -129,27 +129,21 @@ static int show_manpage(const char *pager, char *man_filename, int man, int leve
+ #endif
+ #if ENABLE_FEATURE_SEAMLESS_XZ
+ 	strcpy(ext, "xz");
+-	if (run_pipe(pager, man_filename, man, level))
++	if (run_pipe(pager, filename_with_zext, man, level))
+ 		return 1;
+ #endif
+ #if ENABLE_FEATURE_SEAMLESS_BZ2
+ 	strcpy(ext, "bz2");
+-	if (run_pipe(pager, man_filename, man, level))
++	if (run_pipe(pager, filename_with_zext, man, level))
+ 		return 1;
+ #endif
+ #if ENABLE_FEATURE_SEAMLESS_GZ
+ 	strcpy(ext, "gz");
+-	if (run_pipe(pager, man_filename, man, level))
++	if (run_pipe(pager, filename_with_zext, man, level))
+ 		return 1;
+ #endif
+ 
+-#if SEAMLESS_COMPRESSION
+-	ext[-1] = '\0';
+-#endif
+-	if (run_pipe(pager, man_filename, man, level))
+-		return 1;
+-
+-	return 0;
++	return run_pipe(pager, man_filename, man, level);
+ }
+ 
+ int man_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
+diff --git a/miscutils/time.c b/miscutils/time.c
+index 945f15f0d56c7eee322dbfdfdc68dcc4c6b44c83..ffed38632995eb43498db5ff4460557442406235 100644
+--- a/miscutils/time.c
++++ b/miscutils/time.c
+@@ -16,6 +16,7 @@
+ //usage:     "\n	-v	Verbose"
+ 
+ #include "libbb.h"
++#include <sys/resource.h> /* getrusage */
+ 
+ /* Information on the resources used by a child process.  */
+ typedef struct {
+diff --git a/networking/ifupdown.c b/networking/ifupdown.c
+index dfda206708a89c8278351125ae21e4a4fa324ee2..9b34986964649320e952035cc614f7987ba980d7 100644
+--- a/networking/ifupdown.c
++++ b/networking/ifupdown.c
+@@ -140,8 +140,6 @@ static const char keywords_up_down[] ALIGN1 =
+ 	"up\0"
+ 	"down\0"
+ 	"pre-up\0"
+-	"pre-down\0"
+-	"post-up\0"
+ 	"post-down\0"
+ ;
+ 
+@@ -895,6 +893,11 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
+ 				if (rest_of_line[0] == '\0')
+ 					bb_error_msg_and_die("option with empty value \"%s\"", buf);
+ 
++				if (strcmp(first_word, "post-up") == 0)
++					first_word += 5; /* "up" */
++				else if (strcmp(first_word, "pre-down") == 0)
++					first_word += 4; /* "down" */
++
+ 				/* If not one of "up", "down",... words... */
+ 				if (index_in_strings(keywords_up_down, first_word) < 0) {
+ 					int i;
+@@ -963,7 +966,7 @@ static char *setlocalenv(const char *format, const char *name, const char *value
+ 	return result;
+ }
+ 
+-static void set_environ(struct interface_defn_t *iface, const char *mode)
++static void set_environ(struct interface_defn_t *iface, const char *mode, const char *opt)
+ {
+ 	int i;
+ 	char **pp;
+@@ -976,7 +979,7 @@ static void set_environ(struct interface_defn_t *iface, const char *mode)
+ 	}
+ 
+ 	/* note: last element will stay NULL: */
+-	G.my_environ = xzalloc(sizeof(char *) * (iface->n_options + 6));
++	G.my_environ = xzalloc(sizeof(char *) * (iface->n_options + 7));
+ 	pp = G.my_environ;
+ 
+ 	for (i = 0; i < iface->n_options; i++) {
+@@ -990,6 +993,7 @@ static void set_environ(struct interface_defn_t *iface, const char *mode)
+ 	*pp++ = setlocalenv("%s=%s", "ADDRFAM", iface->address_family->name);
+ 	*pp++ = setlocalenv("%s=%s", "METHOD", iface->method->name);
+ 	*pp++ = setlocalenv("%s=%s", "MODE", mode);
++	*pp++ = setlocalenv("%s=%s", "PHASE", opt);
+ 	if (G.startup_PATH)
+ 		*pp++ = setlocalenv("%s=%s", "PATH", G.startup_PATH);
+ }
+@@ -1044,21 +1048,21 @@ static int check(char *str)
+ static int iface_up(struct interface_defn_t *iface)
+ {
+ 	if (!iface->method->up(iface, check)) return -1;
+-	set_environ(iface, "start");
++	set_environ(iface, "start", "pre-up");
+ 	if (!execute_all(iface, "pre-up")) return 0;
+ 	if (!iface->method->up(iface, doit)) return 0;
++	set_environ(iface, "start", "post-up");
+ 	if (!execute_all(iface, "up")) return 0;
+-	if (!execute_all(iface, "post-up")) return 0;
+ 	return 1;
+ }
+ 
+ static int iface_down(struct interface_defn_t *iface)
+ {
+ 	if (!iface->method->down(iface,check)) return -1;
+-	set_environ(iface, "stop");
+-	if (!execute_all(iface, "pre-down")) return 0;
++	set_environ(iface, "stop", "pre-down");
+ 	if (!execute_all(iface, "down")) return 0;
+ 	if (!iface->method->down(iface, doit)) return 0;
++	set_environ(iface, "stop", "post-down");
+ 	if (!execute_all(iface, "post-down")) return 0;
+ 	return 1;
+ }
+diff --git a/networking/inetd.c b/networking/inetd.c
+index 26b66992d47e1b6cc803ed5d2a95d037c502b17f..00baf6971db579d67371de2e1dbc5af189786f3d 100644
+--- a/networking/inetd.c
++++ b/networking/inetd.c
+@@ -165,6 +165,8 @@
+ //usage:     "\n		(default: 0 - disabled)"
+ 
+ #include <syslog.h>
++#include <sys/resource.h> /* setrlimit */
++#include <sys/socket.h> /* un.h may need this */
+ #include <sys/un.h>
+ 
+ #include "libbb.h"
+diff --git a/networking/ntpd.c b/networking/ntpd.c
+index 603801ec60afcca90f7238bf3d68db537138064c..b885215a3aa388102c3a4e1a922b03b128672378 100644
+--- a/networking/ntpd.c
++++ b/networking/ntpd.c
+@@ -46,6 +46,7 @@
+ #include "libbb.h"
+ #include <math.h>
+ #include <netinet/ip.h> /* For IPTOS_LOWDELAY definition */
++#include <sys/resource.h> /* setpriority */
+ #include <sys/timex.h>
+ #ifndef IPTOS_LOWDELAY
+ # define IPTOS_LOWDELAY 0x10
+diff --git a/networking/ntpd_simple.c b/networking/ntpd_simple.c
+index 4ad44e4f35bbfbfb1a1f9460505a3d668ba9d9b9..1b7c66b8461acf64373cec0e0742e6c477650709 100644
+--- a/networking/ntpd_simple.c
++++ b/networking/ntpd_simple.c
+@@ -7,6 +7,7 @@
+  */
+ #include "libbb.h"
+ #include <netinet/ip.h> /* For IPTOS_LOWDELAY definition */
++#include <sys/resource.h> /* setpriority */
+ #ifndef IPTOS_LOWDELAY
+ # define IPTOS_LOWDELAY 0x10
+ #endif
+diff --git a/procps/ps.c b/procps/ps.c
+index 4727b218bbc2d7dfe607867953ccaea26ac7c732..3a5af7c18691b79a6a776563f5f78cafa98a999f 100644
+--- a/procps/ps.c
++++ b/procps/ps.c
+@@ -69,6 +69,31 @@
+ /* Absolute maximum on output line length */
+ enum { MAX_WIDTH = 2*1024 };
+ 
++#if ENABLE_FEATURE_PS_TIME || ENABLE_FEATURE_PS_LONG
++static long get_uptime(void)
++{
++#ifdef __linux__
++	struct sysinfo info;
++	if (sysinfo(&info) < 0)
++		return 0;
++	return info.uptime;
++#elif 1
++	char buf[64];
++	long uptime;
++	if (open_read_close("/proc/uptime", buf, sizeof(buf)) <= 0)
++		bb_perror_msg_and_die("can't read %s", "/proc/uptime");
++	buf[sizeof(buf)-1] = '\0';
++	sscanf(buf, "%l", &uptime);
++	return uptime;
++#else
++	struct timespec ts;
++	if (clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
++		return 0;
++	return ts.tv_sec;
++#endif
++}
++#endif
++
+ #if ENABLE_DESKTOP
+ 
+ #include <sys/times.h> /* for times() */
+@@ -197,8 +222,6 @@ static inline unsigned get_HZ_by_waiting(void)
+ 
+ static unsigned get_kernel_HZ(void)
+ {
+-	//char buf[64];
+-	struct sysinfo info;
+ 
+ 	if (kernel_HZ)
+ 		return kernel_HZ;
+@@ -208,12 +231,7 @@ static unsigned get_kernel_HZ(void)
+ 	if (kernel_HZ == (unsigned)-1)
+ 		kernel_HZ = get_HZ_by_waiting();
+ 
+-	//if (open_read_close("/proc/uptime", buf, sizeof(buf)) <= 0)
+-	//	bb_perror_msg_and_die("can't read %s", "/proc/uptime");
+-	//buf[sizeof(buf)-1] = '\0';
+-	///sscanf(buf, "%llu", &seconds_since_boot);
+-	sysinfo(&info);
+-	seconds_since_boot = info.uptime;
++	seconds_since_boot = get_uptime();
+ 
+ 	return kernel_HZ;
+ }
+@@ -635,7 +653,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
+ 	};
+ #if ENABLE_FEATURE_PS_LONG
+ 	time_t now = now;
+-	struct sysinfo info;
++	long uptime;
+ #endif
+ 	int opts = 0;
+ 	/* If we support any options, parse argv */
+@@ -695,7 +713,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
+ 		puts("S   UID   PID  PPID   VSZ   RSS TTY   STIME TIME     CMD");
+ #if ENABLE_FEATURE_PS_LONG
+ 		now = time(NULL);
+-		sysinfo(&info);
++		uptime = get_uptime();
+ #endif
+ 	}
+ 	else {
+@@ -727,7 +745,7 @@ int ps_main(int argc UNUSED_PARAM, char **argv UNUSED_PARAM)
+ 				char tty[2 * sizeof(int)*3 + 2];
+ 				char *endp;
+ 				unsigned sut = (p->stime + p->utime) / 100;
+-				unsigned elapsed = info.uptime - (p->start_time / 100);
++				unsigned elapsed = uptime - (p->start_time / 100);
+ 				time_t start = now - elapsed;
+ 				struct tm *tm = localtime(&start);
+ 
+diff --git a/runit/chpst.c b/runit/chpst.c
+index ac296babf2cc8af193461320ecc58f399b8856b0..ed72c8b8cdb7472d33331865f60f5fe66d7b54e5 100644
+--- a/runit/chpst.c
++++ b/runit/chpst.c
+@@ -91,6 +91,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ //usage:     "\n			a SIGXCPU after N seconds"
+ 
+ #include "libbb.h"
++#include <sys/resource.h> /* getrlimit */
+ 
+ /*
+ Five applets here: chpst, envdir, envuidgid, setuidgid, softlimit.
+diff --git a/shell/ash.c b/shell/ash.c
+index 037827a320a7659298c7a3bb74bb63002506088e..365afe502fd6ee4e3f3b58ac2a7ecc37b4ac03b0 100644
+--- a/shell/ash.c
++++ b/shell/ash.c
+@@ -6846,8 +6846,7 @@ evalvar(char *p, int flags, struct strlist *var_str_list)
+ 		patloc = expdest - (char *)stackblock();
+ 		if (NULL == subevalvar(p, /* varname: */ NULL, patloc, subtype,
+ 				startloc, varflags,
+-//TODO: | EXP_REDIR too? All other such places do it too
+-				/* quotes: */ flags & (EXP_FULL | EXP_CASE),
++				/* quotes: */ flags & (EXP_FULL | EXP_CASE | EXP_REDIR),
+ 				var_str_list)
+ 		) {
+ 			int amount = expdest - (
+diff --git a/shell/shell_common.c b/shell/shell_common.c
+index 51c92d60e98acd6a4f3d1631318e5bdccedf1bb8..780e27ebd4f05ea4b9015c45ffe8c4ca9935e5d6 100644
+--- a/shell/shell_common.c
++++ b/shell/shell_common.c
+@@ -18,6 +18,7 @@
+  */
+ #include "libbb.h"
+ #include "shell_common.h"
++#include <sys/resource.h> /* getrlimit */
+ 
+ const char defifsvar[] ALIGN1 = "IFS= \t\n";
+ 
+diff --git a/util-linux/mdev.c b/util-linux/mdev.c
+index 0a34122b41d55d253c5aaa6237f24adf215e6be0..c4829a596c5ac95dc570c00f5c67168596c9262b 100644
+--- a/util-linux/mdev.c
++++ b/util-linux/mdev.c
+@@ -661,37 +661,45 @@ static int FAST_FUNC dirAction(const char *fileName UNUSED_PARAM,
+ static void load_firmware(const char *firmware, const char *sysfs_path)
+ {
+ 	int cnt;
+-	int firmware_fd, loading_fd, data_fd;
++	int firmware_fd, loading_fd;
+ 
+ 	/* check for /lib/firmware/$FIRMWARE */
+ 	xchdir("/lib/firmware");
+-	firmware_fd = xopen(firmware, O_RDONLY);
+-
+-	/* in case we goto out ... */
+-	data_fd = -1;
++	firmware_fd = open(firmware, O_RDONLY); /* can fail */
+ 
+ 	/* check for /sys/$DEVPATH/loading ... give 30 seconds to appear */
+ 	xchdir(sysfs_path);
+ 	for (cnt = 0; cnt < 30; ++cnt) {
+ 		loading_fd = open("loading", O_WRONLY);
+-		if (loading_fd != -1)
++		if (loading_fd >= 0)
+ 			goto loading;
+ 		sleep(1);
+ 	}
+ 	goto out;
+ 
+  loading:
+-	/* tell kernel we're loading by "echo 1 > /sys/$DEVPATH/loading" */
+-	if (full_write(loading_fd, "1", 1) != 1)
+-		goto out;
+-
+-	/* load firmware into /sys/$DEVPATH/data */
+-	data_fd = open("data", O_WRONLY);
+-	if (data_fd == -1)
+-		goto out;
+-	cnt = bb_copyfd_eof(firmware_fd, data_fd);
++	cnt = 0;
++	if (firmware_fd >= 0) {
++		int data_fd;
++
++		/* tell kernel we're loading by "echo 1 > /sys/$DEVPATH/loading" */
++		if (full_write(loading_fd, "1", 1) != 1)
++			goto out;
++
++		/* load firmware into /sys/$DEVPATH/data */
++		data_fd = open("data", O_WRONLY);
++		if (data_fd < 0)
++			goto out;
++		cnt = bb_copyfd_eof(firmware_fd, data_fd);
++		if (ENABLE_FEATURE_CLEAN_UP)
++			close(data_fd);
++	}
+ 
+-	/* tell kernel result by "echo [0|-1] > /sys/$DEVPATH/loading" */
++	/* Tell kernel result by "echo [0|-1] > /sys/$DEVPATH/loading"
++	 * Note: we emit -1 if firmware file wasn't found.
++	 * There are cases when otherwise kernel would wait for minutes
++	 * before timing out.
++	 */
+ 	if (cnt > 0)
+ 		full_write(loading_fd, "0", 1);
+ 	else
+@@ -701,7 +709,6 @@ static void load_firmware(const char *firmware, const char *sysfs_path)
+ 	if (ENABLE_FEATURE_CLEAN_UP) {
+ 		close(firmware_fd);
+ 		close(loading_fd);
+-		close(data_fd);
+ 	}
+ }
+ 
+diff --git a/util-linux/mkfs_ext2.c b/util-linux/mkfs_ext2.c
+index 69b25c946dcaff898ad32b6d549b3d7efbe63df1..3258d7eeeb25286f8da5fbc8164189851aa64dda 100644
+--- a/util-linux/mkfs_ext2.c
++++ b/util-linux/mkfs_ext2.c
+@@ -53,11 +53,6 @@
+ #define ENABLE_FEATURE_MKFS_EXT2_RESERVED_GDT 0
+ #define ENABLE_FEATURE_MKFS_EXT2_DIR_INDEX    1
+ 
+-// from e2fsprogs
+-#define s_reserved_gdt_blocks s_padding1
+-#define s_mkfs_time           s_reserved[0]
+-#define s_flags               s_reserved[22]
+-
+ #define EXT2_HASH_HALF_MD4       1
+ #define EXT2_FLAGS_SIGNED_HASH   0x0001
+ #define EXT2_FLAGS_UNSIGNED_HASH 0x0002
+@@ -482,8 +477,10 @@ int mkfs_ext2_main(int argc UNUSED_PARAM, char **argv)
+ 	STORE_LE(sb->s_magic, EXT2_SUPER_MAGIC);
+ 	STORE_LE(sb->s_inode_size, inodesize);
+ 	// set "Required extra isize" and "Desired extra isize" fields to 28
+-	if (inodesize != sizeof(*inode))
+-		STORE_LE(sb->s_reserved[21], 0x001C001C);
++	if (inodesize != sizeof(*inode)) {
++		STORE_LE(sb->s_min_extra_isize, 0x001c);
++		STORE_LE(sb->s_want_extra_isize, 0x001c);
++	}
+ 	STORE_LE(sb->s_first_ino, EXT2_GOOD_OLD_FIRST_INO);
+ 	STORE_LE(sb->s_log_block_size, blocksize_log2 - EXT2_MIN_BLOCK_LOG_SIZE);
+ 	STORE_LE(sb->s_log_frag_size, blocksize_log2 - EXT2_MIN_BLOCK_LOG_SIZE);
+diff --git a/util-linux/volume_id/ext.c b/util-linux/volume_id/ext.c
+index b5194a7b56d92b7b86846823d8ba4fe9b1856a67..aa23d1ebf1816963670d7e17077707435a658708 100644
+--- a/util-linux/volume_id/ext.c
++++ b/util-linux/volume_id/ext.c
+@@ -39,10 +39,50 @@ struct ext2_super_block {
+ 	uint8_t	volume_name[16];
+ } PACKED;
+ 
+-#define EXT3_FEATURE_COMPAT_HAS_JOURNAL		0x00000004
+-#define EXT3_FEATURE_INCOMPAT_JOURNAL_DEV	0x00000008
+ #define EXT_SUPERBLOCK_OFFSET			0x400
+ 
++/* for s_flags */
++#define EXT2_FLAGS_TEST_FILESYS			0x0004
++
++/* for s_feature_compat */
++#define EXT3_FEATURE_COMPAT_HAS_JOURNAL		0x0004
++
++/* for s_feature_ro_compat */
++#define EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER	0x0001
++#define EXT2_FEATURE_RO_COMPAT_LARGE_FILE	0x0002
++#define EXT2_FEATURE_RO_COMPAT_BTREE_DIR	0x0004
++#define EXT4_FEATURE_RO_COMPAT_HUGE_FILE	0x0008
++#define EXT4_FEATURE_RO_COMPAT_GDT_CSUM		0x0010
++#define EXT4_FEATURE_RO_COMPAT_DIR_NLINK	0x0020
++#define EXT4_FEATURE_RO_COMPAT_EXTRA_ISIZE	0x0040
++
++/* for s_feature_incompat */
++#define EXT2_FEATURE_INCOMPAT_FILETYPE		0x0002
++#define EXT3_FEATURE_INCOMPAT_RECOVER		0x0004
++#define EXT3_FEATURE_INCOMPAT_JOURNAL_DEV	0x0008
++#define EXT2_FEATURE_INCOMPAT_META_BG		0x0010
++#define EXT4_FEATURE_INCOMPAT_EXTENTS		0x0040 /* extents support */
++#define EXT4_FEATURE_INCOMPAT_64BIT		0x0080
++#define EXT4_FEATURE_INCOMPAT_MMP		0x0100
++#define EXT4_FEATURE_INCOMPAT_FLEX_BG		0x0200
++
++#define EXT2_FEATURE_RO_COMPAT_SUPP	(EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER| \
++					 EXT2_FEATURE_RO_COMPAT_LARGE_FILE| \
++					 EXT2_FEATURE_RO_COMPAT_BTREE_DIR)
++#define EXT2_FEATURE_INCOMPAT_SUPP	(EXT2_FEATURE_INCOMPAT_FILETYPE| \
++					 EXT2_FEATURE_INCOMPAT_META_BG)
++#define EXT2_FEATURE_INCOMPAT_UNSUPPORTED	~EXT2_FEATURE_INCOMPAT_SUPP
++#define EXT2_FEATURE_RO_COMPAT_UNSUPPORTED	~EXT2_FEATURE_RO_COMPAT_SUPP
++
++#define EXT3_FEATURE_RO_COMPAT_SUPP	(EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER| \
++					 EXT2_FEATURE_RO_COMPAT_LARGE_FILE| \
++					 EXT2_FEATURE_RO_COMPAT_BTREE_DIR)
++#define EXT3_FEATURE_INCOMPAT_SUPP	(EXT2_FEATURE_INCOMPAT_FILETYPE| \
++					 EXT3_FEATURE_INCOMPAT_RECOVER| \
++					 EXT2_FEATURE_INCOMPAT_META_BG)
++#define EXT3_FEATURE_INCOMPAT_UNSUPPORTED	~EXT3_FEATURE_INCOMPAT_SUPP
++#define EXT3_FEATURE_RO_COMPAT_UNSUPPORTED	~EXT3_FEATURE_RO_COMPAT_SUPP
++
+ int FAST_FUNC volume_id_probe_ext(struct volume_id *id /*,uint64_t off*/)
+ {
+ #define off ((uint64_t)0)
+@@ -66,11 +106,15 @@ int FAST_FUNC volume_id_probe_ext(struct volume_id *id /*,uint64_t off*/)
+ 	dbg("ext: label '%s' uuid '%s'", id->label, id->uuid);
+ 
+ #if ENABLE_FEATURE_BLKID_TYPE
+-	if ((le32_to_cpu(es->feature_compat) & EXT3_FEATURE_COMPAT_HAS_JOURNAL) != 0)
++	if ((es->feature_ro_compat & cpu_to_le32(EXT4_FEATURE_RO_COMPAT_HUGE_FILE | EXT4_FEATURE_RO_COMPAT_DIR_NLINK))
++	 || (es->feature_incompat & cpu_to_le32(EXT4_FEATURE_INCOMPAT_EXTENTS | EXT4_FEATURE_INCOMPAT_64BIT))
++	) {
++		id->type = "ext4";
++	}
++	else if (es->feature_compat & cpu_to_le32(EXT3_FEATURE_COMPAT_HAS_JOURNAL))
+ 		id->type = "ext3";
+ 	else
+ 		id->type = "ext2";
+ #endif
+-
+ 	return 0;
+ }

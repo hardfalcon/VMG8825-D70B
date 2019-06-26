@@ -1,0 +1,386 @@
+Infineon Debug & Trace Interface (DTI)
+======================================
+
+NEXT VERSION
+------------
+NEW:
+-
+FIX:
+-
+CHANGE:
+-
+ADD:
+-
+
+V1.2.5 - 2015-07-16
+-------------------
+NEW:
+- Device Access Handling: new function DTI_DeviceConfigRemove()
+  Allows to remove a registered Device Access Interface.
+  Restriction: no active connection allowed.
+CHANGE:
+- Device Access Handling::DTI_DeviceConfigAdd
+  Range check of the device interface index was wrong
+
+V1.2.4 - 2015-04-29
+-------------------
+NEW:
+- Add DTI Statistics
+  New Files:
+  - ./src/dti_statistic.c
+  - ./src/include/dti_statistic.h
+  - ./src/include/dti_statistic_if.h
+  New Funtions:
+  - int dti_agent_system_status_get(..)
+  - int dti_agent_system_info_get(..)
+  Build Options:
+  - Feature: DTI_SUPPORT_STATISTIC_STATUS
+    Available and set with this DTI version
+  Compile:
+  - Auto-tools: --enable-core-statistic
+    Compile: defines DTI_INCLUDE_CORE_STATISTICS=1
+    Enables the DTI statistics and status
+FIX:
+- CLI send function register: lock check was always done on the first interface.
+CHANGE:
+- support of IFXOS_SUPPORT_GET_OPT_R
+- Debug Level Set: allow to set the dedicated modules debug level
+  new_debug_level = 0x000000LL (single byte value), current behavior (set all).
+  new_debug_level = 0xCCDDAACP, set Modules: CC=CLI, DD=Dev, AA= common (agent), CP=Prot
+ADD:
+- Add Visual Studio 2012 build
+- Visual Studio 2010 - add x64 build
+
+V1.2.3 - 2015-02-11
+-------------------
+FIX:
+- DSLCOSW-3003: DTI packet stream could get corrupted by events
+
+V1.2.2 - 2014-10-17
+-------------------
+NEW:
+-Added CLI response in several parts support
+   (DSLCOSW-2853: CLI CompactViewAllXxx cannot be read via DTI, buffer too small)
+
+V1.2.1 - 2012-10-26
+-------------------
+FIX:
+- CLI: fix interface index check (CLI String process)
+- CLI: add lock for CLI responce buffer (CLI String process)
+
+
+V1.2.0 - 2012-09-27
+-------------------
+NEW:
+- DTI Serial Agent (Win32 only): Standalone Agent which communicates with a
+  DTI Serial Proxy via the serial interface.
+  - DTI Serial Proxy (on the target): Recieves the DTI serial packets (via serial
+    interface) and forwards the packet to the registered device library.
+  - DTI Serial Device: used by the Agent to send device specific requests.
+    Therefore a device request will be re-translated into a DTI packet which is
+    send via the serial interface to the DTI Serial Proxy.
+  - Added Makefile.vdslproxy for GHS compilation
+  - File download
+  - Execute shell script on a remote board
+
+NEW DTI Packet Types:
+- The following new DTI Packet Types have been introduced,
+   see src/include/ifx_dti_protocol.h:
+   - DTI_PacketType_eImageDownloadStart   = 0x00000014
+      Start image download from board
+   - DTI_PacketType_eImageDownloadChunk   = 0x00000015
+      Download image chunk from board
+   - DTI_PacketType_eExecuteRemoteShScript= 0x00000016
+      Execute shell script on board
+
+FIX:
+- fix error handling (mem alloc failed) within the worker thread.
+- fixed port to device translation for non-CLI message in implementation of
+  DTI-client wrapper for Python scripts
+- sprintf isntead of snprintf
+- fixed additional null termination for CLI event write
+
+
+CHANGE:
+- improved .hgignore
+
+------------
+V1.1.4 - 2011-05-19
+-------------------
+FIX:
+- fixed port to device translation for non-CLI messages
+
+------------
+V1.1.3 - 2011-05-12
+-------------------
+NEW:
+- param0 added to the DTI_DeviceSysInfo_t and DTI_DeviceIfSettings_t structures
+
+V1.1.2 - 2010-10-28
+-------------------
+ DTI_DEV_Message8Send_f added at the end of struct DTI_DeviceAccessFct_s
+
+V1.1.1 - 2010-09-29
+-------------------
+FIX:
+- wrong packet type for DTI_packet_TraceBufferGet
+
+V1.1.0 - 2010-06-21
+-------------------
+NEW DTI Packet Types:
+- The following new DTI Packet Types have been introduced,
+   see src/include/ifx_dti_protocol.h:
+   - DTI_PacketType_eImageRelease     = 0x00000012
+      Release an uploaded image from the DTI Agent Context
+   - DTI_PacketType_eImageWriteToFile = 0x00000013
+      Writes an uploaded image to the target filesystem
+      (requires file system support on the target system)
+NEW:
+- extend the DTI CLI control interface to mamage the new file handling features.
+
+CHANGE:
+- Cleanup:
+   - Remove all device specific blocks from the common DTI library
+      VINAX/GEMINAX: VINAX/GEMINAX DTI Agent will become part of the Device Driver
+   - The remaining default DTI Agent (for testing) has been moved to
+         ./lib_dti/application/dti_agent
+     Now this is a simple default agent for testing (example) without dedicated
+     device access (It contains the generic device as an example).
+- update Lantiq licenses
+- update docu
+
+V1.0.1 - 2009-04-15
+-------------------
+FIX:
+- compile error for the GEMINAX device lib
+CHANGE:
+- update license header IFX --> Lantiq.
+- update / complete builtin documentation.
+- cleanups (cast macros etc).
+
+
+V1.0.0 - 2009-03-12
+-------------------
+CHANGE:
+- Protocol Change: DTI Header - Port
+  Current: The port field within the header contains the line / port / interface number.
+  New: Only the first 24 bits are used for the line / port / interface number.
+       The highest byte is used for the device selection if multiple devices are available.
+  Remark: This change should have no effect if the DTI agent has been started with
+          one device (old behaviour). In this case the device number for this single
+          device will be "0" --> no influence on exiting applications.
+
+- Reoder the device handling
+   - Allow several devices in parallel (currently max 2). Therefore a device
+     has to be registered dynamicly (previous: fixed device selection at compile time).
+   - Seperation of the device specific part. All device specific defines are in "dti_device.h"
+     (build the device specific part as own library)
+- New Interface: Start DTI Agent (allows several devices)
+      IFX_int_t DTI_AgentStartXDevs(
+                  DTI_AgentCtx_t                   **ppDtiAgentCtx,
+                  DTI_AgentStartupSettingsXDevs_t  *pAgentStartupSettingsXDevs)
+- New Interface: Add a device interface while runtime.
+      IFX_int_t DTI_DeviceConfigAdd(
+                  DTI_AgentCtx_t          *pAgentCtx,
+                  IFX_int_t               devIfNumber,
+                  DTI_DeviceIfSettings_t  *pDeviceIfSettings)
+
+- LINUX: Build Process
+  - The name of the output libraries have been changed.
+  - Further the protocol specific part and the DTI agent part have been collected together
+    to one single library.
+  - Build the DTI Agent as dynamic library "libdti_agent.so"
+    (the static version of the libraries are still build and can be used).
+    Remark:
+    Dynamic libraries have to be installed on the target system. Further the location
+    on the target system must be know by the application which want to use dynamic
+    libraries or the location has to be added to the system library path (see "LD_LIBRARY_PATH")
+
+FIX:
+- fixed wrong debug print within DTI_CLI_SendFunctionRegister()
+- abort connection if DTI_conDataRead() returns -1, fixes endless loop if the other side shutdown the connection
+
+
+
+V0.5.2 - 2009-25-06
+-------------------
+FIX:
+- GMXD: Device related implementation was corrected
+
+V0.5.1 - 2009-19-06
+-------------------
+- new configure option added: "--enable-dev-generic"
+- minor adaptations/fixes to make Vinax and Geminax builds complete.
+- new file(s) added:
+  + dti_dev_generic.c
+  + dti_dev_generic_ctx.h
+  + dti_dev_generic_interface.h
+- Generic device support added
+
+V0.5.0 - 2009-23-04
+-------------------
+- make the core files device independent
+
+V0.4.0 - 2008-11-07
+-------------------
+CHANGE:
+- reorder the network layer to allow easy adaptation for the LWIP stack (eCos)
+- reorder the thread layer to allow easy adaptation for the LWIP stack (eCos)
+- prepare single threaded mode.
+- New File:
+   + dti_connection.c, dti_connection.h
+   + dti_protocol_ext.c, dti_protocol_ext.h
+
+
+V0.3.2 - 2008-10-15
+-------------------
+FIX:
+- VINAX: Device autonomous messages, currpted payload
+ADD:
+- Show Version Info while startup and System Info
+
+V0.3.1 - 2008-09-19
+-------------------
+FIX:
+- debug streams: Statistics
+- test client: add argument description
+
+V0.3.0 - 2008-07-21
+-------------------
+ADD:
+- VINAX Rev2: FW Debug Streams
+
+V0.2.0 - 2008-07-21
+-------------------
+ADD:
+- ADSL Geminax device
+
+V0.1.4 - 2008-07-11
+-------------------
+FIX:
+- Lint warnings / errors
+CHANGE:
+- Add socket shutdown for DTI connection close.
+
+V0.1.3 - 2008-06-22
+-------------------
+FIX:
+- Build LINUX: add the DTI protocol files to the DTI Agent Lib
+   (only one lib for the DTI).
+
+V0.1.2 - 2008-06-20
+-------------------
+ADD:
+- CLI Autonomous Handling
+- CLI Control Interface, allows configuration via CLI strings.
+   CLI Control Keyword: "@DTI#"
+- File upload
+- VINAX: FW download
+- DTI Client library, contains functions for client handling
+- new DTI Client test application
+
+
+V0.1.1 - 2008-06-02
+-------------------
+Change: DTI Protocol Version: V0.0.8
+   - Rename: "DTI_PacketType_eLock",      new "DTI_PacketType_eRegisterLock"
+   - Rename: "DTI_PacketType_eCliString", new "DTI_PacketType_eCliString"
+
+Change:
+- Register Get / Set: add length check and allow multible register values.
+- Debug Read/Write: length check, return error in case of overflow.
+
+FIX:
+- Lock: not supported, return correct payload.
+- Packet receive: resynchronisation in case of buffer overflow or malformed packets.
+
+
+V0.1.0 - 2008-05-27
+-------------------
+- New protocol version 0.0.7
+   - DTI Error Codes:
+         DTI_eErrConfiguration   invalid or incomplete configuration.
+         DTI_eErrPortOutOfRange  port/device/interface num out of range.
+         DTI_eErrPortOpen        port/interface open failed.
+         DTI_eErrPortOperation   port/device/interface operation failed
+
+   - Device Protocol Header
+      New structure for Message Send responce:
+         DTI_D2H_Message16_t, DTI_D2H_Message32_t
+
+- Add autonomous message handling.
+- File upload prepared (but not tested).
+- Add startup struct for agent start.
+- Reorder SW architecture.
+
+
+V0.0.4 - 2008-03-07
+-------------------
+
+interface:
+- new prototcol header (only some lint fixes)
+
+change(s):
+- Replace DTI standard data types with the IFXOS types (see ifx_types.h)
+- Remove empty/unused functions.
+- Replace the global DTI context with a dynamic allocated block (necessary to
+  start more than one instance of the DTI Agent).
+- CLI interface: CLI protocol packet types changed (no mixed/structured types)
+- CLI interface: add callback context to the CLI functionality
+- DTI Agent: reorder function interface,
+   - change most functions to "static"
+   - add new interface functions:
+      + DTI_AgentStart
+      + DTI_AgentStop
+- Rework thread shutdown sequence.
+
+bugfix(es):
+- Packet handling: take over package option field to the responce message.
+- Use the correct macros and defines for the Debug/Error printouts
+
+added:
+- CLI interface: add compile switch (see "DTI_SUPPORT_CLI").
+- add LINT target to the make files
+- Standalone Agent: add argument handling
+- Test client: add argument handling
+
+
+
+V0.0.3 - 2008-02-25
+-------------------
+change(s):
+- TCP IP connection is established based on the dynamic set IP data.
+
+added:
+- add WHAT string for DTI agent version.
+- add default values for the device configuration.
+- add getopt functionality.
+- add dynamic setup of the device configuration.
+- add dynamic setup of the IP configuration.
+
+bugfix(es):
+- rework message send function
+
+
+V0.0.2 - 2008-01-29
+-------------------
+- First initial version of the Debug & Trace interface.
+  - based on protocol version 0.0.3
+  - multi threaded (thread per connection)
+  - net order.
+
+change(s):
+
+added:
+
+bugfix(es):
+
+
+V0.0.1 - 2008-01-24
+-------------------
+change(s):
+
+added:
+
+bugfix(es):
+

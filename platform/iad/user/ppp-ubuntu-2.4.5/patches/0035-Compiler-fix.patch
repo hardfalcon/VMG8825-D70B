@@ -1,0 +1,45 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Mon, 14 Feb 2011 18:05:49 +0100
+Subject: Compiler fix.
+
+---
+ pppd/main.c | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/pppd/main.c b/pppd/main.c
+index e1dfb1d..1743081 100644
+--- a/pppd/main.c
++++ b/pppd/main.c
+@@ -2190,20 +2190,20 @@ cleanup_db()
+ int read_pppd_status(void)
+ {
+ //  notice ("-- %s -- = %d \n ", __FUNCTION__, if_status);
+-  return if_status; 
++  return if_status;
+ }
+ void write_pppd_status(int status)
+ {
+     FILE *fp;
+     char filename[32];
+-    
++
+     if_status = status;
+     // ifunit is zero at opening ppp interface, whereas the status file is already written by rp-pppoe plugin;
+-    // on SAS IADs ifunit returned from kernel is always equal req_unit 
++    // on SAS IADs ifunit returned from kernel is always equal req_unit
+     // (requested unit - given as "unit" in pppoe<x> config file)
+     //snprintf(filename, sizeof(filename), "/tmp/pppd%d_status", ifunit);
+     snprintf(filename, sizeof(filename), "/tmp/pppd%d_status", req_unit);
+-    //notice ("-- %s -- %s = %d \n ", __FUNCTION__, filename, status);  
++    //notice ("-- %s -- %s = %d \n ", __FUNCTION__, filename, status);
+ 
+     /* Do not override status with 0 on shutting down LCP link layer
+        if shut down was caused by an authentication failure
+@@ -2242,4 +2242,5 @@ end_ifunit_status:
+         fclose(fp);
+     }
+ #endif
++    return;
+ }
+--
+

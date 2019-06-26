@@ -1,0 +1,99 @@
+From 9c254ddca22f0bc59759cc263c8d7ad51d9a6b18 Mon Sep 17 00:00:00 2001
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Mon, 22 Aug 2011 21:38:21 +0200
+Subject: [PATCH 3/4] More libifbind changes.
+
+---
+ ntpclient.c |   27 ++++++++++++++++++++++++---
+ 1 files changed, 24 insertions(+), 3 deletions(-)
+
+diff --git a/ntpclient.c b/ntpclient.c
+index cd1032b..91e9ae7 100644
+--- a/ntpclient.c
++++ b/ntpclient.c
+@@ -44,6 +44,7 @@
+ #include <sys/types.h>
+ #include <sys/socket.h>
+ #include <netinet/in.h>
++#include <net/if.h>
+ #include <netdb.h>     /* gethostbyname */
+ #include <arpa/inet.h>
+ #include <time.h>
+@@ -593,7 +594,7 @@ static void usage(char *argv0)
+ #ifdef ENABLE_DEBUG
+ 	" [-d]"
+ #endif
+-	" [-f frequency] [-g goodness] -h hostname\n"
++	" [-f frequency] [-g goodness] [-I interface ] -h hostname\n"
+ 	"\t[-i interval] [-l] [-p port] [-q min_delay]"
+ #ifdef ENABLE_REPLAY
+ 	" [-r]"
+@@ -609,6 +610,7 @@ int main(int argc, char *argv[]) {
+ 	   the initializations here provide default behavior */
+ 	short int udp_local_port=0;   /* default of 0 means kernel chooses */
+ 	char *hostname=NULL;          /* must be set */
++	char *interfacename=NULL; 
+ 	int initial_freq;             /* initial freq value to use */
+ 	struct ntp_control ntpc;
+ 	ntpc.live=0;
+@@ -619,7 +621,7 @@ int main(int argc, char *argv[]) {
+ 	ntpc.cross_check=1;
+ 
+ 	for (;;) {
+-		c = getopt( argc, argv, "c:" DEBUG_OPTION "f:g:h:i:lp:q:" REPLAY_OPTION "st");
++		c = getopt( argc, argv, "c:" DEBUG_OPTION "I:f:g:h:i:lp:q:" REPLAY_OPTION "st");
+ 		if (c == EOF) break;
+ 		switch (c) {
+ 			case 'c':
+@@ -639,6 +641,9 @@ int main(int argc, char *argv[]) {
+ 			case 'g':
+ 				ntpc.goodness = atoi(optarg);
+ 				break;
++			case 'I':
++				interfacename = optarg;
++				break;
+ 			case 'h':
+ 				hostname = optarg;
+ 				break;
+@@ -692,6 +697,7 @@ int main(int argc, char *argv[]) {
+ 		"  -c probe_count %d\n"
+ 		"  -d (debug)     %d\n"
+ 		"  -g goodness    %d\n"
++		"  -I interface   %s\n"
+ 		"  -h hostname    %s\n"
+ 		"  -i interval    %d\n"
+ 		"  -l live        %d\n"
+@@ -699,7 +705,7 @@ int main(int argc, char *argv[]) {
+ 		"  -q min_delay   %f\n"
+ 		"  -s set_clock   %d\n"
+ 		"  -x cross_check %d\n",
+-		ntpc.probe_count, debug, ntpc.goodness,
++		ntpc.probe_count, debug, ntpc.goodness, interfacename,
+ 		hostname, ntpc.cycle_time, ntpc.live, udp_local_port, min_delay,
+ 		ntpc.set_clock, ntpc.cross_check );
+ 	}
+@@ -708,6 +714,21 @@ int main(int argc, char *argv[]) {
+ 	if ((usd=socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP))==-1)
+ 		{perror ("socket");exit(1);}
+ 
++	/* Allow for interface binding using commandline parameter */
++	if (NULL != interfacename)
++	{
++	    struct ifreq ifr;
++	    memset (&ifr, 0, sizeof( ifr));
++	    strncpy (ifr.ifr_name, interfacename, IFNAMSIZ);
++
++	    if (setsockopt (usd, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof(ifr)) != 0)
++	    {
++		perror ("socket");
++		close (usd);
++		exit (1);
++	    }
++	}
++
+ 	setup_receive(usd, INADDR_ANY, udp_local_port);
+ 
+ 	setup_transmit(usd, hostname, NTP_PORT, &ntpc);
+-- 
+1.7.4.1
+

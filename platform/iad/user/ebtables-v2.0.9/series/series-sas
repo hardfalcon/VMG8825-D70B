@@ -1,0 +1,5 @@
+0001-user-compile-fix-install-to-make-i-overwriteable-fro.patch
+0002-make-jN-Makefile-fix.patch
+0003-Fixed-CFLAGS-and-LDFLAGS-usage.patch
+0004-Compat-define-for-older-kernel-versions.patch
+0005-Fix-compilation-without-reference-to-headers-from-an.patch

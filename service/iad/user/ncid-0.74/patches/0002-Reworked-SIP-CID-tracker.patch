@@ -1,0 +1,511 @@
+From 4acd4ca6133ab1e52765ccf11f07f62b73c6e48e Mon Sep 17 00:00:00 2001
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Thu, 5 May 2011 15:09:18 +0200
+Subject: [PATCH 2/5] Reworked SIP CID tracker.
+
+---
+ cidgate/sip2ncid.c |  198 +++++++++++++++++++++++++++++----------------------
+ cidgate/sip2ncid.h |    3 +
+ 2 files changed, 116 insertions(+), 85 deletions(-)
+
+diff --git a/cidgate/sip2ncid.c b/cidgate/sip2ncid.c
+index 5ea1a35..f5b1dc4 100644
+--- a/cidgate/sip2ncid.c
++++ b/cidgate/sip2ncid.c
+@@ -35,20 +35,32 @@ FILE *logptr;
+ pcap_t *descr;
+ pcap_dumper_t *dumpfile;
+ struct sigaction sigact;
++unsigned char size_ethernet = SIZE_ETHERNET;
++
++int doPID(void);
++int getOptions(int argc, char *argv[]);
++int pcapListDevs(void);
++int parseLine(char *sipbuf, char *plabel, char *llabel, char **name, char **number);
++int getCallID(char *sipbuf, char *callid, int size);
++int rmCallID(char *calls[], char *callid);
++void cleanup(int error);
++void doPCAP(void);
++/* void exitExit(); */
++void sigdetect(int sig);
++void errorExit(int error, char *msg, char *arg);
++void socketConnect(int fatal);
++char *strdate(int withyear);
++char *strmatch(char *strbuf, char *fword, char *eword);
+ 
+-int doPID(), getOptions(), pcapListDevs(), parseLine(), getCallID(), rmCallID();
+-void cleanup(), doPCAP(), exitExit(), sigdetect();
+-void errorExit(), socketConnect();
+-char *strdate(), *inet_ntoa(), *strmatch();
+ #ifndef __CYGWIN__
+-    extern char *strsignal();
++    extern char *strsignal(int sig);
+ #endif
+ 
+ int main(int argc, char *argv[])
+ {
+     int argind;
+     char msgbuf[BUFSIZ];
+-    struct stat statbuf;
++/*    struct stat statbuf; */
+ 
+     /* global containing name of program */
+     name = strrchr(argv[0], (int) '/');
+@@ -168,25 +180,26 @@ int main(int argc, char *argv[])
+ int getOptions(int argc, char *argv[])
+ {
+     int c, num;
+-    int digit_optind = 0;
++/*    int digit_optind = 0; */
+     int option_index = 0;
+     char *ptr;
+-    static struct option long_options[] = {
+-        {"config", 1, 0, 'C'},
+-        {"debug", 0, 0, 'D'},
+-        {"dumpfile", 1, 0, 'd'},
+-        {"help", 0, 0, 'h'},
++    static struct option long_options[] =
++    {
++        {"config",    1, 0, 'C'},
++        {"debug",     0, 0, 'D'},
++        {"dumpfile",  1, 0, 'd'},
++        {"help",      0, 0, 'h'},
+         {"interface", 1, 0, 'i'},
+-        {"listdevs", 0, 0, 'l'},
+-        {"logfile", 1, 0, 'L'},
+-        {"ncid", 1, 0, 'n'},
+-        {"pidfile", 1, 0, 'P'},
+-        {"sip", 1, 0, 's'},
+-        {"testudp", 0, 0, 't'},
+-        {"testall", 0, 0, 'T'},
+-        {"verbose", 1, 0, 'v'},
+-        {"version", 0, 0, 'V'},
+-        {0, 0, 0, 0}
++        {"listdevs",  0, 0, 'l'},
++        {"logfile",   1, 0, 'L'},
++        {"ncid",      1, 0, 'n'},
++        {"pidfile",   1, 0, 'P'},
++        {"sip",       1, 0, 's'},
++        {"testudp",   0, 0, 't'},
++        {"testall",   0, 0, 'T'},
++        {"verbose",   1, 0, 'v'},
++        {"version",   0, 0, 'V'},
++        {0,           0, 0, 0  }
+     };
+ 
+     while ((c = getopt_long (argc, argv, "hi:ln:r:s:tv:w:C:DL:P:TV",
+@@ -216,7 +229,7 @@ int getOptions(int argc, char *argv[])
+                 listdevs = 1;
+                 break;
+             case 'n': /* [host][:port] must contain host or port or both */
+-                if (ptr = index(optarg, (int) ':'))
++                if ((ptr = index(optarg, (int) ':')))
+                 {
+                     if ((ncidport = atoi(ptr + 1)) == 0)
+                         errorExit(-101, "Invalid port number", optarg);
+@@ -232,7 +245,7 @@ int getOptions(int argc, char *argv[])
+                 }
+                 break;
+             case 's':
+-                if (ptr = index(optarg, (int) ':'))
++                if ((ptr = index(optarg, (int) ':')))
+                 {
+                     if ((sipport = atoi(ptr + 1)) == 0)
+                         errorExit(-101, "Invalid port number", optarg);
+@@ -319,7 +332,7 @@ char *strdate(int withyear)
+  * if write a pidfile failed, OK
+  * If pidfile == 0, do not write PID file
+  */
+-int doPID()
++int doPID(void)
+ {
+     struct stat statbuf;
+     char msgbuf[BUFSIZ];
+@@ -372,9 +385,9 @@ int doPID()
+  */
+ void socketConnect(int fatal)
+ {
+-	char msgbuf[BUFSIZ];
+-	struct sockaddr_in sin;
+-	struct sockaddr_in pin;
++    char msgbuf[BUFSIZ];
++/*    struct sockaddr_in sin; */
++    struct sockaddr_in pin;
+ 
+     /*
+      * The TiVo S1 does not have gethostbyname() in libc.so.
+@@ -382,28 +395,28 @@ void socketConnect(int fatal)
+      * IP addresses must be used, not host names, for the TiVo S1
+      */
+ #ifndef TIVO_S1
+-	struct hostent *hp;
+-	/* find out about the desired host machine */
+-	if ((hp = gethostbyname(ncidhost)) == 0)
++    struct hostent *hp;
++    /* find out about the desired host machine */
++    if ((hp = gethostbyname(ncidhost)) == 0)
+         errorExit(-1, "gethostbyname", strerror(h_errno));
+ #endif
+-	/* fill in the socket structure with host information */
+-	memset(&pin, 0, sizeof(pin));
+-	pin.sin_family = AF_INET;
++    /* fill in the socket structure with host information */
++    memset(&pin, 0, sizeof(pin));
++    pin.sin_family = AF_INET;
+ #ifndef TIVO_S1
+-	pin.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr))->s_addr;
++    pin.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr))->s_addr;
+ #else
+-	if (pin.sin_addr.s_addr = inet_addr(ncidhost) == INADDR_NONE)
++    if (pin.sin_addr.s_addr = inet_addr(ncidhost) == INADDR_NONE)
+         errorExit(-1, "NCIDHOST", "Bad IP Address");
+ #endif
+-	pin.sin_port = htons(ncidport);
++    pin.sin_port = htons(ncidport);
+ 
+-	/* grab an Internet domain socket */
+-	if ((sd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
++    /* grab an Internet domain socket */
++    if ((sd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+         errorExit(-1, "socket", 0);
+ 
+-	/* connect to PORT on HOST */
+-	if (connect(sd, (struct sockaddr *) &pin, sizeof(pin)) == -1)
++    /* connect to PORT on HOST */
++    if (connect(sd, (struct sockaddr *) &pin, sizeof(pin)) == -1)
+     {
+         if (fatal) errorExit(-1, "NCID server", 0);
+         sprintf(msgbuf, "Warning: could not connect to the NCID server\n");
+@@ -416,7 +429,7 @@ void socketConnect(int fatal)
+     else if (fcntl(sd, F_SETFL, O_NONBLOCK) < 0) errorExit(-1, "socket", 0);
+ }
+ 
+-int socketRead()
++int socketRead(void)
+ {
+     int num;
+     char msgbuf[BUFSIZ];
+@@ -432,7 +445,7 @@ int socketRead()
+ /*
+  * List all network Devices
+  */
+-int pcapListDevs()
++int pcapListDevs(void)
+ {
+     char errbuf[PCAP_ERRBUF_SIZE];
+     char *desc, *ptr;
+@@ -452,7 +465,7 @@ int pcapListDevs()
+         }
+ 
+         /* If using WinPcap, path elements use '\' instead of '/' */
+-        while (ptr = index(alldevsp->name, (int) '\\')) *ptr = '/';
++        while ((ptr = index(alldevsp->name, (int) '\\'))) *ptr = '/';
+ 
+         fprintf(stdout, "%s : %s\n", alldevsp->name, desc);
+         alldevsp = alldevsp->next;
+@@ -478,15 +491,15 @@ void processPackets(u_char *args,
+     const struct udphdr *udp;               /* UDP Header */
+     const char   *pdata;                    /* Packet Data */
+ 
+-    int size_ip, size_udp, size_pdata, cnt, outcall, pos, retval;
++    int size_ip, size_udp, size_pdata, cnt, outcall = 0, pos, retval;
+ 
+     char sipbuf[SIPSIZ], msgbuf[BUFSIZ], cidmsg[BUFSIZ],
+          tonumber[NUMSIZ], callid[CIDSIZ];
+-    char *line, *number, *name;
+-
++    char *line = NULL, *number, *name;
++/*
+     struct tm *tm;
+     struct timeval tv;
+-
++*/
+     alarm(PKTWAIT); /* reset SIP packet timeout alarm */
+     msgsent = 0;    /* reset message log flag */
+ 
+@@ -531,7 +544,7 @@ void processPackets(u_char *args,
+     pktcnt++;
+ 
+     /* compute IP header offset */
+-    ip = (struct ip *)(packet + SIZE_ETHERNET);
++    ip = (struct ip *)(packet + size_ethernet);
+     size_ip = (ip->ip_hl)*4;
+     if (size_ip < 20)
+     {
+@@ -541,12 +554,14 @@ void processPackets(u_char *args,
+     }
+ 
+     /* log source and destination IP addresses */
+-    sprintf(msgbuf, "       From: %s\n         To: %s\n",
+-            inet_ntoa(ip->ip_src), inet_ntoa(ip->ip_dst));
++    sprintf(msgbuf, "       From: %s\n", inet_ntoa(ip->ip_src));
++    logMsg(LEVEL4, msgbuf);
++
++    sprintf(msgbuf, "         To: %s\n", inet_ntoa(ip->ip_dst));
+     logMsg(LEVEL4, msgbuf);
+ 
+     /* determine protocol */
+-    switch(ip->ip_p) {
++    switch (ip->ip_p) {
+         case IPPROTO_TCP:
+             sprintf(msgbuf, "   Protocol: TCP\n");
+             logMsg(LEVEL3, msgbuf);
+@@ -575,7 +590,7 @@ void processPackets(u_char *args,
+  */
+ 
+     /* compute UDP header offset */
+-    udp = (struct udphdr *)(packet + SIZE_ETHERNET + size_ip);
++    udp = (struct udphdr *)(packet + size_ethernet + size_ip);
+     size_udp = sizeof (struct udphdr);
+ 
+     /* log source and destination ports */
+@@ -584,7 +599,7 @@ void processPackets(u_char *args,
+     logMsg(LEVEL4, msgbuf);
+ 
+     /* compute UDP packet data offset */
+-    pdata = (char *)(packet + SIZE_ETHERNET + size_ip + size_udp);
++    pdata = (char *)(packet + size_ethernet + size_ip + size_udp);
+ 
+     /* compute UDP packet data size */
+     size_pdata = ntohs(ip->ip_len) - (size_ip + size_udp);
+@@ -653,7 +668,7 @@ void processPackets(u_char *args,
+                 /* enter Call-ID in calls in-progress table */
+                 if (pos)
+                 {
+-                        calls[pos] = strdup(callid);
++                    calls[pos] = strdup(callid);
+                 }
+ 
+                 /*
+@@ -661,8 +676,7 @@ void processPackets(u_char *args,
+                  *
+                  * To: <sip:CALLED_NMBR@IP_Address>;tag=TAG_NMBR
+                  */
+-                if (parseLine(sipbuf, INVITE, TO,
+-                    (char *) 0, (char *) &number) == 0)
++                if (parseLine(sipbuf, INVITE, TO, 0, &number) == 0)
+                 {
+                     if (isdigit(*number))
+                         strcpy(tonumber, number);
+@@ -675,8 +689,7 @@ void processPackets(u_char *args,
+                 *
+                 * From: [["]NAME["]] <sip:CALLING_NMBR@IP_ADDR>;tag=TAG_NMBR
+                 */
+-                if (parseLine(sipbuf, INVITE, FROM,
+-                    (char *) &name, (char *) &number) == 0)
++                if (parseLine(sipbuf, INVITE, FROM, &name, &number) == 0)
+                 {
+                     /* if number is LINE NUMBER, it is a outgoing call */
+                     for (cnt = 0, outcall = 0; cnt < MAXLINE; ++cnt)
+@@ -701,7 +714,8 @@ void processPackets(u_char *args,
+                     sprintf(cidmsg, CIDLINE, strdate(NOYEAR),
+                             line, number, name);
+                 }
+-                if (sd) retval =  write(sd, cidmsg, strlen(cidmsg));
++
++                if (sd) retval = write(sd, cidmsg, strlen(cidmsg));  // CIDCALL or CIDLINE
+                 logMsg(LEVEL1, cidmsg);
+ 
+                 if (!pos)
+@@ -743,8 +757,7 @@ void processPackets(u_char *args,
+                  *
+                  * From: [["]NAME["]] <sip:CALLING_NMBR@IP_ADDR>;tag=TAG_NMBR
+                  */
+-                if (parseLine(sipbuf, CANCEL, FROM, (char *) 0,
+-                    (char *) &number)) return;
++                if (parseLine(sipbuf, CANCEL, FROM, 0, &number)) return;
+ 
+                 /*
+                  * if number is a telephone line number, it is a outgoing call
+@@ -757,14 +770,13 @@ void processPackets(u_char *args,
+                     if (linenum[cnt] && !strcmp(linenum[cnt], number))
+                     {
+                         /* get the called number from the TO line */
+-                        if (parseLine(sipbuf, CANCEL, TO, (char *) 0,
+-                            (char *) &number)) return;
++                        if (parseLine(sipbuf, CANCEL, TO, 0, &number)) return;
+                         break;
+                     }
+                 }
+ 
+                 sprintf(cidmsg, CIDCAN, number, strdate(NOYEAR));
+-                if (sd) retval =  write(sd, cidmsg, strlen(cidmsg));
++                if (sd) retval =  write(sd, cidmsg, strlen(cidmsg));  // CIDCAN
+                 logMsg(LEVEL1, cidmsg);
+             }
+ 
+@@ -794,8 +806,7 @@ void processPackets(u_char *args,
+                  * Get calling number from a "To:" or "From:" line
+                  * To: [["]NAME["]] <sip:CALLING_NMBR@IP_ADDR>;tag=TAG_NMBR
+                  */
+-                if (parseLine(sipbuf, BYE, TO, (char *) 0,
+-                    (char *) &number)) return;
++                if (parseLine(sipbuf, BYE, TO, 0, &number)) return;
+ 
+                 /*
+                  * if number is the telephone line number,
+@@ -808,14 +819,13 @@ void processPackets(u_char *args,
+                     if (linenum[cnt] && !strcmp(linenum[cnt], number))
+                     {
+                         /* get the calling number from the FROM line */
+-                        if (parseLine(sipbuf, BYE, FROM, (char *) 0,
+-                            (char *) &number)) return;
++                        if (parseLine(sipbuf, BYE, FROM, 0, &number)) return;
+                         break;
+                     }
+                 }
+ 
+                 sprintf(cidmsg, CIDBYE, number, strdate(NOYEAR));
+-                if (sd) retval =  write(sd, cidmsg, strlen(cidmsg));
++                if (sd) retval =  write(sd, cidmsg, strlen(cidmsg));  // CIDBYE
+                 logMsg(LEVEL1, cidmsg);
+             }
+ 
+@@ -834,8 +844,7 @@ void processPackets(u_char *args,
+                  *
+                  * From: [["]NAME["]] <sip:NMBR@IP_ADDR:PORT>;expires=TIME
+                  */
+-                if (parseLine(sipbuf, REGISTER, FROM, (char *) 0,
+-                    (char *) &number) == 0)
++                if (parseLine(sipbuf, REGISTER, FROM, 0, &number) == 0)
+                 {
+                     /* add phone number if not seen before */
+                     for (cnt = pos = 0; cnt < MAXLINE; ++cnt)
+@@ -877,7 +886,7 @@ int parseLine(char *sipbuf, char *plabel, char *llabel,
+     int ret = 0;
+     char *sptr, *eptr, *elptr;
+     char msgbuf[BUFSIZ];
+-    static linebuf[SIPSIZ];
++    static char linebuf[SIPSIZ];
+ 
+     /* make copy of input buffer */
+     strcpy((char *)linebuf, sipbuf);
+@@ -888,7 +897,7 @@ int parseLine(char *sipbuf, char *plabel, char *llabel,
+         if ((elptr = index(sptr, (int) NL)))
+         {
+             *elptr = '\0';
+-    
++
+             if (name)
+             {
+                 /* Look for NAME in quotes */
+@@ -958,7 +967,7 @@ int parseLine(char *sipbuf, char *plabel, char *llabel,
+         ret = 1;
+     }
+ 
+-return ret;
++    return ret;
+ }
+ 
+ /*
+@@ -972,7 +981,7 @@ char *strmatch(char *strbuf, char *fword, char *eword)
+ {
+     char *ptr;
+ 
+-    if (ptr = strstr(strbuf, fword))
++    if ((ptr = strstr(strbuf, fword)))
+     {
+         /* skip over part of word matched */
+         ptr += strlen(fword);
+@@ -1049,13 +1058,14 @@ int rmCallID(char *calls[], char *callid)
+     return cnt;
+ }
+ 
+-void doPCAP()
++void doPCAP(void)
+ {
+-    int i, pcapret;
++/*    int i; */
++    int pcapret;
+     char errbuf[PCAP_ERRBUF_SIZE], msgbuf[BUFSIZ], filter_exp[BUFSIZ];
+-    const u_char *packet;
+-    struct pcap_pkthdr hdr;     /* pcap.h                    */
+-    struct ether_header *eptr;  /* net/ethernet.h            */
++/*    const u_char *packet; */
++/*    struct pcap_pkthdr hdr;  */   /* pcap.h                    */
++/*    struct ether_header *eptr;  *//* net/ethernet.h            */
+     struct bpf_program fp;      /* hold compiled program     */
+     bpf_u_int32 maskp;          /* subnet mask               */
+     bpf_u_int32 netp;           /* ip                        */
+@@ -1064,13 +1074,13 @@ void doPCAP()
+     {
+         /* open a dump file for reading */
+         descr = pcap_open_offline(readfile, errbuf);
+-        if(descr == NULL) errorExit(-1, "pcap_open_offline()", errbuf);
++        if (descr == NULL) errorExit(-1, "pcap_open_offline()", errbuf);
+     }
+     else
+     {
+         /* grab a device to peak into... */
+         if (!device) device = pcap_lookupdev(errbuf);
+-        if(device == NULL) errorExit(-1, "pcap_lookupdev()", errbuf);
++        if (device == NULL) errorExit(-1, "pcap_lookupdev()", errbuf);
+ 
+         sprintf(msgbuf, "Network Interface: %s\n", device);
+         logMsg(LEVEL1, msgbuf);
+@@ -1080,11 +1090,29 @@ void doPCAP()
+ 
+         /* open device for reading in promiscuous mode */
+         descr = pcap_open_live(device, BUFSIZ, 1, PCAPWAIT, errbuf);
+-        if(descr == NULL) errorExit(-1, "pcap_open_live()", errbuf);
++        if (descr == NULL) errorExit(-1, "pcap_open_live()", errbuf);
+ 
+         /* make sure we're capturing on an Ethernet device [2] */
++/*
+         if (pcap_datalink(descr) != DLT_EN10MB)
+             errorExit(-1, device, "not an Ethernet device");
++*/
++        sprintf(msgbuf, "Link Layer Type: %d\n", pcap_datalink(descr));
++        logMsg(LEVEL1, msgbuf);
++
++        /* DLT_LINUX_SLL */
++        switch (pcap_datalink(descr))
++        {
++        case DLT_EN10MB:
++            size_ethernet = SIZE_ETHERNET;
++            break;
++        case DLT_LINUX_SLL:
++            size_ethernet = 16;
++            break;
++        default:
++            errorExit(-1, device, "not an Ethernet device");
++            break;
++        }
+ 
+         if (writefile)
+         {
+@@ -1250,7 +1278,7 @@ void sigdetect(int sig)
+     }
+     else
+     {
+-        sprintf(msgbuf, "Received Signal: %s\nn", strsignal(sig));
++        sprintf(msgbuf, "Received Signal: %s\n", strsignal(sig));
+         logMsg(LEVEL1, msgbuf);
+ 
+         /* termination signals */
+diff --git a/cidgate/sip2ncid.h b/cidgate/sip2ncid.h
+index df12637..bd73323 100644
+--- a/cidgate/sip2ncid.h
++++ b/cidgate/sip2ncid.h
+@@ -19,6 +19,7 @@
+ 
+ #include <stdio.h>
+ #include <getopt.h>
++#include <ctype.h>
+ #include <string.h>
+ #include <signal.h>
+ #include <errno.h>
+@@ -29,8 +30,10 @@
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ #include <sys/socket.h>
++#define __FAVOR_BSD
+ #include <netinet/in_systm.h> /* needed for FreeBSD */
+ #include <netinet/in.h>
++#include <arpa/inet.h>
+ #include <netinet/ip.h>
+ #include <netinet/udp.h>
+ #include <time.h>
+-- 
+1.7.4.1
+

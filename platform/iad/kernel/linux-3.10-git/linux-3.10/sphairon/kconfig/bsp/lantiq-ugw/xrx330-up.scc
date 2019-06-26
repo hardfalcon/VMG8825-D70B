@@ -1,0 +1,8 @@
+include bsp/lantiq/xway-up.scc
+
+kconf lantiq.cfg
+kconf xrx330.cfg
+kconf cpufreq.cfg
+kconf ppa-api.cfg
+kconf switch-api.cfg
+kconf usb.cfg

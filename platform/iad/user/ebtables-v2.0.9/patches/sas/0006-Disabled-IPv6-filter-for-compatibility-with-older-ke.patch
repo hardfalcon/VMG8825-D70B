@@ -1,0 +1,126 @@
+From 17b0d4497ba7fa55b25eb354f6e4d4842c9ae588 Mon Sep 17 00:00:00 2001
+From: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+Date: Tue, 14 Dec 2010 12:46:03 +0100
+Subject: Disabled IPv6 filter for compatibility with older kernel versions
+
+---
+ extensions/Makefile  |    4 ++--
+ extensions/ebt_log.c |   10 +---------
+ useful_functions.c   |   38 ++------------------------------------
+ 3 files changed, 5 insertions(+), 47 deletions(-)
+
+diff --git a/extensions/Makefile b/extensions/Makefile
+index b3548e8..7615993 100644
+--- a/extensions/Makefile
++++ b/extensions/Makefile
+@@ -1,7 +1,7 @@
+ #! /usr/bin/make
+ 
+-EXT_FUNC+=802_3 nat arp arpreply ip ip6 standard log redirect vlan mark_m mark \
+-          pkttype stp among limit ulog nflog
++EXT_FUNC+=802_3 nat arp arpreply ip standard log redirect vlan mark_m mark \
++          pkttype stp among limit ulog
+ EXT_TABLES+=filter nat broute
+ EXT_OBJS+=$(foreach T,$(EXT_FUNC), extensions/ebt_$(T).o)
+ EXT_OBJS+=$(foreach T,$(EXT_TABLES), extensions/ebtable_$(T).o)
+diff --git a/extensions/ebt_log.c b/extensions/ebt_log.c
+index 1cf831a..e956ed9 100644
+--- a/extensions/ebt_log.c
++++ b/extensions/ebt_log.c
+@@ -47,7 +47,7 @@ static CODE eight_priority[] = {
+ static int name_to_loglevel(char* arg)
+ {
+ 	int i;
+-	
++
+ 	for (i = 0; i < 8; i++)
+ 		if (!strcmp(arg, eight_priority[i].c_name))
+ 			return eight_priority[i].c_val;
+@@ -156,12 +156,6 @@ static int parse(int c, char **argv, int argc, const struct ebt_u_entry *entry,
+ 			ebt_print_error2("Unexpected `!' after --log");
+ 		break;
+ 
+-	case LOG_IP6:
+-		ebt_check_option2(flags, OPT_IP6);
+-		if (ebt_check_inverse(optarg))
+-			ebt_print_error2("Unexpected `!' after --log-ip6");
+-		loginfo->bitmask |= EBT_LOG_IP6;
+-		break;
+ 	default:
+ 		return 0;
+ 	}
+@@ -186,8 +180,6 @@ static void print(const struct ebt_u_entry *entry,
+ 		printf(" --log-ip");
+ 	if (loginfo->bitmask & EBT_LOG_ARP)
+ 		printf(" --log-arp");
+-	if (loginfo->bitmask & EBT_LOG_IP6)
+-		printf(" --log-ip6");
+ 	printf(" ");
+ }
+ 
+diff --git a/useful_functions.c b/useful_functions.c
+index d20b68e..5fb0b16 100644
+--- a/useful_functions.c
++++ b/useful_functions.c
+@@ -188,7 +188,7 @@ static int undot_ip(char *ip, unsigned char *ip2)
+ 			return -1;
+ 		*q = '\0';
+ 		onebyte = strtol(p, &end, 10);
+-		if (*end != '\0' || onebyte > 255 || onebyte < 0)   
++		if (*end != '\0' || onebyte > 255 || onebyte < 0)
+ 			return -1;
+ 		ip2[i] = (unsigned char)onebyte;
+ 		p = q + 1;
+@@ -275,7 +275,7 @@ char *ebt_mask_to_dotted(uint32_t mask)
+ 		*buf = '\0';
+ 	else
+ 		/* Mask was not a decent combination of 1's and 0's */
+-		sprintf(buf, "/%d.%d.%d.%d", ((unsigned char *)&mask)[0], 
++		sprintf(buf, "/%d.%d.%d.%d", ((unsigned char *)&mask)[0],
+ 		   ((unsigned char *)&mask)[1], ((unsigned char *)&mask)[2],
+ 		   ((unsigned char *)&mask)[3]);
+ 
+@@ -369,40 +369,6 @@ static struct in6_addr *parse_ip6_mask(char *mask)
+ 	return &maskaddr;
+ }
+ 
+-/* Set the ipv6 mask and address. Callers should check ebt_errormsg[0].
+- * The string pointed to by address can be altered. */
+-void ebt_parse_ip6_address(char *address, struct in6_addr *addr,
+-                           struct in6_addr *msk)
+-{
+-	struct in6_addr *tmp_addr;
+-	char buf[256];
+-	char *p;
+-	int i;
+-	int err;
+-
+-	strncpy(buf, address, sizeof(buf) - 1);
+-	/* first the mask */
+-	buf[sizeof(buf) - 1] = '\0';
+-	if ((p = strrchr(buf, '/')) != NULL) {
+-		*p = '\0';
+-		tmp_addr = parse_ip6_mask(p + 1);
+-	} else
+-		tmp_addr = parse_ip6_mask(NULL);
+-	in6addrcpy(msk, tmp_addr);
+-
+-	/* if a null mask is given, the name is ignored, like in "any/0" */
+-	if (!memcmp(msk, &in6addr_any, sizeof(in6addr_any)))
+-		strcpy(buf, "::");
+-
+-	if ((err=inet_pton(AF_INET6, buf, addr)) < 1) {
+-		ebt_print_error("Invalid IPv6 Address '%s' specified", buf);
+-		return;
+-	}
+-
+-	for (i = 0; i < 4; i++)
+-		addr->s6_addr32[i] &= msk->s6_addr32[i];
+-}
+-
+ /* Transform the ip6 addr into a string ready for output. */
+ char *ebt_ip6_to_numeric(const struct in6_addr *addrp)
+ {
+-- 
+1.7.3.3
+

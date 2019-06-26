@@ -1,0 +1,59 @@
+From: Maik Dybek <maik.dybek@sphairon.com>
+Date: Thu, 20 May 2010 14:41:29 +0200
+Subject: br2684: add support for FCS preserve ATM Mode support
+
+Signed-off-by: Maik Dybek <maik.dybek@sphairon.com>
+---
+ src/br2684/br2684ctl.c | 19 ++++++++++++++-----
+ 1 file changed, 14 insertions(+), 5 deletions(-)
+
+diff --git a/src/br2684/br2684ctl.c b/src/br2684/br2684ctl.c
+index 476c1d9..475661c 100644
+--- a/src/br2684/br2684ctl.c
++++ b/src/br2684/br2684ctl.c
+@@ -132,11 +132,11 @@ int assign_vcc(char *astr, int encap, int payload,
+     if (err!=0)
+       syslog(LOG_ERR,"Could not parse ATM parameters (error=%d)",err);
+     
+-    syslog(LOG_NOTICE,"Communicating over ATM %d.%d.%d, encapsulation: %s",
++    syslog(LOG_INFO,"Communicating over ATM %d.%d.%d, encapsulation: %s%s",
+ 	   addr.sap_addr.itf,
+ 	   addr.sap_addr.vpi,
+ 	   addr.sap_addr.vci,
+-	   encap?"VC mux":"LLC");
++	   (encap & 0x1)?"VC mux":"LLC",(encap & 0x2)?", FCS preserve":"");
+     
+     if ((fd = socket(PF_ATMPVC, SOCK_DGRAM, ATM_AAL5)) < 0)
+       syslog(LOG_ERR,"failed to create socket %d, reason: %s", 
+@@ -169,7 +169,16 @@ int assign_vcc(char *astr, int encap, int payload,
+     be.fcs_in = BR2684_FCSIN_NO;
+     be.fcs_out = BR2684_FCSOUT_NO;
+     be.fcs_auto = 0;
+-    be.encaps = encap ? BR2684_ENCAPS_VC : BR2684_ENCAPS_LLC;
++	// changed to support FCS preserve to qe_atm driver
++	switch( encap )
++	{
++		case 0:  be.encaps = BR2684_ENCAPS_LLC;     break;
++		case 2:  be.encaps = BR2684_ENCAPS_LLC_FCS; break;
++		case 3:  be.encaps = BR2684_ENCAPS_VC_FCS;  break;
++		case 1:  /* fall through, is the default case here */
++		default: be.encaps = BR2684_ENCAPS_VC;      break;
++    }
++
+     be.has_vpiid = 0;
+     be.send_padding = 0;
+     be.min_size = 0;
+@@ -198,9 +207,9 @@ void start_interface(struct br2684_params* params)
+ 
+ void usage(char *s)
+ {
+-  printf("usage: %s [-b] [[-c number] [-e 0|1] [-s sndbuf] [-q qos] [-p 0|1] "
++  printf("usage: %s [-b] [[-c number] [-e 0|1|2|3] [-s sndbuf] [-q qos] [-p 0|1] "
+ 	 "[-a [itf.]vpi.vci]*]*\n", s);
+-  printf("  encapsulations: 0=llc, 1=vcmux\n  payloads: 0=routed, 1=bridged\n");
++  printf("  encapsulations: 0=llc, 1=vcmux, 2=llc_fcs, 3=vc_fcs\n  payloads: 0=routed, 1=bridged\n");
+   exit(1);
+ }
+ 
+--
+

@@ -1,0 +1,5 @@
+# umount scsi block devices on remove action
+ACTION=="remove",KERNEL=="sd[a-z]*",RUN+="/bin/blkdev_umount %k"
+# run a command on remove events
+ACTION=="remove", ENV{REMOVE_CMD}!="", RUN+="$env{REMOVE_CMD}"
+

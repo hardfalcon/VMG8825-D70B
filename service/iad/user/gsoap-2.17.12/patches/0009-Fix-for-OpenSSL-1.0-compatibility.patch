@@ -1,0 +1,38 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Tue, 3 May 2011 13:31:39 +0200
+Subject: Fix for OpenSSL 1.0 compatibility.
+
+Signed-off-by: Daniel Egger <daniel.egger@sphairon.com>
+---
+ gsoap/stdsoap2.c   | 2 +-
+ gsoap/stdsoap2.cpp | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/gsoap/stdsoap2.c b/gsoap/stdsoap2.c
+index 025e174..a5856cc 100644
+--- a/gsoap/stdsoap2.c
++++ b/gsoap/stdsoap2.c
+@@ -4155,7 +4155,7 @@ again:
+           { X509_EXTENSION *ext = X509_get_ext(peer, i);
+             const char *ext_str = OBJ_nid2sn(OBJ_obj2nid(X509_EXTENSION_get_object(ext)));
+             if (ext_str && !strcmp(ext_str, "subjectAltName"))
+-            { X509V3_EXT_METHOD *meth = X509V3_EXT_get(ext);
++            { const X509V3_EXT_METHOD *meth = X509V3_EXT_get(ext);
+               void *ext_data;
+ #if (OPENSSL_VERSION_NUMBER >= 0x0090800fL)
+               const unsigned char *data;
+diff --git a/gsoap/stdsoap2.cpp b/gsoap/stdsoap2.cpp
+index 3653aad..d41c86e 100644
+--- a/gsoap/stdsoap2.cpp
++++ b/gsoap/stdsoap2.cpp
+@@ -4155,7 +4155,7 @@ again:
+           { X509_EXTENSION *ext = X509_get_ext(peer, i);
+             const char *ext_str = OBJ_nid2sn(OBJ_obj2nid(X509_EXTENSION_get_object(ext)));
+             if (ext_str && !strcmp(ext_str, "subjectAltName"))
+-            { X509V3_EXT_METHOD *meth = X509V3_EXT_get(ext);
++            { const X509V3_EXT_METHOD *meth = X509V3_EXT_get(ext);
+               void *ext_data;
+ #if (OPENSSL_VERSION_NUMBER >= 0x0090800fL)
+               const unsigned char *data;
+--
+

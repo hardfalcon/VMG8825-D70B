@@ -1,0 +1,23 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Mon, 14 Feb 2011 18:05:49 +0100
+Subject: Bump number of PADI retries to we retry a full day rather than 15s.
+
+---
+ pppd/plugins/rp-pppoe/pppoe.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pppd/plugins/rp-pppoe/pppoe.h b/pppd/plugins/rp-pppoe/pppoe.h
+index 3dba439..778ae98 100644
+--- a/pppd/plugins/rp-pppoe/pppoe.h
++++ b/pppd/plugins/rp-pppoe/pppoe.h
+@@ -147,7 +147,7 @@ extern UINT16_t Eth_PPPOE_Session;
+ #define STATE_TERMINATED    4
+ 
+ /* How many PADI/PADS attempts? */
+-#define MAX_PADI_ATTEMPTS 3
++#define MAX_PADI_ATTEMPTS 17280
+ 
+ /* Initial timeout for PADO/PADS */
+ #define PADI_TIMEOUT 5
+--
+

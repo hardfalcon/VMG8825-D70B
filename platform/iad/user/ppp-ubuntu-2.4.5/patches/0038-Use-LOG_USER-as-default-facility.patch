@@ -1,0 +1,25 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Mon, 14 Feb 2011 18:05:49 +0100
+Subject: Use LOG_USER as default facility
+
+Logging with LOG_LOCAL2 facility leads to unwanted log messages in persistent
+log file (/val/log/status).
+---
+ pppd/main.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pppd/main.c b/pppd/main.c
+index 6aa546b..b9fb454 100644
+--- a/pppd/main.c
++++ b/pppd/main.c
+@@ -807,7 +807,7 @@ detach()
+ void
+ reopen_log()
+ {
+-    openlog("pppd", LOG_PID | LOG_NDELAY, LOG_PPP);
++    openlog("pppd", LOG_PID | LOG_NDELAY, LOG_USER);
+     setlogmask(LOG_UPTO(LOG_INFO));
+ }
+ 
+--
+

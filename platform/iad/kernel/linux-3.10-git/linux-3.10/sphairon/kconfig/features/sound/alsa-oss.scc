@@ -1,0 +1,3 @@
+kconf core.cfg
+kconf alsa.cfg
+kconf alsa-oss.cfg

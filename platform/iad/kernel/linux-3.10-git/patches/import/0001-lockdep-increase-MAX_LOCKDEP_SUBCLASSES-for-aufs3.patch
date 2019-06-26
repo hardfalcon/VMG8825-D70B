@@ -1,0 +1,26 @@
+From e04f577603bc1be551b39b9b661b251204710528 Mon Sep 17 00:00:00 2001
+From: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+Date: Fri, 19 Oct 2012 20:44:48 +0200
+Subject: [PATCH] lockdep: increase MAX_LOCKDEP_SUBCLASSES for aufs3
+
+Signed-off-by: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+---
+ include/linux/lockdep.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/linux/lockdep.h b/include/linux/lockdep.h
+index f1e877b..f963886 100644
+--- a/include/linux/lockdep.h
++++ b/include/linux/lockdep.h
+@@ -29,7 +29,7 @@ extern int lock_stat;
+  */
+ #define XXX_LOCK_USAGE_STATES		(1+3*4)
+ 
+-#define MAX_LOCKDEP_SUBCLASSES		8UL
++#define MAX_LOCKDEP_SUBCLASSES		12UL
+ 
+ /*
+  * NR_LOCKDEP_CACHING_CLASSES ... Number of classes
+-- 
+1.9.1
+

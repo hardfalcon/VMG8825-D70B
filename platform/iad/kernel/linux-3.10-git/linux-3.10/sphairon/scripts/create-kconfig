@@ -1,0 +1,188 @@
+#!/bin/bash
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+#
+#   Copyright (C) 2013 Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+#
+
+set -e
+
+SCRIPT_ROOT=$(readlink -f $(dirname $0))
+KCONFIG_ROOT=$(readlink -f $SCRIPT_ROOT/../kconfig)
+
+board_name=
+board_variant=
+declare -a initramfs_src
+firmware_dir=
+declare -a firmware_blobs
+mips_appended_dtb=0
+kernel_debug=0
+local_version=1
+
+usage_msg()
+{
+    echo "Usage: $0 <board-name> <board-variant> [opts]" >&2
+    echo "Options:"
+    echo "  -f - kconfig value for built-in firmware directory"
+    echo "  -b - kconfig value for built-in firmware blobs (can be used repeatedly)"
+    echo "  -i - kconfig value for built-in initramfs source (can be used repeatedly)"
+    echo "  -a - enable kconfig for support of MIPS appended DTB"
+    echo "  -d - enable kconfig values for kernel debugging"
+    echo "  -l - disable appending of local version to kernel release (CONFIG_LOCALVERSION_AUTO)"
+}
+
+die_usage()
+{
+    usage_msg
+    exit 1
+}
+
+die_msg()
+{
+    echo "ERROR: $@" >&2
+    exit 1
+}
+
+parse_opts()
+{
+    local cnt
+
+    while getopts 'f:b:i:adl' opt; do
+        case $opt in
+        f)
+            firmware_dir=$OPTARG
+            ;;
+        b)
+            cnt=${#firmware_blobs[@]}
+            firmware_blobs[$cnt]=$OPTARG
+            ;;
+        i)
+            cnt=${#initramfs_src[@]}
+            initramfs_src[$cnt]=$OPTARG
+            ;;
+        a)
+            mips_appended_dtb=1
+            ;;
+        d)
+            kernel_debug=1
+            ;;
+        l)
+            local_version=0
+            ;;
+        *)
+            die_usage
+            ;;
+        :)
+            ;;
+        esac
+    done
+}
+
+print_comment()
+{
+    echo -n "# "
+    for i in $(seq 0 1 $1); do
+        echo -n ">"
+    done
+    shift
+    echo " $@"
+}
+
+parse_scc_file()
+{
+    local depth=$1
+    local scc_file=$KCONFIG_ROOT/$2
+    local scc_dir=$(dirname $scc_file)
+
+    print_comment $depth $2
+
+    test -e $scc_file || die_msg "scc file $scc_file does not exist"
+
+    while read -r key file; do
+        case $key in
+        include)
+            parse_scc_file $((depth + 1)) $file
+            ;;
+        kconf)
+            print_comment $depth $file
+            cat $scc_dir/$file
+            ;;
+        *)
+            ;;
+        esac
+    done < $scc_file
+}
+
+append_board()
+{
+    parse_scc_file 0 bsp/$board_name/$board_name-$board_variant.scc
+}
+
+append_debug()
+{
+    print_comment 0 "create-kconfig:debug"
+    if [ $kernel_debug -eq 1 ]; then
+        parse_scc_file 0 cfg/debug-common.scc
+        parse_scc_file 0 cfg/debug-lockdep.scc
+    fi
+}
+
+append_firmware()
+{
+    print_comment 0 "create-kconfig:firmware"
+    if [ "$firmware_dir" != "" -a ${#firmware_blobs[@]} -gt 0 ]; then
+        echo CONFIG_FW_LOADER=y
+        echo CONFIG_FIRMWARE_IN_KERNEL=y
+        echo CONFIG_EXTRA_FIRMWARE_DIR=\"$firmware_dir\"
+        echo CONFIG_EXTRA_FIRMWARE=\"${firmware_blobs[@]}\"
+    else
+        echo CONFIG_PREVENT_FIRMWARE_BUILD=y
+    fi
+}
+
+append_initramfs()
+{
+    print_comment 0 "create-kconfig:initramfs"
+    if [ ${#initramfs_src[@]} -gt 0 ]; then
+        echo CONFIG_INITRAMFS_SOURCE=\"${initramfs_src[@]}\"
+        echo CONFIG_INITRAMFS_ROOT_UID=$(id -u)
+        echo CONFIG_INITRAMFS_ROOT_GID=$(id -g)
+    fi
+}
+
+append_local_version()
+{
+    print_comment 0 "create-kconfig:local-version"
+    if [ $local_version -eq 1 ]; then
+        echo CONFIG_LOCALVERSION_AUTO=y
+    fi
+}
+
+append_mips_appended_dtb()
+{
+    print_comment 0 "create-kconfig:mips-appended-dtb"
+    if [ $mips_appended_dtb -eq 1 ]; then
+        echo CONFIG_MIPS_APPENDED_DTB=y
+    fi
+}
+
+test $# -ge 2 || die_usage
+board_name=$1
+board_variant=$2
+shift 2
+parse_opts $@
+
+append_board
+append_debug
+append_firmware
+append_initramfs
+append_local_version
+append_mips_appended_dtb

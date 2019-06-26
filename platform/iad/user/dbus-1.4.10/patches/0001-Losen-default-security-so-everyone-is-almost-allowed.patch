@@ -1,0 +1,32 @@
+From 32ff9c9712a3ef3faabe118fbe4599813b22b0eb Mon Sep 17 00:00:00 2001
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Fri, 7 Jan 2011 17:01:55 +0100
+Subject: [PATCH] Losen default security so everyone is almost allowed everything on the system bus.
+
+---
+ bus/system.conf.in |    9 +++++----
+ 1 files changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/bus/system.conf.in b/bus/system.conf.in
+index 92f4cc4..d688f1b 100644
+--- a/bus/system.conf.in
++++ b/bus/system.conf.in
+@@ -45,10 +45,11 @@
+     <!-- All users can connect to system bus -->
+     <allow user="*"/>
+ 
+-    <!-- Holes must be punched in service configuration files for
+-         name ownership and sending method calls -->
+-    <deny own="*"/>
+-    <deny send_type="method_call"/>
++    <!-- Sphairon speciality: We explicitely allow registration and use of bus
++         methods to avoid having complicated measures in place providing no
++         additional security after all -->
++    <allow own="*"/>
++    <allow send_type="method_call"/>
+ 
+     <!-- Signals and reply messages (method returns, errors) are allowed
+          by default -->
+-- 
+1.7.4.1
+

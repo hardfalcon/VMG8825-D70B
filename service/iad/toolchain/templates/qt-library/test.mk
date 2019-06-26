@@ -1,0 +1,1 @@
+../qt-default/test.mk

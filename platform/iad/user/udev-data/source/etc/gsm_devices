@@ -1,0 +1,39 @@
+#map_sw2hw()		# implies VEB_803_small Layout
+#{			# parameter (softwarePort) usb:<bus_id>:<port_id>
+#case	$1	in	#
+#usb:3:4)	echo	gsm/physicalPort_A_HighSpeed	;;
+#usb:3:2)	echo	gsm/physicalPort_C_HighSpeed	;;
+#usb:3:1)	echo	gsm/physicalPort_B_HighSpeed	;;
+#usb:2:2)	echo	gsm/physicalPort_A_FullSpeed	;;
+#usb:1:2)	echo	gsm/physicalPort_C_FullSpeed	;;
+#usb:1:1)	echo	gsm/physicalPort_B_FullSpeed	;;
+#*)	echo	gsm/_No_physicalPort_for_$1	;;
+#esac
+#}
+#
+#vendor_xxxx()	# implies: vendorid fix xxxx
+#{		# parameter: productid $1, portNo $2
+#case	$1	in	#0	1	2	3
+#p_id)	port	$2	DATA	""	VOICE	CNTRL	;; # v_id:p_id Name
+#esac
+#}
+
+
+# this list has the format:
+# vid:pid       intf:function intf:function intf:function
+# so it describes which interface has which function
+# Novatel
+1410:4400	0:DATA	1:CNTRL	2:""    3:""		                # 1410:4400 MC950D
+
+# Huawei
+12d1:1001	0:DATA	1:VOICE	2:CNTRL	3:""		                # 12d1:1001 K3520 (FS)
+12d1:1003	0:DATA	1:CNTRL	2:""	3:""		                # 12d1:1003 E220/K3565
+12d1:1465	0:DATA	1:""	2:""	3:VOICE	4:CNTRL	            # 12d1:1465 K3765 (options)
+12d1:140c	0:DATA	1:""	2:VOICE	3:CNTRL		                # 12d1:140c E155?,E1750
+
+#ZTE
+19d2:0025	0:""	1:""	2:DATA	3:""	4:CNTRL	5:VOICE	    # 19d2:0025 K3520-Z (FS) (uninit 19d2:2000)
+19d2:0055	0:""	1:DATA	2:""	3:CNTRL	4:VOICE	            # 19d2:0055 K3520-ZQ (FS)
+19d2:0063	0:""	1:CNTRL	2:VOICE	3:DATA		                # 19d2:0063 K3565-Z
+19d2:1004	0:DATA	1:CNTRL	2:VOICE	3:""		                # 19d2:1004 K3805-Z HSPA
+19d2:2002	0:""	1:CNTRL	2:VOICE	3:DATA		                # 19d2:2002 K3765-Z

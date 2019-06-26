@@ -1,0 +1,3 @@
+include flavors/sphairon-base.scc
+include features/ipsec/ipsec.scc
+include features/ipsec/ipsec6.scc

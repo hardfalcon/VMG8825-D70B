@@ -1,0 +1,98 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Mon, 14 Feb 2011 18:05:49 +0100
+Subject: Write offline file.
+
+---
+ pppd/main.c | 44 ++++++++++++++++++++++++++++++++++++++++++++
+ pppd/pppd.h |  3 +++
+ 2 files changed, 47 insertions(+)
+
+diff --git a/pppd/main.c b/pppd/main.c
+index 1743081..6aa546b 100644
+--- a/pppd/main.c
++++ b/pppd/main.c
+@@ -482,6 +482,7 @@ main(argc, argv)
+ 
+     create_linkpidfile(getpid());
+     create_pppdlinkpidfile(getpid());
++    write_pppd_status(0);
+ 
+     waiting = 0;
+ 
+@@ -1224,6 +1225,7 @@ cleanup()
+ 	(*the_channel->cleanup)();
+     remove_pidfiles();
+     remove_pppdlinkpidfile();
++    remove_offline();
+ 
+ #ifdef USE_TDB
+     if (pppdb != NULL)
+@@ -2230,6 +2232,17 @@ void write_pppd_status(int status)
+     }
+ end_ifunit_status:
+ 
++    /* boeo 30.09.2009: see comment above write_offline() function */
++    if(demand && (0 == status))
++    {
++        write_offline();
++    }
++    else if ( demand && (4 == status) )
++    {
++        /* schwierd 22.10.09: remove offline file if link is up and auth succeeded */
++        remove_offline();
++    }
++
+     /* TODO: Shall the pppd_status file be handled the same way in case of
+      *       authentication failure?
+      */
+@@ -2244,3 +2257,34 @@ end_ifunit_status:
+ #endif
+     return;
+ }
++
++/* boeo 30.09.2009: /tmp/ppp<x>_offline is created in case of dial-on-demand, when the ppp connection goes offline.
++ *                  It is removed, on going online or exiting the ppp daemon.
++ *                  It is used to show other services, that ppp connection is offline (is a hack!).
++ *
++ *                  <x> means the ifunit, ifunit is zero at opening ppp interface, so we use req_unit
++ *                  (requested unit - given as "unit" in pppoe<x> config file)
++ *                  on SAS IADs ifunit returned from kernel is always equal req_unit
++ */
++void write_offline(void)
++{
++    FILE *fp;
++    char filename[32];
++
++    snprintf(filename, sizeof(filename), "/tmp/pppd%d_offline", req_unit);
++    fp = fopen(filename, "w");
++    if (fp != NULL)
++    {
++        fprintf(fp, "0");
++        fclose(fp);
++    }
++
++}
++
++void remove_offline(void)
++{
++    char filename[32];
++
++    snprintf(filename, sizeof(filename), "/tmp/pppd%d_offline", req_unit);
++    unlink(filename);
++}
+diff --git a/pppd/pppd.h b/pppd/pppd.h
+index 520487a..3cc60ed 100644
+--- a/pppd/pppd.h
++++ b/pppd/pppd.h
+@@ -506,6 +506,9 @@ void unlock_db __P((void));
+ /* schwierd 05.05.2006: added function for writing pppd status to status file */
+ void write_pppd_status(int);
+ int read_pppd_status(void);
++/* boeo 30.09.2009: added function to show offline */
++void write_offline(void);
++void remove_offline(void);
+ 
+ /* Procedures exported from tty.c. */
+ void tty_init __P((void));
+--
+

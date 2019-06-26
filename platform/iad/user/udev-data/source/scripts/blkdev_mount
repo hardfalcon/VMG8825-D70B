@@ -1,0 +1,191 @@
+#!/bin/sh
+# command line options:
+#1) device name sdx
+#2) device part number
+THIS_NAME="blkdev_mount"
+LOG_INFO="shell_log ${THIS_NAME} info "
+LOG_ERROR="shell_log ${THIS_NAME} error "
+
+MOUNT=`which mount`
+NTFSMOUNT=`which mount.ntfs-3g`
+
+#these settings might be cut out here
+DEFAULT_MNT_OPTS="-o nodev,noexec,nosuid,noatime,flush,uid=20,gid=2,dmask=0002,fmask=0113"
+SIMPLE_MNT_OPTS="-o noatime"
+NTFS_MNT_OPTS="-o sync,atime,uid=20,gid=2"
+RO_MNT_OPTS=",ro"
+
+DEFAULT_MNT_POINT="/home/ftp/usb/msd/USBMassStorageDevice"
+DEFAULT_MNT_HEAD="${DEFAULT_MNT_POINT%/*}"
+UMOUNT_SCRIPT="/bin/blkdev_umount"
+
+if [ -n "$UDEV_LOG" ]; then
+	if [ "$UDEV_LOG" -ge 7 ]; then
+		set -x
+	fi
+fi
+
+DEVNAME="$1"
+DEVNUMBER="$2"
+
+#************************************************
+#*              FUNCTIONS                       *
+#************************************************
+convertToMountNumber()
+{
+    SDSTRING=$1
+
+    DISKITSTRING=$(echo ${SDSTRING} | sed 's/^sd//' | sed 's/[0-9]//g')
+    
+    #convert DISKITSTRING to string
+    #assume that's array or single character of lowercase characters, p.a. aa of 'sdaa'
+    #first lowercase character is a => 97
+    
+    DISKITERATOR=0
+    CURRITERATOR=0
+    INITOFFSET=$(printf '%d' "'a")
+    LOOPOFFSET=$(expr $(printf '%d' "'z") - ${INITOFFSET})
+    LOOPCNT=0
+
+    while test -n "${DISKITSTRING}"; do
+        #add offset for each iteration which are not the first
+        if [ ${LOOPCNT} -gt 0 ]; then
+            TMP=$(expr ${CURRITERATOR} + 1)
+            DISKITERATOR=$(expr ${TMP} \* ${LOOPOFFSET} + ${TMP})
+        fi
+        #calculate current iterator of this loop
+        c=${DISKITSTRING:0:1}
+        num=$(printf '%d' "'$c")
+        CURRITERATOR=$(expr ${num} - ${INITOFFSET})             #needed for iteration offset in next loop
+        DISKITERATOR=$(expr ${DISKITERATOR} + ${CURRITERATOR})
+
+        #LOOP control
+        DISKITSTRING=${DISKITSTRING:1}
+        LOOPCNT=$(expr ${LOOPCNT} + 1)
+    done
+
+    return ${DISKITERATOR}
+}
+
+getPartitionNumber()
+{
+    SDSTRING=$1
+
+    PARTNUMBER=$(echo ${SDSTRING} | sed 's/[[:alpha:]]//g')
+    
+    if [ -z "${PARTNUMBER}" ];then
+        return 0
+    else
+        return ${PARTNUMBER}    
+    fi
+}
+
+doMount()
+{
+    #params: 1 device, 2 mntpoint
+    local ret=0
+    $LOG_INFO "Try to mount $1 to $2"
+
+    [ ! -d "$2" ] && mkdir -p "$2"
+    #first try NTFS mount
+    if [ ${#NTFSMOUNT} -gt 0 ]; then
+        $NTFSMOUNT $NTFS_MNT_OPTS "$1" "$2"
+        ret=$?
+    fi
+    [ $ret -eq 0 ] && return 0
+    
+    #default mount
+    if [ ${#MOUNT} -gt 0 ]; then
+        $MOUNT $DEFAULT_MNT_OPTS "$1" "$2"
+        ret=$?
+    fi
+    [ $ret -eq 0 ] && return 0
+
+    # try again with simple mount opts, since not all options are needed
+    if [ ${#MOUNT} -gt 0 ]; then
+        $MOUNT $SIMPLE_MNT_OPTS "$1" "$2"
+        ret=$?
+    fi
+    [ $ret -eq 0 ] && return 0
+    
+    #if reach here, try readonly mount, sometimes mass storages have read only switch
+    if [ ${#NTFSMOUNT} -gt 0 ]; then
+        $NTFSMOUNT "${NTFS_MNT_OPTS}${RO_MNT_OPTS}" "$1" "$2"
+        ret=$?
+    fi
+    [ $ret -eq 0 ] && return 0
+
+    if [ ${#MOUNT} -gt 0 ]; then
+        $MOUNT "${DEFAULT_MNT_OPTS}${RO_MNT_OPTS}" "$1" "$2"
+        ret=$?
+    fi
+    [ $ret -eq 0 ] && return 0
+
+    
+    #all failed, remove mountpoint and return
+    if [ $ret -ne 0 ] ; then
+        rmdir "$2"
+        $LOG_INFO "mount $1 to $2 failed"
+    fi
+    return 0
+}
+
+#check the existance and writeability of mount point
+#if [ ! -d $DEFAULT_MNT_HEAD ]; then
+#    mkdir -p $DEFAULT_MNT_HEAD
+#fi
+#if [ ! -w $DEFAULT_MNT_HEAD ]; then
+#    mount -t tmpfs tmpfs $DEFAULT_MNT_HEAD
+#fi
+
+# try to mount
+
+#************************************************
+#*                  MAIN                        *
+#************************************************
+case "$DEVNAME" in
+    sd*)
+        convertToMountNumber "$DEVNAME"
+        DISKIT=$?
+    
+        getPartitionNumber "$DEVNAME"
+        PARTNUM=$?
+
+        if [ $PARTNUM -eq 0 ]; then
+            $LOG_INFO "try mounting device without or with unknown partition table"
+            PARTNUM=1
+            #BS-409: try mounting device without partition table at part00
+        fi
+
+        #PARTNUM -1 => to start count from 00, IAD-821
+        PARTNUM=$(expr ${PARTNUM} - 1 )
+
+        #$LOG_INFO "$DEVNAME: diskiterator: $DISKIT partnum: $PARTNUM"    
+
+        #create mountpoint
+        MOUNTPOINT="${DEFAULT_MNT_POINT}${DISKIT}/part$(printf '%02d' ${PARTNUM})"    
+    
+        # first have a look if the device is already mounted
+	mnt=$(cat /proc/self/mounts | grep -e "${DEVNAME}" | grep "${MOUNTPOINT}") > /dev/null
+
+        if [ $? -eq 0 ] ; then
+            $LOG_INFO "mountpoints already found: ${MOUNTPOINT}"
+            #try unmounting
+            ${UMOUNT_SCRIPT} "$DEVNAME" "$PARTNUM"
+            #assume that it's umounted now
+            mnt=$(cat /proc/self/mounts | grep -e "${DEVNAME}" | grep "${MOUNTPOINT}") > /dev/null
+            if [ $? -eq 0 ]; then
+                $LOG_ERROR "error mounting device ${DEVNAME}, could not free mountpoint ${MOUNTPOINT}!"
+                exit 0
+            fi
+        fi
+        ;;
+    *)
+	$LOG_ERROR "Unsupported device $DEVNAME given for mounting, abort."
+        exit 0
+        ;;
+esac
+
+doMount "/dev/$DEVNAME" "$MOUNTPOINT"
+
+exit 0

@@ -1,0 +1,100 @@
+From: Maik Dybek <maik.dybek@sphairon.com>
+Date: Fri, 2 Nov 2012 14:31:33 +0100
+Subject: substitute CONFIG_DANUBE with CONFIG_ATM_EXT_PARAMETERS
+
+- Extended ATM QoS parameter were initially added by infineon/lantiq for Danube.
+Now they are also present on VRX so the previously define is renamed.
+---
+ src/br2684/br2684ctl.c | 4 ++--
+ src/include/atm.h      | 6 ++----
+ src/lib/qos2text.c     | 4 ++--
+ src/lib/text2qos.c     | 4 ++--
+ 4 files changed, 8 insertions(+), 10 deletions(-)
+
+diff --git a/src/br2684/br2684ctl.c b/src/br2684/br2684ctl.c
+index 9604db0..72e8686 100644
+--- a/src/br2684/br2684ctl.c
++++ b/src/br2684/br2684ctl.c
+@@ -200,7 +200,7 @@ int create_br(int itfnum, int payload)
+       if (payload == 0)
+         ni.media |= BR2684_FLAG_ROUTED;
+ #endif
+-#if defined CONFIG_DANUBE && !defined BR2684_FLAG_ROUTED
++#if defined CONFIG_ATM_EXT_PARAMETERS && !defined BR2684_FLAG_ROUTED
+       ni.payload = payload;
+ #endif
+       ni.mtu = 1500;
+@@ -283,7 +283,7 @@ int assign_vcc(char *astr, int encap, int payload,
+ 		default: be.encaps = BR2684_ENCAPS_VC;      break;
+     }
+ 
+-#if defined CONFIG_DANUBE && !defined BR2684_FLAG_ROUTED
++#if defined CONFIG_ATM_EXT_PARAMETERS && !defined BR2684_FLAG_ROUTED
+     be.payload = payload;
+ #endif
+     be.has_vpiid = 0;
+diff --git a/src/include/atm.h b/src/include/atm.h
+index 32b884d..1217611 100644
+--- a/src/include/atm.h
++++ b/src/include/atm.h
+@@ -86,12 +86,10 @@ extern "C" {
+ #define MAX_ATM_ADDR_LEN (2*ATM_ESA_LEN+ATM_E164_LEN+5)
+ 				/* 4 dots, 1 plus */
+ #define MAX_ATM_NAME_LEN 256	/* wild guess */
+-#if defined CONFIG_DANUBE
+-#define MAX_ATM_QOS_LEN 255     /* wild guess by Neeraj */
+-#elif defined CONFIG_MPC8323
++#if defined CONFIG_MPC8323
+ #define MAX_ATM_QOS_LEN 191	/* 7+1+4+2*(1+3+5*(8+8+1))+1 */
+ #else
+-#define MAX_ATM_QOS_LEN 116	/* 5+4+2*(3+3*(7+9)+2)+1 */
++#define MAX_ATM_QOS_LEN 255     /* wild guess by Neeraj */
+ #endif
+ #define MAX_ATM_SAP_LEN	255	/* BHLI(27)+1+3*BLLI(L2=33,L3=41,+1)+2 */
+ 
+diff --git a/src/lib/qos2text.c b/src/lib/qos2text.c
+index 60abc86..700094a 100644
+--- a/src/lib/qos2text.c
++++ b/src/lib/qos2text.c
+@@ -33,7 +33,7 @@ static void params(char *buffer,char **pos,const struct atm_trafprm *ref,
+     FLD(pcr);
+     FLD(min_pcr);
+     FLD(max_sdu);
+-#ifdef CONFIG_DANUBE
++#ifdef CONFIG_ATM_EXT_PARAMETERS
+     FLD(scr);
+     FLD(mbs);
+     FLD(cdv);
+@@ -77,7 +77,7 @@ int qos2text(char *buffer,int length,const struct atm_qos *qos,int flags)
+ 	    strcpy(buffer,"cbr");
+ 	    pos += 3;
+ 	    break;
+-#ifdef CONFIG_DANUBE
++#ifdef CONFIG_ATM_EXT_PARAMETERS
+ 	case ATM_VBR_RT:
+ 	    strcpy(buffer,"rt-vbr");
+ 	    pos += 6;
+diff --git a/src/lib/text2qos.c b/src/lib/text2qos.c
+index ced12aa..8e0b8bc 100644
+--- a/src/lib/text2qos.c
++++ b/src/lib/text2qos.c
+@@ -87,7 +87,7 @@ static int params(const char **text,struct atm_trafprm *a,
+     while (1) {
+ 	if (!**text) return -1;
+ 	switch (fetch(text,"max_pcr=","pcr=","min_pcr=","max_sdu=","sdu=",
+-#ifdef CONFIG_DANUBE
++#ifdef CONFIG_ATM_EXT_PARAMETERS
+                       "scr=","mbs=","cdv=",
+ #endif
+ 	  NULL)) {
+@@ -115,7 +115,7 @@ static int params(const char **text,struct atm_trafprm *a,
+ 		if (a) a->max_sdu = value;
+ 		if (b) b->max_sdu = value;
+ 		break;
+-#ifdef CONFIG_DANUBE
++#ifdef CONFIG_ATM_EXT_PARAMETERS
+ 	    case 5:
+ 		if ((value = __t2q_get_rate(text,1)) == RATE_ERROR) return -1;
+ 		if (value == ATM_MAX_PCR) return -1;
+--
+

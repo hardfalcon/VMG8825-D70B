@@ -1,0 +1,341 @@
+From: Daniel Egger <daniel.egger@sphairon.com>
+Date: Mon, 14 Feb 2011 18:05:49 +0100
+Subject: 1. write status file /tmp/pppd<if_num>_status (and /tmp/pppd_status
+ for compatibility) 2. maintain a pid file with a name corresponding link name
+ that is available as long as the pppd exists
+
+Signed-off-by: Olaf.Boettcher@sphairon.com
+---
+ pppd/auth.c | 36 ++++++++++++++++++++++++
+ pppd/ipcp.c | 16 +++++++++++
+ pppd/main.c | 92 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ pppd/pppd.h |  3 ++
+ 4 files changed, 147 insertions(+)
+
+diff --git a/pppd/auth.c b/pppd/auth.c
+index 9c87415..0c57d8b 100644
+--- a/pppd/auth.c
++++ b/pppd/auth.c
+@@ -626,6 +626,10 @@ link_terminated(unit)
+     session_end(devnam);
+ 
+     if (!doing_multilink) {
++        //notice (" write pppd_status in %s (%d) \n", __FUNCTION__ , __LINE__); 
++        if (read_pppd_status() != 3)
++          write_pppd_status(0);
++       
+ 	notice("Connection terminated.");
+ 	print_link_stats();
+     } else
+@@ -924,6 +928,10 @@ auth_peer_fail(unit, protocol)
+      */
+     status = EXIT_PEER_AUTH_FAILED;
+     lcp_close(unit, "Authentication failed");
++
++    // 10.05.2006 titzec: show error with the red internet led (ppp-traffic)
++    //notice (" write pppd_status in %s(%d) \n", __FUNCTION__ , __LINE__); 
++    write_pppd_status(3);
+ }
+ 
+ /*
+@@ -937,6 +945,10 @@ auth_peer_success(unit, protocol, prot_flavor, name, namelen)
+ {
+     int bit;
+ 
++    // 10.05.2006 titzec: disable red internet led (ppp-traffic)
++    //notice (" write pppd_status in %s(%d) \n", __FUNCTION__ , __LINE__); 
++    write_pppd_status(4);
++
+     switch (protocol) {
+     case PPP_CHAP:
+ 	bit = CHAP_PEER;
+@@ -1002,6 +1014,9 @@ auth_withpeer_fail(unit, protocol)
+      */
+     status = EXIT_AUTH_TOPEER_FAILED;
+     lcp_close(unit, "Failed to authenticate ourselves to peer");
++
++    //notice (" write pppd_status in %s(%d) \n", __FUNCTION__ , __LINE__); 
++    write_pppd_status(3);
+ }
+ 
+ /*
+@@ -1075,6 +1090,11 @@ np_up(unit, proto)
+ 	 * At this point we consider that the link has come up successfully.
+ 	 */
+ 	status = EXIT_OK;
++
++        /* schwierd 05.05.2006: replaced by c-routines */
++        //notice (" write pppd_status in %s(%d) \n", __FUNCTION__ , __LINE__); 
++        write_pppd_status(4);
++
+ 	unsuccess = 0;
+ 	new_phase(PHASE_RUNNING);
+ 
+@@ -1197,6 +1217,8 @@ check_idle(arg)
+ 	notice("Terminating connection due to lack of activity.");
+ 	status = EXIT_IDLE_TIMEOUT;
+ 	lcp_close(0, "Link inactive");
++        //notice (" write pppd_status in %s(%d) \n", __FUNCTION__ , __LINE__); 
++        write_pppd_status(0);
+ 	need_holdoff = 0;
+     } else {
+ 	TIMEOUT(check_idle, NULL, tlim);
+@@ -1463,10 +1485,20 @@ check_passwd(unit, auser, userlen, apasswd, passwdlen, msg)
+ 	 */
+ 	if (attempts++ >= 10) {
+ 	    warn("%d LOGIN FAILURES ON %s, %s", attempts, devnam, user);
++
++            // 10.05.2006 titzec: show an error with the red internet led (ppp-traffic)
++            //notice (" write pppd_status in %s(%d) \n", __FUNCTION__ , __LINE__); 
++            write_pppd_status(3);
++                
+ 	    lcp_close(unit, "login failed");
+ 	}
+ 	if (attempts > 3)
+ 	    sleep((u_int) (attempts - 3) * 5);
++
++            // 10.05.2006 titzec: show an error with the red internet led (ppp-traffic)
++            // notice (" write pppd_status in %s(%d) \n", __FUNCTION__ , __LINE__); 
++            write_pppd_status(3);
++
+ 	if (opts != NULL)
+ 	    free_wordlist(opts);
+ 
+@@ -1475,6 +1507,10 @@ check_passwd(unit, auser, userlen, apasswd, passwdlen, msg)
+ 	if (**msg == 0)
+ 	    *msg = "Login ok";
+ 	set_allowed_addrs(unit, addrs, opts);
++
++        // 10.05.2006 titzec: disable red internet led (ppp-traffic)
++        //notice (" write pppd_status in %s(%d) \n", __FUNCTION__ , __LINE__); 
++        write_pppd_status(4);
+     }
+ 
+     if (addrs != NULL)
+diff --git a/pppd/ipcp.c b/pppd/ipcp.c
+index 997059c..e348090 100644
+--- a/pppd/ipcp.c
++++ b/pppd/ipcp.c
+@@ -1803,6 +1803,10 @@ ipcp_up(f)
+ 	    if (!sifaddr(f->unit, go->ouraddr, ho->hisaddr, mask)) {
+ 		if (debug)
+ 		    warn("Interface configuration failed");
++			// 10.05.2006 titzec: show an error with the red internet led (ppp-traffic)
++			//notice (" write pppd_status in %s(%d) \n", __FUNCTION__ , __LINE__); 
++			write_pppd_status(3);
++
+ 		ipcp_close(f->unit, "Interface configuration failed");
+ 		return;
+ 	    }
+@@ -1832,6 +1836,10 @@ ipcp_up(f)
+ 	if (!sifaddr(f->unit, go->ouraddr, ho->hisaddr, mask)) {
+ 	    if (debug)
+ 		warn("Interface configuration failed");
++		// 10.05.2006 titzec: show an error with the red internet led (ppp-traffic)
++		//notice (" write pppd_status in %s(%d) \n", __FUNCTION__ , __LINE__); 
++		write_pppd_status(3);
++		
+ 	    ipcp_close(f->unit, "Interface configuration failed");
+ 	    return;
+ 	}
+@@ -1844,6 +1852,10 @@ ipcp_up(f)
+ 	if (!sifup(f->unit)) {
+ 	    if (debug)
+ 		warn("Interface failed to come up");
++		// 10.05.2006 titzec: show an error with the red internet led (ppp-traffic)
++		//notice (" write pppd_status in %s(%d) \n", __FUNCTION__ , __LINE__); 
++		write_pppd_status(3);
++		
+ 	    ipcp_close(f->unit, "Interface configuration failed");
+ 	    return;
+ 	}
+@@ -1852,6 +1864,10 @@ ipcp_up(f)
+ 	if (!sifaddr(f->unit, go->ouraddr, ho->hisaddr, mask)) {
+ 	    if (debug)
+ 		warn("Interface configuration failed");
++		// 10.05.2006 titzec: show an error with the red internet led (ppp-traffic)
++	    //notice (" write pppd_status in %s(%d) \n", __FUNCTION__ , __LINE__); 
++	    write_pppd_status(3);
++		
+ 	    ipcp_close(f->unit, "Interface configuration failed");
+ 	    return;
+ 	}
+diff --git a/pppd/main.c b/pppd/main.c
+index 77c5f37..e1dfb1d 100644
+--- a/pppd/main.c
++++ b/pppd/main.c
+@@ -126,6 +126,7 @@ static const char rcsid[] = RCSID;
+ /* interface vars */
+ char ifname[32];		/* Interface name */
+ int ifunit;			/* Interface unit number */
++int if_status = 0;              /* Interface Status */
+ 
+ struct channel *the_channel;
+ 
+@@ -133,6 +134,7 @@ char *progname;			/* Name of this program */
+ char hostname[MAXNAMELEN];	/* Our hostname */
+ static char pidfilename[MAXPATHLEN];	/* name of pid file */
+ static char linkpidfile[MAXPATHLEN];	/* name of linkname pid file */
++static char pppdpidfile[MAXPATHLEN];    /* name of pppd-linkname pid file: is persistent as long as the pppd lives */
+ char ppp_devnam[MAXPATHLEN];	/* name of PPP tty (maybe ttypx) */
+ uid_t uid;			/* Our real user-id */
+ struct notifier *pidchange = NULL;
+@@ -231,6 +233,8 @@ static struct subprocess *children;
+ static void setup_signals __P((void));
+ static void create_pidfile __P((int pid));
+ static void create_linkpidfile __P((int pid));
++static void create_pppdlinkpidfile __P((int pid));
++static void remove_pppdlinkpidfile __P((void));
+ static void cleanup __P((void));
+ static void get_input __P((void));
+ static void calltimeout __P((void));
+@@ -477,6 +481,7 @@ main(argc, argv)
+     setup_signals();
+ 
+     create_linkpidfile(getpid());
++    create_pppdlinkpidfile(getpid());
+ 
+     waiting = 0;
+ 
+@@ -746,6 +751,7 @@ set_ifunit(iskey)
+     if (iskey) {
+ 	create_pidfile(getpid());	/* write pid to file */
+ 	create_linkpidfile(getpid());
++	create_pppdlinkpidfile(getpid());
+     }
+ }
+ 
+@@ -774,6 +780,7 @@ detach()
+ 	if (pidfilename[0])
+ 	    create_pidfile(pid);
+ 	create_linkpidfile(pid);
++	create_pppdlinkpidfile(pid);
+ 	exit(0);		/* parent dies */
+     }
+     setsid();
+@@ -845,6 +852,24 @@ create_linkpidfile(pid)
+     }
+ }
+ 
++void
++create_pppdlinkpidfile(int pid)
++{
++    FILE *pidfile;
++
++    if (linkname[0] == 0)
++        return;
++    slprintf(pppdpidfile, sizeof(pppdpidfile), "%spppd-%s.pid",
++             _PATH_VARRUN, linkname);
++    if ((pidfile = fopen(pppdpidfile, "w")) != NULL) {
++        fprintf(pidfile, "%d\n", pid);
++        (void) fclose(pidfile);
++    } else {
++        error("Failed to create pid file %s: %m", pppdpidfile);
++        pppdpidfile[0] = 0;
++    }
++}
++
+ /*
+  * remove_pidfile - remove our pid files
+  */
+@@ -858,6 +883,13 @@ void remove_pidfiles()
+     linkpidfile[0] = 0;
+ }
+ 
++void remove_pppdlinkpidfile(void)
++{
++    if (pppdpidfile[0] != 0 && unlink(pppdpidfile) < 0 && errno != ENOENT)
++        warn("unable to delete pid file %s: %m", pppdpidfile);
++    pppdpidfile[0] = 0;
++}
++
+ /*
+  * holdoff_end - called via a timeout when the holdoff period ends.
+  */
+@@ -1191,6 +1223,7 @@ cleanup()
+     if (the_channel->cleanup)
+ 	(*the_channel->cleanup)();
+     remove_pidfiles();
++    remove_pppdlinkpidfile();
+ 
+ #ifdef USE_TDB
+     if (pppdb != NULL)
+@@ -2151,3 +2184,62 @@ cleanup_db()
+ 	    delete_db_key(p);
+ }
+ #endif /* USE_TDB */
++
++/* schwierd 05.05.2006: added function for writing pppd status to status file */
++//#define ENABLE_COMPATIBILITY_MODE   1
++int read_pppd_status(void)
++{
++//  notice ("-- %s -- = %d \n ", __FUNCTION__, if_status);
++  return if_status; 
++}
++void write_pppd_status(int status)
++{
++    FILE *fp;
++    char filename[32];
++    
++    if_status = status;
++    // ifunit is zero at opening ppp interface, whereas the status file is already written by rp-pppoe plugin;
++    // on SAS IADs ifunit returned from kernel is always equal req_unit 
++    // (requested unit - given as "unit" in pppoe<x> config file)
++    //snprintf(filename, sizeof(filename), "/tmp/pppd%d_status", ifunit);
++    snprintf(filename, sizeof(filename), "/tmp/pppd%d_status", req_unit);
++    //notice ("-- %s -- %s = %d \n ", __FUNCTION__, filename, status);  
++
++    /* Do not override status with 0 on shutting down LCP link layer
++       if shut down was caused by an authentication failure
++    */
++    if ( 0 == status)
++    {
++        fp = fopen( filename, "r");
++        if ( NULL != fp)
++        {
++            int filestatus = 0;
++            fscanf( fp, "%d", &filestatus);
++            fclose( fp);
++            if ( 3 == filestatus)
++            {
++                goto end_ifunit_status;
++            }
++        }
++    }
++    fp = fopen(filename, "w");
++    if (fp != NULL)
++    {
++        fprintf(fp, "%d", status);
++        fclose(fp);
++    }
++end_ifunit_status:
++
++    /* TODO: Shall the pppd_status file be handled the same way in case of
++     *       authentication failure?
++     */
++
++#if ENABLE_COMPATIBILITY_MODE
++    fp = fopen("/tmp/pppd_status", "w");
++    if (fp != NULL)
++    {
++        fprintf(fp, "%d", status);
++        fclose(fp);
++    }
++#endif
++}
+diff --git a/pppd/pppd.h b/pppd/pppd.h
+index 867dd02..520487a 100644
+--- a/pppd/pppd.h
++++ b/pppd/pppd.h
+@@ -503,6 +503,9 @@ const char *protocol_name __P((int));
+ void remove_pidfiles __P((void));
+ void lock_db __P((void));
+ void unlock_db __P((void));
++/* schwierd 05.05.2006: added function for writing pppd status to status file */
++void write_pppd_status(int);
++int read_pppd_status(void);
+ 
+ /* Procedures exported from tty.c. */
+ void tty_init __P((void));
+--
+

@@ -1,0 +1,24 @@
+From: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+Date: Tue, 23 Oct 2012 14:06:22 +0200
+Subject: Do not use magic library search script for cross-compilation
+
+Signed-off-by: Daniel Schwierzeck <daniel.schwierzeck@sphairon.com>
+---
+ Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+index e0f7eaf..6babd8a 100644
+--- a/Makefile
++++ b/Makefile
+@@ -4,7 +4,7 @@ INSTALL	=	install
+ IFLAGS  = -idirafter dummyinc
+ #CFLAGS = -g
+ CFLAGS	=	-O2 -Wall -W -Wshadow #-pedantic -Werror -Wconversion
+-LIBS	=	`./vsf_findlibs.sh`
++LIBS	=
+ LINK	=
+ 
+ OBJS	=	main.o utility.o prelogin.o ftpcmdio.o postlogin.o privsock.o \
+--
+
